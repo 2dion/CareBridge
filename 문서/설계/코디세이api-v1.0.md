@@ -20,7 +20,7 @@
 | 중간 등급 모델 | `claude-sonnet-4` (Sonnet 4.6, 차감 배수 1): Agent, 항목 보태기 |
 | 가벼운 등급 모델 | `claude-haiku-4` (Haiku 4.5, 차감 배수 0.5): 짧은 번역, 도우미 |
 | 키 | 코디세이 Anthropic 호환 키. 서버 환경 변수에만 |
-| 받아쓰기(STT) | ⚠️ 공개 API에 없음. 채팅 모델에 음성을 넣는 방법(A)부터 시험, 안 되면 다른 대안. 그때까지 Mock (아래 'STT') |
+| 받아쓰기(STT) | ⚠️ 공개 API에 없음. 채팅 모델에 음성 넣기(A)는 10/20 시험에서 안 됨 → 다른 대안 고르는 중. 그때까지 Mock (아래 'STT') |
 | 듣기(TTS) | 브라우저 내장 먼저. 베트남어 목소리가 없으면 공개 API `/api/v1/audio/tts` |
 | 키 없을 때 | `USE_MOCK_AI=true`로 Mock 응답 |
 
@@ -159,6 +159,19 @@ curl https://copa.codyssey.kr/v1/chat/completions \
 
 `gemini-3-flash`가 안 되면 `gpt-5.4-mini` 등 다른 채팅 모델로 한 번 더 해 봅니다.
 
+### A 시험 결과 (2026-10-20): 안 됨
+
+| 시험 | 결과 |
+| --- | --- |
+| 합성 녹음 만들기: `/api/v1/audio/tts`, tts-1, wav, 한국어 3문장 | 200, 약 19초 wav. 차감 460토큰 |
+| `gemini-3-flash`, `gemini-3.1-flash-lite`, `gemini-3.1-pro`, `gpt-5.4-mini`에 `input_audio` | 모두 400 `unsupported_feature` ("Requested feature is not supported.") |
+| `gemini-3-flash`에 `file`·`image_url`(data URI) 형태 | 400 `unsupported_feature` |
+| 같은 키로 글자만 보낸 채팅 | 200 (키 문제 아님) |
+
+공개 API는 채팅에 글자 말고는 받지 않습니다. 그래서 A는 쓸 수 없고, 다른 대안을 찾습니다(팀장 10/20 "안 되면 다른 대안").
+
+덤으로 확인한 것: OpenAI 호환 키로 `/v1/messages`를 부르면 403 "This API key is not allowed for the Anthropic-compatible API"입니다. Claude를 쓰려면 Anthropic 호환 키가 따로 있어야 합니다.
+
 ## 7. 처음 확인할 것 (키를 받은 날)
 
 **왜:** 가정이 틀리면 첫 주 안에 알아야 일정이 버팁니다.
@@ -167,7 +180,7 @@ curl https://copa.codyssey.kr/v1/chat/completions \
 | --- | --- | --- | --- |
 | 1 | `/v1/messages` 기본 호출 | 콘솔 예제 curl 1번 | 팀장 |
 | 2 | 도구 사용(tool use)이 넘어가는지 | 도구 1개 정의해 `stop_reason: "tool_use"`가 오는지 | 백엔드 담당 |
-| 3 | 음성 입력이 되는지 (STT 길 A) | 짧은 합성 녹음 1개를 채팅 모델에 | 백엔드 담당 |
+| 3 | 음성 입력이 되는지 (STT 길 A) | 짧은 합성 녹음 1개를 채팅 모델에 | ✓ 10/20 안 됨 (§6 결과) |
 | 4 | Agent 1건 토큰 | `count_tokens` + 사용량 탭 | 백엔드 담당 |
 | 5 | 프롬프트 캐싱 적중 | 같은 요청 2번 후 사용량 탭 '캐시' 칸 | 백엔드 담당 |
 | 6 | 베트남어 TTS 목소리 | 시연 기기 브라우저, 안 되면 `/api/v1/audio/tts` | 프론트엔드 담당 |
