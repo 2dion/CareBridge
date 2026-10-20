@@ -20,7 +20,7 @@
 | 중간 등급 모델 | `claude-sonnet-4` (Sonnet 4.6, 차감 배수 1): Agent, 항목 보태기 |
 | 가벼운 등급 모델 | `claude-haiku-4` (Haiku 4.5, 차감 배수 0.5): 짧은 번역, 도우미 |
 | 키 | 코디세이 Anthropic 호환 키. 서버 환경 변수에만 |
-| 받아쓰기(STT) | ⚠️ 공개 API에 없음. 채팅 모델에 음성 넣기(A)는 10/20 시험에서 안 됨 → 다른 대안 고르는 중. 그때까지 Mock (아래 'STT') |
+| 받아쓰기(STT) | 공개 API에 없음 → Groq Whisper 무료 API (10/20 결정, [결정 기록](../결정/2026-10-20-stt-groq.md)) |
 | 듣기(TTS) | 브라우저 내장 먼저. 베트남어 목소리가 없으면 공개 API `/api/v1/audio/tts` |
 | 키 없을 때 | `USE_MOCK_AI=true`로 Mock 응답 |
 
@@ -169,6 +169,8 @@ curl https://copa.codyssey.kr/v1/chat/completions \
 | 같은 키로 글자만 보낸 채팅 | 200 (키 문제 아님) |
 
 공개 API는 채팅에 글자 말고는 받지 않습니다. 그래서 A는 쓸 수 없고, 다른 대안을 찾습니다(팀장 10/20 "안 되면 다른 대안").
+
+**최종 (10/20):** 받아쓰기는 Groq Whisper 무료 API로 정했습니다. 이유·한도·데이터 정책은 [결정 기록](../결정/2026-10-20-stt-groq.md)에 있습니다.
 
 덤으로 확인한 것: OpenAI 호환 키로 `/v1/messages`를 부르면 403 "This API key is not allowed for the Anthropic-compatible API"입니다. Claude를 쓰려면 Anthropic 호환 키가 따로 있어야 합니다.
 
