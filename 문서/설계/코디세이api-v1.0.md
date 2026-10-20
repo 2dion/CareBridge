@@ -57,13 +57,14 @@
 # .env.local 예시 (값은 자리표시자. 진짜 키는 커밋하지 않음)
 # 모두 서버 전용. NEXT_PUBLIC_ 을 붙이지 않는다.
 ANTHROPIC_BASE_URL=https://copa.codyssey.kr
-ANTHROPIC_API_KEY=<코디세이-anthropic-호환-키>
+ANTHROPIC_AUTH_TOKEN=<코디세이-anthropic-호환-키>   # API_KEY 가 아니라 AUTH_TOKEN (아래 설명)
 AI_MODEL_MAIN=claude-sonnet-4
 AI_MODEL_LIGHT=claude-haiku-4
 USE_MOCK_AI=true
 ```
 
-- Anthropic 공식 SDK(`@anthropic-ai/sdk`)는 `ANTHROPIC_BASE_URL`과 `ANTHROPIC_API_KEY`를 저절로 읽습니다. 그래서 코드에는 주소·키를 쓰지 않습니다.
+- Anthropic 공식 SDK(`@anthropic-ai/sdk`)는 `ANTHROPIC_BASE_URL`과 `ANTHROPIC_AUTH_TOKEN`을 저절로 읽습니다. 그래서 코드에는 주소·키를 쓰지 않습니다.
+- **키는 `Authorization: Bearer` 헤더로 보내야 합니다.** 10/20 시험에서 같은 키를 `x-api-key` 헤더로 보내면 401 `invalid x-api-key`, Bearer로 보내면 200이었습니다(매뉴얼은 두 방식 모두 된다고 하지만 이 주소에서는 `x-api-key`가 안 됨). SDK는 `ANTHROPIC_API_KEY`를 `x-api-key`로 보내므로, 이름을 `ANTHROPIC_AUTH_TOKEN`(코드에서는 `authToken` 옵션)으로 써서 Bearer로 나가게 합니다.[2][6]
 - 모델 이름은 `AI_MODEL_MAIN`, `AI_MODEL_LIGHT` 두 곳에만 둡니다(AI 규칙 '모델 이름은 설정 한 곳').[4]
 - `USE_MOCK_AI`는 기술검토 v1.5의 Mock 모드입니다. Production에서는 `false`여야 하고, Mock일 때 화면에 "MOCK"을 보여 줍니다.[5]
 
@@ -75,7 +76,7 @@ USE_MOCK_AI=true
 // 서버 코드에서만 (app/api/... 또는 서버 전용 모듈)
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic(); // ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY 를 읽음
+const client = new Anthropic(); // ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN(Bearer) 를 읽음
 
 const response = await client.messages.create({
   model: process.env.AI_MODEL_MAIN!,
@@ -90,7 +91,7 @@ const response = await client.messages.create({
 ```
 
 - 규격 차이: `max_tokens` 필수, 시스템 프롬프트는 최상위 `system`, 답은 `content` 블록 배열입니다.[2]
-- 도구 사용(tool use): 공개 API는 Anthropic 규격을 그대로 넘깁니다("Protocol native"). 콘솔이 같은 키로 Claude Code를 붙이는 방법을 안내하는데, Claude Code는 도구 사용으로 돌아가므로 도구 사용도 될 것으로 봅니다. ⚠️ 키를 받으면 도구 하나짜리 요청으로 먼저 확인합니다(아래 '처음 확인할 것').[2]
+- 도구 사용(tool use): 공개 API는 Anthropic 규격을 그대로 넘깁니다("Protocol native"). 콘솔이 같은 키로 Claude Code를 붙이는 방법을 안내하는데, ✓ 10/20 도구 하나짜리 요청으로 확인했습니다: `claude-haiku-4`(실제 `claude-haiku-4-5-20251001`)가 `stop_reason: "tool_use"`로 도구를 부르고, 도구 결과를 돌려주면 그 값으로 최종 답을 했습니다(`end_turn`). 단 키는 Bearer 헤더로 보냈을 때만 됩니다.[2][6]
 - 토큰 미리 세기: `POST /v1/messages/count_tokens`가 있어 Agent 한 번에 드는 토큰을 미리 잴 수 있습니다.[2]
 
 ## 4. 토큰 한도와 아끼는 법
@@ -113,7 +114,7 @@ const response = await client.messages.create({
 
 | 오류 | 뜻 | 서버가 할 일 |
 | --- | --- | --- |
-| 401 invalid_api_key | 키 오타·폐기 | 다시 하지 않음. 로그에 남기고 화면에 "AI 연결 설정 오류" |
+| 401 invalid_api_key / invalid x-api-key | 키 오타·폐기, 또는 키를 `x-api-key`로 보냄(Bearer로 보내야 함) | 다시 하지 않음. 로그에 남기고 화면에 "AI 연결 설정 오류" |
 | 403 Provider credentials unavailable, 409, 503 | 기관 쪽 키 문제 | 한 번 다시. 또 실패하면 audio_jobs.status = failed, [다시 시도]·[글로 쓰기] |
 | 한도 초과 | 월 차감 토큰 소진 | 다시 하지 않음. 화면에 [글로 쓰기]만, 팀에 알림 |
 | 400 (max_tokens 등) | 요청 형식 오류 | 다시 하지 않음. 코드 버그로 기록 |
@@ -181,7 +182,7 @@ curl https://copa.codyssey.kr/v1/chat/completions \
 | # | 확인 | 방법 | 담당 |
 | --- | --- | --- | --- |
 | 1 | `/v1/messages` 기본 호출 | 콘솔 예제 curl 1번 | 팀장 |
-| 2 | 도구 사용(tool use)이 넘어가는지 | 도구 1개 정의해 `stop_reason: "tool_use"`가 오는지 | 백엔드 담당 |
+| 2 | 도구 사용(tool use)이 넘어가는지 | 도구 1개 정의해 `stop_reason: "tool_use"`가 오는지 | ✓ 10/20 됨 (Bearer 헤더일 때만, §2) |
 | 3 | 음성 입력이 되는지 (STT 길 A) | 짧은 합성 녹음 1개를 채팅 모델에 | ✓ 10/20 안 됨 (§6 결과) |
 | 4 | Agent 1건 토큰 | `count_tokens` + 사용량 탭 | 백엔드 담당 |
 | 5 | 프롬프트 캐싱 적중 | 같은 요청 2번 후 사용량 탭 '캐시' 칸 | 백엔드 담당 |
@@ -196,3 +197,4 @@ curl https://copa.codyssey.kr/v1/chat/completions \
 3. [결정 기록: 텍스트 AI는 코디세이 공개 API로](../결정/2026-10-20-코디세이api.md).
 4. [AI 규칙 v1.1](ai규칙-v1.1.md) 'AI가 하는 일', '서버 검사와 예외 처리', '비용·지연 (B5)'.
 5. [기술검토 v1.5](기술검토-v1.5.md) 3장 #4 Mock 모드, 7장 #5.
+6. 2dion 팀장 맥에서 10/20 직접 시험(합성 질문 1개, 도구 1개): `x-api-key`는 401, `Authorization: Bearer`는 200, 도구 사용 왕복 통과. 결정 기록의 '시험 결과' 참고.
