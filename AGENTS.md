@@ -78,15 +78,20 @@ API 경로·입출력 요약, 상태 값 목록, Agent 도구 4개의 입출력�
 
 **왜:** 완료라고 말하기 전에 같은 방법으로 확인하기 위해서입니다.
 
-코드가 생기면 채웁니다.
+앱 코드는 `web/`(Next.js), DB 설정은 `supabase/`에 있습니다. 아래 명령은 `web/` 폴더에서 돌립니다. 키가 없어도 Mock 모드(`USE_MOCK_AI=true`)로 모두 통과해야 합니다. 같은 검사를 GitHub Actions "web 검사"가 PR마다 돌립니다. 자세한 실행 방법은 `web/README.md`에 있습니다.
 
 ```text
-설치:      (코드 생기면 채움)
-형식 검사:  (코드 생기면 채움)
-타입 검사:  (코드 생기면 채움)
-테스트:    (코드 생기면 채움)
-빌드:      (코드 생기면 채움)
+설치:      npm ci
+린트:      npm run lint
+형식 검사:  npm run format:check   (고치기: npm run format)
+타입 검사:  npm run typecheck
+테스트:    npm run test
+빌드:      npm run build
+한 번에:    npm run check   (빌드 빼고 모두)
 ```
+
+- 실제 Claude·받아쓰기 호출은 `USE_MOCK_AI=false`일 때만 합니다. 코디세이 월 토큰 한도가 있으니 개발은 Mock과 Haiku로 합니다(`문서/설계/코디세이api-v1.0.md` §4).
+- `web/AGENTS.md`는 Next.js가 자동으로 만드는 파일입니다. Next.js 16은 예전과 달라서, 코드를 쓰기 전에 `web/node_modules/next/dist/docs/`를 보라는 안내입니다. 이 문서와 다르면 이 문서를 따릅니다.
 
 ## 완료 보고 형식
 

@@ -1,0 +1,3 @@
+-- 로컬 Supabase(supabase db reset)에서 넣는 시험 데이터.
+-- 합성 사례만 씁니다. 어르신·가족 실명 금지(AGENTS.md 원칙 9).
+-- 표는 supabase/migrations/ 에 백엔드 담당이 만든 뒤 채웁니다.
