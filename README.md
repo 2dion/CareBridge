@@ -13,7 +13,7 @@ cp .env.example .env.local   # 키 없이도 Mock 모드로 돌아감
 npm run dev                  # http://localhost:3000
 ```
 
-Node.js 22 이상이 필요합니다. 키 넣는 법, 검사 명령, 폴더 구조는 [web/README.md](web/README.md)에 있습니다. AI 코딩 도구로 작업한다면 먼저 [AGENTS.md](AGENTS.md)를 읽습니다.
+Node.js 22 이상이 필요합니다. 키 넣는 법, 검사 명령, 폴더 구조는 [web/README.md](web/README.md)에 있습니다. AI 코딩 도구로 작업한다면 먼저 [AGENTS.md](AGENTS.md)를 읽습니다. 작업은 이슈 없이 브랜치 → PR로 올리고, PR 본문에 무엇을 바꿨나·어떻게 확인했나·남은 것 세 줄을 씁니다(AGENTS.md '작업 올리는 방법').
 
 배포 주소(Vercel Production): https://care-bridge-kappa.vercel.app
 
