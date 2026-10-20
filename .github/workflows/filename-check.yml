@@ -1,0 +1,15 @@
+# 목적: 누가 어떤 방법(웹 업로드 포함)으로 올리든 파일 이름 규칙을 자동으로 확인한다.
+# 어긋나면 커밋 옆에 빨간 X가 뜨고, 로그에 고칠 파일과 이유가 한국어로 나온다.
+name: 파일 이름 검사
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 파일 이름 규칙 확인
+        run: python3 .github/scripts/check-filenames.py
