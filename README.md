@@ -8,6 +8,8 @@
 |---|---|
 | `문서/` | 우리 팀이 만든 기획·설계 문서와 회의록 |
 | `참고자료/` | 밖에서 받은 자료와 제출한 파일 |
+| `web/` | 앱 코드 (Next.js). 실행 방법은 [web/README.md](web/README.md) |
+| `supabase/` | DB 표·권한(RLS) 설정. [supabase/README.md](supabase/README.md) |
 
 자세한 기준은 각 폴더의 `README.md`를 봅니다.
 

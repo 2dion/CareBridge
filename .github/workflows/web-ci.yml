@@ -1,0 +1,41 @@
+# 목적: web/(Next.js) 코드가 바뀌면 린트·형식·타입·테스트·빌드를 자동으로 확인한다.
+# 키 없이 Mock 모드로 돈다. 실패하면 PR 옆에 빨간 X가 뜨고, 로그에 어느 단계가 깨졌는지 나온다.
+name: web 검사
+
+on:
+  push:
+    paths:
+      - "web/**"
+      - ".github/workflows/web-ci.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - ".github/workflows/web-ci.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      USE_MOCK_AI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: 설치
+        run: npm ci
+      - name: 린트
+        run: npm run lint
+      - name: 형식 검사
+        run: npm run format:check
+      - name: 타입 검사
+        run: npm run typecheck
+      - name: 테스트
+        run: npm run test
+      - name: 빌드
+        run: npm run build

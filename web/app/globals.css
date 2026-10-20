@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* 외부 글꼴을 내려받지 않고 기기 한글 글꼴을 쓴다(빌드 때 네트워크 불필요, 인쇄 때 한글 안 깨짐). */
+  --font-sans:
+    system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* 인쇄·PDF(R3)는 기록 1건 = 1장. 세부 서식은 FE가 채운다. */
+@media print {
+  :root {
+    --background: #ffffff;
+    --foreground: #000000;
+  }
+}
