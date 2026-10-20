@@ -20,7 +20,7 @@
 | 중간 등급 모델 | `claude-sonnet-4` (Sonnet 4.6, 차감 배수 1): Agent, 항목 보태기 |
 | 가벼운 등급 모델 | `claude-haiku-4` (Haiku 4.5, 차감 배수 0.5): 짧은 번역, 도우미 |
 | 키 | 코디세이 Anthropic 호환 키. 서버 환경 변수에만 |
-| 받아쓰기(STT) | ⚠️ 공개 API에 없음. 정할 때까지 Mock (아래 'STT') |
+| 받아쓰기(STT) | ⚠️ 공개 API에 없음. 채팅 모델에 음성을 넣는 방법(A)부터 시험, 안 되면 다른 대안. 그때까지 Mock (아래 'STT') |
 | 듣기(TTS) | 브라우저 내장 먼저. 베트남어 목소리가 없으면 공개 API `/api/v1/audio/tts` |
 | 키 없을 때 | `USE_MOCK_AI=true`로 Mock 응답 |
 
@@ -121,7 +121,7 @@ const response = await client.messages.create({
 
 요청 속도 제한(rate limit)은 아직 정해지지 않았습니다.[2] 정해지면 이 표에 더합니다.
 
-## 6. STT: 정해야 할 것
+## 6. STT: A부터 시험 (10/20)
 
 **왜:** 받아쓰기는 녹음 → 기록 흐름의 첫 단계라, 이것 없이는 Agent도 돌지 않습니다.
 
@@ -133,7 +133,31 @@ const response = await client.messages.create({
 | B. OpenAI 음성 인식 키를 팀이 따로 결제 | v1.1 설계 그대로, 품질 검증됨 | 결제 수단 필요, 키가 둘이 됨 |
 | C. 브라우저 내장 음성 인식(Web Speech API) | 무료, 서버 STT 불필요 | v1.1에서 버린 이유(파이어폭스 미지원, iOS 사파리 끊김) 그대로. 녹음 파일 흐름이 바뀜 |
 
-결정되면 결정 기록을 따로 쓰고 기술 선택 §5와 이 절을 고칩니다.
+**10/20 팀장 결정:** A를 먼저 시험합니다. 안 되면 B·C를 포함해 다른 대안을 다시 찾습니다. 최종 방식이 정해지면 결정 기록을 따로 쓰고 기술 선택 §5와 이 절을 고칩니다.
+
+### A 시험 방법
+
+키를 받은 사람이 자기 컴퓨터에서 돌립니다(키를 채팅에 붙이지 않음). 합성 문장을 읽은 30초 이하 녹음 `sample.wav`(실명 없이)를 준비합니다.
+
+```bash
+# OpenAI 호환 키로. 키는 환경 변수에서 읽는다.
+export CODYSSEY_KEY="<코디세이-openai-호환-키>"
+B64=$(base64 < sample.wav | tr -d '\n')
+curl https://copa.codyssey.kr/v1/chat/completions \
+  -H "Authorization: Bearer $CODYSSEY_KEY" \
+  -H "content-type: application/json" \
+  -d '{"model":"gemini-3-flash","messages":[{"role":"user","content":[
+        {"type":"text","text":"이 녹음을 한국어로 그대로 받아써 주세요. 말하지 않은 내용은 쓰지 마세요."},
+        {"type":"input_audio","input_audio":{"data":"'"$B64"'","format":"wav"}}]}]}'
+```
+
+| 결과 | 판단 |
+| --- | --- |
+| 받아쓴 글이 녹음과 맞음 | A 채택 후보. 크롬 webm·사파리 mp4 형식도 같은 방법으로 확인 |
+| 400 등 형식 오류, 또는 음성을 무시한 답 | 공개 API가 음성 입력을 넘기지 않음 → 다른 대안 찾기 |
+| 받아쓰기는 되지만 내용을 지어냄 | 품질 문제 → 샘플 5개로 비교 후 판단 |
+
+`gemini-3-flash`가 안 되면 `gpt-5.4-mini` 등 다른 채팅 모델로 한 번 더 해 봅니다.
 
 ## 7. 처음 확인할 것 (키를 받은 날)
 
