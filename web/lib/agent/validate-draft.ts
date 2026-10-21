@@ -47,7 +47,8 @@ export type ValidateContext = {
   // 재가 방문 시간(분). records.visit_start~visit_end로 서버가 계산한다.
   // 없으면 form_fields.total_minutes를 쓴다.
   visitMinutes?: number | null;
-  // 기록에 들어가면 안 되는 이름 목록 (실명 검사). ⚠️ 무엇을 넘길지 BE와 확인 필요.
+  // 기록에 들어가면 안 되는 이름 목록 (실명 검사). 같은 기관 계정의 profiles.name을 넘긴다.
+  // 근거: 문서/결정/2026-10-21-재가분칸-실명목록.md
   blockedNames?: string[];
 };
 
@@ -119,7 +120,8 @@ export function evidenceInTranscript(evidence: string, transcript: string): bool
 }
 
 // support.detail 안의 분(minutes)을 모두 더한다.
-// ⚠️ detail 칸 이름은 BE가 정함(공통 계약 '세부 칸 이름'). 첫 안: detail.minutes = { 영역: 분 }.
+// detail.minutes = { physical, cognitive_stimulation, daily_living_together, cognitive_management,
+// emotional, housework: 분 } (별지 제12호 분 칸 6개, 문서/결정/2026-10-21-재가분칸-실명목록.md).
 export function sumSupportMinutes(detail: Record<string, unknown>): number {
   const minutes = detail.minutes;
   if (!isRecord(minutes)) return 0;
