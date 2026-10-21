@@ -58,11 +58,12 @@ npx supabase db push                               # migrations/ 를 클라우�
 - 화면·API가 보내지 않아도 DB가 채우는 칸: 모든 표의 `org_id`(기록·어르신에서), `records.form_type`(care_type에서), `worker_id`·`author_id`·`actor_id`(로그인한 사람), `submitted_at`·`approved_at`·`approved_by`(상태 변화 때). 클라이언트는 이 칸을 쓸 권한이 없습니다.
 - 기록을 만들면 9개 항목(`not_mentioned`, `source = ai`)과 `created` 이력이 자동으로 생깁니다. 상태가 바뀌면 `submitted`·`returned`·`approved`·`commented` 이력도 자동입니다. API가 직접 쓰는 이력은 `ai_filled`·`edited`·`resolved`뿐입니다.
 - 작성자가 아닌 사람이 `value_ko`를 고치면 `confirmed`가 자동으로 false가 됩니다. [맞아요](`confirmed`)는 작성자만 바꿀 수 있습니다.
+- 기록이 returned일 때 작성자(작성자 권한으로 도는 AI 항목 보태기 포함)가 `value_ko`·`status`·`detail`을 바꾸면 그 항목의 `resolution`이 자동으로 비워집니다(결정 `2026-10-21-되돌림재확인`). 비운 일을 `edited` 이력의 before/after에 `resolution`으로 남기는 것은 API가 합니다(고치기 전 행을 읽어 둘 것).
+- 실명 검사: validate_draft·submit_draft를 부를 때 `blockedNames`에 `getBlockedNames(supabase, org_id)`(`web/lib/agent/blocked-names.ts`) 결과를 넣습니다(결정 `2026-10-21-재가분칸-실명목록`).
 - 용어 검색(search_terms)은 `supabase.rpc('search_glossary', { expression, max_results })`를 부릅니다. 결과 칸: `matched_expression, term_ko, term_vi, plain_ko, chapter, page`. 받아쓴 문장 안에 용어 표현이 들어 있어도 찾습니다.
 
 ## 남은 것
 
 - 용어 CSV(`expression,aliases,term_ko,term_vi,plain_ko,chapter,page`)를 데이터 담당이 올리면 시드로 넣기.
 - 남은 녹음 파일 주기 정리(1시간 넘은 것, Storage API, service_role).
-- ⚠️ 되돌린 뒤 작성자가 항목을 고쳐도 이전 resolution이 남습니다(데이터 구조 v1.2 '확인 필요'). 정해지면 트리거에 반영.
 - 서식 기준 데이터(`get_form_spec`용)는 표 없이 서버 코드 안 JSON(결정 기록 `문서/결정/2026-10-21-용어표.md`).

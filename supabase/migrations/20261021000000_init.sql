@@ -453,7 +453,7 @@ end $$;
 create trigger records_before_delete before delete on public.records
   for each row execute function private.records_before_delete();
 
--- 항목 고치기: 잠긴 기록, 담당자만 resolution, AI 덮어쓰기 금지, 확인 풀림
+-- 항목 고치기: 잠긴 기록, 담당자만 resolution, AI 덮어쓰기 금지, 되돌림 재확인, 확인 풀림
 create function private.record_items_before_update() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
@@ -478,6 +478,13 @@ begin
          is distinct from
          (old.value_ko, old.value_native, old.status, old.evidence, old.reason, old.detail) then
     raise exception 'human_value_protected';
+  end if;
+
+  -- 되돌린 기록에서 작성자가 고친 항목(음성 보태기로 AI가 바꾼 것 포함)은 담당자가 다시 확인
+  -- 근거: 문서/결정/2026-10-21-되돌림재확인.md
+  if rec_status = 'returned' and (uid is null or uid = rec_worker)
+     and (new.value_ko, new.status, new.detail) is distinct from (old.value_ko, old.status, old.detail) then
+    new.resolution := null;
   end if;
 
   -- 작성자가 아닌 사람이 고치면 확인이 풀리고, [맞아요]는 작성자만 누름
