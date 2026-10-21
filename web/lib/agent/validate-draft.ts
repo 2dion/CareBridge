@@ -1,6 +1,6 @@
 // 기록 검증 (Agent 도구 ③ validate_draft). AI 판단이 아니라 서버 코드 검사다.
 // 근거: 문서/설계/ai규칙-v1.1.md '서버 검사와 예외 처리' 검사 1~6,
-//       문서/설계/데이터구조-v1.1.md '공통 계약' Agent 도구 입출력.
+//       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. submit_draft도 저장 직전에 같은 함수를 부른다.
 
 export const ITEM_KEYS = [
@@ -59,9 +59,11 @@ export type ProblemCode =
   | "wrong_order"
   | "invalid_field"
   | "evidence_not_found"
+  | "evidence_too_short"
   | "observed_without_evidence"
   | "not_mentioned_with_value"
   | "support_minutes_exceed_visit"
+  | "visit_minutes_missing"
   | "real_name";
 
 export type Problem = {
@@ -83,8 +85,10 @@ export type ValidateResult = {
 
 export const REASONS = {
   evidenceNotFound: "근거를 찾지 못함",
+  evidenceTooShort: "근거가 너무 짧음",
   observedWithoutEvidence: "근거 문장 없음",
   supportMinutesExceed: "지원별 제공시간 합이 방문 시간보다 김",
+  visitMinutesMissing: "방문 시간이 없어 제공시간 합을 확인하지 못함",
   realName: "실명이 들어 있음",
 } as const;
 
@@ -104,6 +108,9 @@ export function normalizeForMatch(text: string): string {
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]/gu, "");
 }
+
+// 정리한 뒤 이보다 짧은 근거("네", "밥")는 거의 어느 원문에나 들어 있어 근거로 보지 않는다.
+export const MIN_EVIDENCE_CHARS = 4;
 
 export function evidenceInTranscript(evidence: string, transcript: string): boolean {
   const needle = normalizeForMatch(evidence);
@@ -279,7 +286,15 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
     }
 
     // 검사 2: 근거 문장이 원문에 실제로 있는지
-    if (item.evidence.trim() && !evidenceInTranscript(item.evidence, ctx.transcript)) {
+    const evidenceChars = normalizeForMatch(item.evidence).length;
+    if (item.evidence.trim() && evidenceChars < MIN_EVIDENCE_CHARS) {
+      problems.push({
+        code: "evidence_too_short",
+        item_key: key,
+        message: `근거 문장이 너무 짧습니다(${MIN_EVIDENCE_CHARS}글자 미만). 원문 문장을 그대로 넣어 주세요.`,
+      });
+      if (item.status !== "not_mentioned") lower(REASONS.evidenceTooShort);
+    } else if (item.evidence.trim() && !evidenceInTranscript(item.evidence, ctx.transcript)) {
       problems.push({
         code: "evidence_not_found",
         item_key: key,
@@ -289,9 +304,20 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
     }
 
     // 검사 5: 재가 제공시간 합 ≤ 방문 시간
-    if (key === "support" && visitMinutes !== null) {
+    if (key === "support" && ctx.careType === "home") {
       const total = sumSupportMinutes(item.detail);
-      if (total > visitMinutes) {
+      if (visitMinutes === null) {
+        // 방문 시간을 모르면 합을 비교할 수 없다. 분이 적힌 경우만 확인 필요로 둔다.
+        if (total > 0) {
+          problems.push({
+            code: "visit_minutes_missing",
+            item_key: key,
+            message:
+              "방문 시간(visit_start~visit_end, total_minutes)이 없어 제공시간 합을 확인하지 못했습니다.",
+          });
+          lower(REASONS.visitMinutesMissing);
+        }
+      } else if (total > visitMinutes) {
         problems.push({
           code: "support_minutes_exceed_visit",
           item_key: key,
@@ -326,10 +352,10 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 }
 
 // 끝까지 맞는 초안이 없을 때(검사 1 실패, Agent 상한 도달 등) 9개 모두 '확인 필요'로 둔 초안.
-// AI 규칙 v1.1 '멈춤 규칙' 3번, 검사 1.
-export function allNeedsCheckDraft(reason: string): Draft {
+// AI 규칙 v1.1 '멈춤 규칙' 3번, 검사 1. 검사 1 실패 때도 원문은 보여 주므로 transcriptKo를 넘긴다.
+export function allNeedsCheckDraft(reason: string, transcriptKo = ""): Draft {
   return {
-    transcript_ko: "",
+    transcript_ko: transcriptKo,
     items: ITEM_KEYS.map((key) => ({
       item_key: key,
       value_ko: "",
