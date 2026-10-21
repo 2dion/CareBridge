@@ -164,6 +164,15 @@ describe("검사 2: 근거 문장이 원문에 있는지", () => {
   it("빈 근거는 원문에 있다고 보지 않음", () => {
     expect(evidenceInTranscript("  ", TRANSCRIPT)).toBe(false);
   });
+
+  it("너무 짧은 근거(4글자 미만)는 원문에 있어도 확인 필요로", () => {
+    const draft = withItem(scenarioOneDraft(), "medication", { evidence: "약은" });
+    const result = validateDraft(draft, FACILITY);
+    const medication = result.fixed?.items.find((i) => i.item_key === "medication");
+    expect(result.problems.map((p) => p.code)).toEqual(["evidence_too_short"]);
+    expect(medication?.status).toBe("needs_check");
+    expect(medication?.reason).toContain(REASONS.evidenceTooShort);
+  });
 });
 
 describe("검사 3: '관찰'인데 근거 없음", () => {
@@ -214,6 +223,19 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
     expect(codes(draft, ctx)).toContain("support_minutes_exceed_visit");
   });
 
+  it("재가인데 방문 시간을 모르면 분이 적힌 제공 지원을 확인 필요로", () => {
+    const ctx: ValidateContext = { transcript: TRANSCRIPT, careType: "home" };
+    const result = validateDraft(withMinutes({ physical: 60 }), ctx);
+    const support = result.fixed?.items.find((i) => i.item_key === "support");
+    expect(result.problems.map((p) => p.code)).toEqual(["visit_minutes_missing"]);
+    expect(support?.reason).toContain(REASONS.visitMinutesMissing);
+  });
+
+  it("재가인데 방문 시간도 분도 없으면 그냥 통과", () => {
+    const ctx: ValidateContext = { transcript: TRANSCRIPT, careType: "home" };
+    expect(codes(scenarioOneDraft(), ctx)).toEqual([]);
+  });
+
   it("시설은 시간 합을 검사하지 않음", () => {
     expect(codes(withMinutes({ physical: 999 }), { ...FACILITY, visitMinutes: 180 })).toEqual([]);
   });
@@ -261,5 +283,9 @@ describe("allNeedsCheckDraft", () => {
     expect(
       draft.items.every((i) => i.status === "needs_check" && i.reason === "자동 정리 중단"),
     ).toBe(true);
+  });
+
+  it("원문을 넘기면 transcript_ko에 그대로 둠", () => {
+    expect(allNeedsCheckDraft("형식 오류", TRANSCRIPT).transcript_ko).toBe(TRANSCRIPT);
   });
 });
