@@ -40,6 +40,10 @@ npx supabase db push                               # migrations/ 를 클라우�
 - **로컬**(`npx supabase db reset`): 계정이 없으면 비밀번호 `carebridge-local-only`로 만듭니다. 로컬 전용입니다.
 - **클라우드:** 저장소가 공개라 비밀번호를 파일에 두지 않습니다. 대시보드 Authentication → Add user로 위 이메일 4개를 만든 뒤(비밀번호는 팀 비공개, Auto Confirm 켜기), SQL Editor에서 `seed.sql`을 돌립니다. 계정은 건너뛰고 기관·어르신·프로필만 들어갑니다. `db push --include-seed`는 쓰지 않습니다.
 
+## 데모 되돌리기 (reset-demo.sql)
+
+리허설 뒤 SQL Editor에서 `reset-demo.sql`을 돌리면 김○○(시나리오 1)의 기록이 모두 지워져 W1 카드가 '작성 전'으로 돌아갑니다. 승인된 기록도 지웁니다(삭제 막는 트리거를 트랜잭션 안에서만 끔). 시연 직전에 W1 카드를 한 번 확인합니다.
+
 ## 서버 코드가 알아야 할 것
 
 - **상태 변화와 승인 검사는 DB도 막습니다.** API가 먼저 검사해 409를 돌려주고, 놓쳐도 트리거가 아래 오류로 거절합니다. Supabase 오류의 `message`가 이 키입니다.
