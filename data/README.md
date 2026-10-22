@@ -11,7 +11,7 @@ AI가 짐작하지 않고 이 자료에서 찾아 쓰게 해서 "지어내지 �
 | `cases/` | 합성 사례와 정답표 | 시나리오 Mock 응답, 품질 측정(ai규칙-v1.1 '품질 확인 방법') | S-F01(시나리오 1) |
 | `manual/` | 교재 매뉴얼 12절 (표준교재 본문) | `manual_sections` 표 → W6(도우미) 교재 검색 | 시드 SQL 준비 |
 | `forms/` | 서식 기준: 별지 제16호(시설)·제12호(재가)의 칸·선택지·작성 기준·코드값 | Agent `get_form_spec`, R2 '공식 기록지 칸 안내', R3 인쇄 | 서버 코드로 옮길 원본 |
-| `glossary/` | 용어 목록 50개 (기본 30 + 추가 20) | `glossary` 표 → `search_glossary` → Agent `search_terms`, W3 '용어 뜻 보기' | 시드 SQL 준비 |
+| `glossary/` | 용어 목록 **51개** (기본 30 + 추가 20 + 10/22 추가 1: T51 '진지 잡수세요') | `glossary` 표 → `search_glossary` → Agent `search_terms`, W3 '용어 뜻 보기' | 시드 SQL 준비 |
 
 ## 합성 사례 형식
 
@@ -22,8 +22,9 @@ AI가 짐작하지 않고 이 자료에서 찾아 쓰게 해서 "지어내지 �
 
 ## 용어 목록 (glossary/)
 
-- `terms-v0.2.csv` = **사람이 고치는 원본**(표현, 검색 줄기, 교재 용어, 쉬운 풀이, 베트남어, 영문, 서식 칸, AI 사용 규칙, 교재 장·쪽 등).
-- `glossary-v0.2.csv`, `seed-glossary.sql` = 원본에서 만든 `glossary` 표용 파일(칸: expression, aliases, term_ko, term_vi, plain_ko, chapter, page — 결정 2026-10-21-용어표). `aliases`에는 다른 표현과 **검색 줄기**(어미를 뺀 말: 세수, 자세 바꿔 …)가 들어갑니다. `search_glossary`가 받아쓴 문장 속 활용형도 찾게 하려는 것입니다.
+- `terms-v0.3.csv` = **사람이 고치는 원본**(표현, 검색 줄기, 교재 용어, 쉬운 풀이, 베트남어, 영문, 서식 칸, AI 사용 규칙, 교재 장·쪽 등).
+- `glossary-v0.3.csv`, `seed-glossary.sql` = 원본에서 만든 `glossary` 표용 파일(칸: expression, aliases, term_ko, term_vi, plain_ko, chapter, page — 결정 2026-10-21-용어표). `aliases`에는 다른 표현과 **검색 줄기**(어미를 뺀 말: 세수, 자세 바꿔 …)가 들어갑니다. `search_glossary`가 받아쓴 문장 속 활용형도 찾게 하려는 것입니다.
+- **v0.3 (10/22): T51 '진지 잡수세요' 추가 → 51개.** 시나리오 3 W6 질문용. 교재에 없는 표현이라 교재 쪽이 없고 뜻은 표준국어대사전 기준. 시드를 이미 넣었다면 다시 돌리면 T51만 추가됩니다(on conflict).
 - 교재 쪽은 「2026년 요양보호사 양성 표준교재」 인쇄 쪽. ⚠️ 베트남어는 Claude 초안(검수 전).
 
 ## 교재 매뉴얼 (manual/)
