@@ -1,0 +1,354 @@
+{
+  "form_type": "16",
+  "name": "장기요양급여 제공기록지(시설급여/단기보호)",
+  "legal_basis": "노인장기요양보험법 시행규칙 제18조, 별지 제16호서식",
+  "revised": "2019-09-27",
+  "checked": "2026-10-17",
+  "source": "국가법령정보센터 별표·서식 (참고자료/도메인/서식/법정/원문/별지16호-시설급여-2019.09.27.pdf)",
+  "days_per_sheet": 3,
+  "header": [
+    {
+      "key": "resident_name",
+      "label": "수급자명",
+      "input": "auto"
+    },
+    {
+      "key": "birth",
+      "label": "생년월일",
+      "input": "auto"
+    },
+    {
+      "key": "grade",
+      "label": "장기요양등급",
+      "input": "auto"
+    },
+    {
+      "key": "cert_no",
+      "label": "장기요양인정번호",
+      "input": "auto"
+    },
+    {
+      "key": "room",
+      "label": "침실 호(실)",
+      "input": "auto"
+    },
+    {
+      "key": "org_name",
+      "label": "장기요양기관명",
+      "input": "auto"
+    },
+    {
+      "key": "org_code",
+      "label": "장기요양기관기호",
+      "input": "auto"
+    },
+    {
+      "key": "resident_status",
+      "label": "수급자 상태",
+      "input": "multi_check",
+      "options": [
+        "치매",
+        "중풍",
+        "고혈압",
+        "당뇨",
+        "관절염",
+        "와상",
+        "준와상",
+        "자립",
+        "기타",
+        "기관지절개관",
+        "틀니(부분/전체)",
+        "비위관(L-tube)",
+        "고정소변배출관(유치도뇨관)",
+        "방광루",
+        "요루(요도샛길)",
+        "장루(창자샛길)",
+        "기저귀",
+        "욕창(부위)",
+        "욕창방지 보조도구"
+      ],
+      "rule": "수급자의 현재 상태를 확인하고 해당 사항에 √표 (유의사항 1)",
+      "ai_policy": "기관 등록 정보만 표시. AI가 메모에서 추정하거나 바꾸지 않음"
+    },
+    {
+      "key": "date",
+      "label": "월/일",
+      "input": "date"
+    }
+  ],
+  "sections": [
+    {
+      "key": "physical",
+      "label": "신체활동지원",
+      "writer": "해당 서비스를 제공한 종사자",
+      "fields": [
+        {
+          "key": "hygiene",
+          "label": "세면, 구강청결, 머리감기, 몸단장, 옷 갈아입기 도움 등",
+          "input": "check"
+        },
+        {
+          "key": "bath",
+          "label": "목욕",
+          "input": "check_text",
+          "rule": "제공 전·후 상태를 확인하고 결과를 괄호에 기록. 예) 이상무, 얼굴창백함, 오한있음 (유의사항 2)"
+        },
+        {
+          "key": "meal_type",
+          "label": "식사 종류",
+          "input": "choice",
+          "options": [
+            "일반식",
+            "죽",
+            "유동식(튜브영양공급식)"
+          ],
+          "rule": "해당 사항에 √표 (유의사항 3)",
+          "textbook_note": "2026 표준교재 p.348 예시 양식은 '유동식(경관식)'으로 표기"
+        },
+        {
+          "key": "meal_intake",
+          "label": "식사 섭취량",
+          "input": "choice",
+          "options": [
+            "1",
+            "1/2이상",
+            "1/2미만"
+          ],
+          "rule": "해당 사항에 √표 (유의사항 3)",
+          "ai_policy": "메모 표현이 선택지 하나로 정해지지 않으면 비우고 needs_check",
+          "option_codes": {
+            "1": "full",
+            "1/2이상": "half_or_more",
+            "1/2미만": "under_half"
+          },
+          "option_codes_status": "확정 (백엔드 담당 10/22)"
+        },
+        {
+          "key": "reposition_2h",
+          "label": "체위변경(2시간마다)",
+          "input": "check",
+          "rule": "2시간마다 제공한 경우에만 √표 (유의사항 4)"
+        },
+        {
+          "key": "toilet_count",
+          "label": "화장실이용하기(기저귀 교환)",
+          "input": "count",
+          "unit": "회",
+          "rule": "소변·대변 총 횟수. 기저귀 사용 시 기저귀 교환 횟수 (유의사항 5)"
+        },
+        {
+          "key": "mobility",
+          "label": "이동도움 및 신체기능유지·증진",
+          "input": "check"
+        },
+        {
+          "key": "outing",
+          "label": "산책(외출) 동행",
+          "input": "multi_check",
+          "options": [
+            "산책",
+            "외출"
+          ],
+          "rule": "제공한 경우 √표 (유의사항 6)"
+        },
+        {
+          "key": "notes",
+          "label": "특이사항",
+          "input": "text",
+          "max_chars": null,
+          "rule": "상태변화 등이 있을 경우 조치사항 등을 기록. 여백 부족 시 별지 사용 가능 (유의사항 8). 예) 설사를 해서 엉덩이 짓물러 파우더 바름"
+        },
+        {
+          "key": "signer",
+          "label": "작성자 성명(서명)",
+          "input": "sign"
+        }
+      ]
+    },
+    {
+      "key": "cognition_comm",
+      "label": "인지관리 및 의사소통",
+      "writer": "해당 서비스를 제공한 종사자",
+      "fields": [
+        {
+          "key": "cognition_support",
+          "label": "인지관리 지원",
+          "input": "check"
+        },
+        {
+          "key": "communication",
+          "label": "의사소통도움 등 말벗, 격려",
+          "input": "check"
+        },
+        {
+          "key": "notes",
+          "label": "특이사항",
+          "input": "text",
+          "max_chars": null
+        },
+        {
+          "key": "signer",
+          "label": "작성자 성명(서명)",
+          "input": "sign"
+        }
+      ]
+    },
+    {
+      "key": "health_nursing",
+      "label": "건강 및 간호관리",
+      "writer": "해당 서비스를 제공한 종사자 (간호 업무는 간호인력)",
+      "fields": [
+        {
+          "key": "vitals",
+          "label": "혈압/체온",
+          "input": "vital",
+          "unit": "mmHg / ℃",
+          "ai_policy": "측정값과 시각만. 정상/비정상 판단·진단 금지"
+        },
+        {
+          "key": "health_mgmt",
+          "label": "건강관리( 분)",
+          "input": "check_minutes",
+          "detail": "관절오그라듦 예방, 투약관리, 기초건강관리, 인지훈련",
+          "ai_policy": "요양보호사 메모로 체크하지 않음"
+        },
+        {
+          "key": "nursing_mgmt",
+          "label": "간호관리( 분)",
+          "input": "check_minutes",
+          "detail": "욕창·영양·통증·배설·당뇨발·호흡기·투석·구강간호",
+          "ai_policy": "요양보호사 메모로 체크하지 않음"
+        },
+        {
+          "key": "emergency",
+          "label": "기타(응급서비스)",
+          "input": "check"
+        },
+        {
+          "key": "notes",
+          "label": "특이사항",
+          "input": "text",
+          "max_chars": null
+        },
+        {
+          "key": "signer",
+          "label": "작성자 성명(서명)",
+          "input": "sign"
+        }
+      ]
+    },
+    {
+      "key": "rehab",
+      "label": "기능회복훈련",
+      "writer": "해당 서비스를 제공한 종사자",
+      "fields": [
+        {
+          "key": "program",
+          "label": "신체·인지기능향상 프로그램",
+          "input": "text",
+          "rule": "제공한 프로그램명을 기록 (유의사항 7)"
+        },
+        {
+          "key": "physical_training",
+          "label": "신체기능, 기본동작, 일상생활동작훈련",
+          "input": "check"
+        },
+        {
+          "key": "cognitive_training",
+          "label": "인지기능향상훈련",
+          "input": "check"
+        },
+        {
+          "key": "pt_ot",
+          "label": "물리(작업)치료",
+          "input": "check"
+        },
+        {
+          "key": "notes",
+          "label": "특이사항",
+          "input": "text",
+          "max_chars": null
+        },
+        {
+          "key": "signer",
+          "label": "작성자 성명(서명)",
+          "input": "sign"
+        }
+      ]
+    }
+  ],
+  "footer": [
+    {
+      "key": "stay_times",
+      "label": "수급자의 입·퇴소시간, 외박 및 복귀시간, 외출시간",
+      "input": "text"
+    }
+  ],
+  "signature_rule": "각 항목별 서비스를 제공한 종사자가 작성자 란에 서명 (유의사항 9). 수급자·보호자 서명란 없음",
+  "item_map": {
+    "visit_time": {
+      "fields": [
+        "header.date",
+        "footer.stay_times"
+      ],
+      "note": "시설은 방문 시각 칸 없음. 날짜는 자동"
+    },
+    "support": {
+      "fields": [
+        "physical.hygiene",
+        "physical.bath",
+        "physical.reposition_2h",
+        "physical.toilet_count",
+        "physical.mobility",
+        "physical.outing",
+        "cognition_comm.cognition_support",
+        "cognition_comm.communication"
+      ],
+      "note": "체크 칸은 support.detail.checks(문자열 목록). 제16호는 지원별 분 칸이 없어 minutes를 쓰지 않음. 화장실 횟수는 support.detail.toilet_count"
+    },
+    "meal": {
+      "fields": [
+        "physical.meal_type",
+        "physical.meal_intake"
+      ]
+    },
+    "sleep": {
+      "fields": [
+        "physical.notes"
+      ],
+      "note": "전용 칸 없음"
+    },
+    "discomfort": {
+      "fields": [
+        "physical.notes"
+      ]
+    },
+    "medication": {
+      "fields": [
+        "physical.notes"
+      ],
+      "note": "투약관리(health_nursing.health_mgmt)는 간호 영역. 요양보호사 관찰은 신체활동지원 특이사항"
+    },
+    "cognition": {
+      "fields": [
+        "cognition_comm.notes"
+      ],
+      "note": "호전·유지·악화 칸 없음 (제12호에만 있음)"
+    },
+    "notes": {
+      "fields": [
+        "physical.notes",
+        "cognition_comm.notes",
+        "health_nursing.notes",
+        "rehab.notes"
+      ],
+      "note": "내용에 맞는 영역 특이사항으로 나눔"
+    },
+    "next_check": {
+      "fields": [],
+      "note": "공식 기록지 칸 없음. 기관 내부 메모"
+    }
+  },
+  "storage_note": "제16호는 form_fields를 쓰지 않음. 섭취량·식사 종류는 meal.detail, 화장실 횟수는 support.detail.toilet_count (데이터구조 v1.1 서식 칸 대응)",
+  "spec_version": "0.2"
+}
