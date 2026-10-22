@@ -1,4 +1,4 @@
--- 용어 목록(glossary) 시드. 원본: data/glossary/terms-v0.2.csv (데이터 담당, 50개 = 기본 30 + 추가 20)
+-- 용어 목록(glossary) 시드. 원본: data/glossary/terms-v0.3.csv (데이터 담당, 51개 = 기본 30 + 추가 20 + 추가 1)
 -- aliases = 다른 표현 + 검색 줄기(받아쓴 문장 속 활용형도 찾도록 어미를 뺀 말)
 -- 칸: 데이터 구조 v1.2 glossary / 결정 2026-10-21-용어표. 베트남어는 Claude 초안(검수 전).
 insert into public.glossary (expression, aliases, term_ko, term_vi, plain_ko, chapter, page) values
@@ -51,5 +51,6 @@ insert into public.glossary (expression, aliases, term_ko, term_vi, plain_ko, ch
   ('넘어지고 팔이 이상해요', array['팔이 이상'], '골절', 'Gãy xương', '뼈가 부러짐', '14장 3절 7. 골절', '706'),
   ('팔에 멍이 들었어요', array['멍이'], '노인성 자반', 'Vết bầm (ban xuất huyết tuổi già)', '잘 생기는 멍·붉은 반점', '5장 2절 6. 피부계(노인성 자반)', '220'),
   ('소변 볼 때 아프대요', array['냄새가 심해요','소변 볼 때 아프'], '요로감염', 'Nhiễm trùng đường tiết niệu', '소변길에 생긴 감염', '5장 2절 5. 비뇨·생식기계', '206'),
-  ('보청기 끼워 드렸어요', array['보청기'], '보청기', 'Máy trợ thính', '소리를 키워 주는 기구', '5장 2절 8. 감각기계', '228')
+  ('보청기 끼워 드렸어요', array['보청기'], '보청기', 'Máy trợ thính', '소리를 키워 주는 기구', '5장 2절 8. 감각기계', '228'),
+  ('진지 잡수세요', array['진지','잡수'], '식사 (진지: 밥의 높임말)', 'Mời ông/bà dùng bữa (cách nói kính trọng)', '''밥 드세요''를 어르신께 높여 하는 말. 식사를 권할 때 씀', '', '')
 on conflict (expression, term_ko) do nothing;
