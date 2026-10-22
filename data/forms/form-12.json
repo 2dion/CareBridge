@@ -1,0 +1,366 @@
+{
+  "form_type": "12",
+  "name": "장기요양급여 제공기록지(방문요양)",
+  "legal_basis": "노인장기요양보험법 시행규칙 제18조, 별지 제12호서식",
+  "revised": "2025-12-12",
+  "checked": "2026-10-17",
+  "source": "국가법령정보센터 별표·서식 (참고자료/도메인/서식/법정/원문/별지12호-방문요양-2025.12.12.pdf). 2026년 표준교재 p.340 동일",
+  "days_per_sheet": 7,
+  "header": [
+    {
+      "key": "resident_name",
+      "label": "수급자 성명",
+      "input": "auto"
+    },
+    {
+      "key": "birth",
+      "label": "생년월일",
+      "input": "auto"
+    },
+    {
+      "key": "grade",
+      "label": "장기요양등급",
+      "input": "auto"
+    },
+    {
+      "key": "cert_no",
+      "label": "장기요양인정번호",
+      "input": "auto"
+    },
+    {
+      "key": "org_name",
+      "label": "장기요양기관명",
+      "input": "auto"
+    },
+    {
+      "key": "org_code",
+      "label": "장기요양기관기호",
+      "input": "auto"
+    }
+  ],
+  "sections": [
+    {
+      "key": "schedule",
+      "label": "일정관리",
+      "fields": [
+        {
+          "key": "date",
+          "label": "월/일",
+          "input": "date"
+        },
+        {
+          "key": "total_minutes",
+          "label": "총시간",
+          "input": "minutes",
+          "unit": "분"
+        },
+        {
+          "key": "start",
+          "label": "제공시간 시작시간",
+          "input": "time"
+        },
+        {
+          "key": "end",
+          "label": "제공시간 종료시간",
+          "input": "time"
+        }
+      ],
+      "rule": "날짜 및 급여제공시간을 기록 (유의사항 1)"
+    },
+    {
+      "key": "physical",
+      "label": "서비스 제공 > 신체활동지원",
+      "fields": [
+        {
+          "key": "hygiene",
+          "label": "개인위생(옷갈아입기, 세면, 구강청결, 몸단장 도움 등)",
+          "input": "check",
+          "detail_key": "support.detail.checks"
+        },
+        {
+          "key": "body_wash",
+          "label": "몸 씻기 도움",
+          "input": "check",
+          "detail_key": "support.detail.checks"
+        },
+        {
+          "key": "meal_help",
+          "label": "식사 도움(영양관리 등)",
+          "input": "check",
+          "note": "섭취량 칸 없음",
+          "detail_key": "support.detail.checks"
+        },
+        {
+          "key": "reposition",
+          "label": "체위변경",
+          "input": "check",
+          "detail_key": "support.detail.checks"
+        },
+        {
+          "key": "mobility",
+          "label": "이동 도움(보행, 보장구사용 등 도움)",
+          "input": "check",
+          "detail_key": "support.detail.checks"
+        },
+        {
+          "key": "toilet",
+          "label": "화장실이용하기",
+          "input": "check",
+          "detail_key": "support.detail.checks"
+        },
+        {
+          "key": "minutes",
+          "label": "제공시간",
+          "input": "minutes",
+          "unit": "분",
+          "note": "신체활동지원 전체 합계",
+          "detail_key": "support.detail.minutes.physical"
+        }
+      ]
+    },
+    {
+      "key": "cognitive_activity",
+      "label": "서비스 제공 > 인지활동지원",
+      "fields": [
+        {
+          "key": "stimulation",
+          "label": "인지자극활동",
+          "input": "minutes",
+          "unit": "분",
+          "detail_key": "support.detail.minutes.cognitive_stimulation"
+        },
+        {
+          "key": "daily_together",
+          "label": "일상생활 함께하기",
+          "input": "minutes",
+          "unit": "분",
+          "detail_key": "support.detail.minutes.daily_living_together"
+        }
+      ],
+      "rule": "인지활동형 방문요양 제공 시 급여제공시간을 기록하고 특이사항에 프로그램 운영내용을 자세히 기록 (유의사항 3)"
+    },
+    {
+      "key": "cognitive_mgmt",
+      "label": "서비스 제공 > 인지관리지원",
+      "fields": [
+        {
+          "key": "behavior",
+          "label": "인지행동변화 관리 등",
+          "input": "minutes",
+          "unit": "분",
+          "detail_key": "support.detail.minutes.cognitive_management"
+        }
+      ]
+    },
+    {
+      "key": "emotional",
+      "label": "서비스 제공 > 정서지원",
+      "fields": [
+        {
+          "key": "communication",
+          "label": "의사소통 도움 등 말벗, 격려",
+          "input": "minutes",
+          "unit": "분",
+          "detail_key": "support.detail.minutes.emotional"
+        }
+      ]
+    },
+    {
+      "key": "housework",
+      "label": "서비스 제공 > 가사 및 일상생활지원",
+      "fields": [
+        {
+          "key": "chores",
+          "label": "식사준비, 청소 및 주변정리 정돈, 세탁 등",
+          "input": "check",
+          "detail_key": "support.detail.checks"
+        },
+        {
+          "key": "personal_activity",
+          "label": "개인활동지원(외출시 동행 등)",
+          "input": "check",
+          "detail_key": "support.detail.checks"
+        },
+        {
+          "key": "minutes",
+          "label": "제공시간",
+          "input": "minutes",
+          "unit": "분",
+          "note": "가사 및 일상생활지원 합계",
+          "detail_key": "support.detail.minutes.housework"
+        }
+      ]
+    },
+    {
+      "key": "change",
+      "label": "변화상태",
+      "fields": [
+        {
+          "key": "body_trend",
+          "label": "신체기능",
+          "input": "choice",
+          "options": [
+            "호전",
+            "유지",
+            "악화"
+          ],
+          "option_codes": {
+            "호전": "improved",
+            "유지": "same",
+            "악화": "worse"
+          }
+        },
+        {
+          "key": "meal_trend",
+          "label": "식사기능",
+          "input": "choice",
+          "options": [
+            "호전",
+            "유지",
+            "악화"
+          ],
+          "option_codes": {
+            "호전": "improved",
+            "유지": "same",
+            "악화": "worse"
+          }
+        },
+        {
+          "key": "cognition_trend",
+          "label": "인지기능",
+          "input": "choice",
+          "options": [
+            "호전",
+            "유지",
+            "악화"
+          ],
+          "option_codes": {
+            "호전": "improved",
+            "유지": "same",
+            "악화": "worse"
+          }
+        }
+      ],
+      "rule": "변화상태란에 √표 (유의사항 2)",
+      "ai_policy": "변화 언급이 없으면 비움(언급 없음). 비교 표현이 있지만 셋 중 하나로 정할 수 없으면 확인 필요 (AI 규칙 v1.1 쓰기 원칙 2)"
+    },
+    {
+      "key": "bowel",
+      "label": "배변변화",
+      "fields": [
+        {
+          "key": "stool_accidents",
+          "label": "대변 실수 횟수",
+          "input": "count",
+          "unit": "회"
+        },
+        {
+          "key": "urine_accidents",
+          "label": "소변 실수 횟수",
+          "input": "count",
+          "unit": "회"
+        }
+      ],
+      "rule": "실수 횟수를 기록. 기저귀 사용 시 교환 횟수 (유의사항 2)"
+    },
+    {
+      "key": "notes",
+      "label": "특이사항",
+      "fields": [
+        {
+          "key": "notes",
+          "label": "특이사항",
+          "input": "text",
+          "max_chars": null
+        }
+      ],
+      "rule": "급여제공 시 확인한 사항 및 조치사항 등을 기록. 여백 부족 시 별지 사용 가능 (유의사항 4). 예) 엉덩이 짓물러 파우더 바름, 혈액투석 받으러 병원 동행함"
+    },
+    {
+      "key": "sign",
+      "label": "서명",
+      "fields": [
+        {
+          "key": "worker",
+          "label": "장기요양요원 성명(서명)",
+          "input": "sign"
+        },
+        {
+          "key": "recipient",
+          "label": "수급자 또는 보호자 성명(서명)",
+          "input": "sign",
+          "rule": "확인 가능한 수급자 또는 보호자가 서명. 심신장애·보호자 부재 등으로 서명할 수 없을 때 장기요양요원이 사유를 서명란에 기재 (유의사항 5)"
+        }
+      ]
+    }
+  ],
+  "validation": [
+    "physical.minutes + cognitive_activity.* + cognitive_mgmt.behavior + emotional.communication + housework.minutes <= schedule.total_minutes"
+  ],
+  "item_map": {
+    "visit_time": {
+      "fields": [
+        "schedule.start",
+        "schedule.end",
+        "schedule.total_minutes"
+      ]
+    },
+    "support": {
+      "fields": [
+        "physical.*",
+        "cognitive_activity.*",
+        "cognitive_mgmt.behavior",
+        "emotional.communication",
+        "housework.*"
+      ],
+      "note": "체크 칸은 support.detail.checks(문자열 목록), 분 칸은 support.detail.minutes 키 6개만(physical, cognitive_stimulation, daily_living_together, cognitive_management, emotional, housework, 정수 분). 분 언급이 없으면 비움(추정 금지). 결정 2026-10-21-재가분칸-실명목록"
+    },
+    "meal": {
+      "fields": [
+        "physical.meal_help",
+        "change.meal_trend"
+      ],
+      "note": "섭취량은 칸이 없어 특이사항으로"
+    },
+    "sleep": {
+      "fields": [
+        "notes.notes"
+      ]
+    },
+    "discomfort": {
+      "fields": [
+        "change.body_trend",
+        "notes.notes"
+      ]
+    },
+    "medication": {
+      "fields": [
+        "notes.notes"
+      ],
+      "note": "앞쪽에 복약 칸 없음(뒤쪽 세부내용상 '신체기능의 유지·증진 > 복약도움')"
+    },
+    "cognition": {
+      "fields": [
+        "change.cognition_trend"
+      ]
+    },
+    "notes": {
+      "fields": [
+        "notes.notes"
+      ]
+    },
+    "next_check": {
+      "fields": [],
+      "note": "공식 기록지 칸 없음. 기관 내부 메모"
+    },
+    "_bowel": {
+      "fields": [
+        "bowel.stool_accidents",
+        "bowel.urine_accidents"
+      ],
+      "note": "9개 항목 밖. support의 하위 값으로 받기를 제안"
+    }
+  },
+  "storage_note": "제12호 값: 지원 체크·분은 support.detail(checks, minutes), 나머지는 draft.form_fields(total_minutes, body_trend, meal_trend, cognition_trend, stool_accidents, urine_accidents). 검사 5: minutes 합 ≤ 방문 시간",
+  "spec_version": "0.2"
+}
