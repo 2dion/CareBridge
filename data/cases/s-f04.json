@@ -1,0 +1,161 @@
+{
+  "case_id": "S-F04",
+  "version": "0.1",
+  "is_synthetic": true,
+  "scenario": "시설 기록 (사투리)",
+  "language_type": "사투리 포함 (경상도)",
+  "care_type": "facility",
+  "form_type": "16",
+  "care_date": "2026-10-23",
+  "resident": {
+    "alias": "서○○ 어르신",
+    "is_synthetic": true,
+    "status_flags": [
+      "치매",
+      "기저귀"
+    ],
+    "note": "수급자 상태는 기관 등록 정보",
+    "planned_services": [
+      {
+        "service": "식사도움",
+        "cycle": "일",
+        "times": 3
+      },
+      {
+        "service": "화장실이용하기(기저귀 교환)",
+        "cycle": "필요시",
+        "times": null
+      },
+      {
+        "service": "인지관리 지원",
+        "cycle": "일",
+        "times": 1
+      }
+    ]
+  },
+  "worker_lang": "vi",
+  "transcript": "오늘 할매가 아침부터 걸신져가 밥을 두 그릇이나 자셨어예. 낮에 자꾸 집에 간다꼬 문 앞을 왔다갔다 하시데예. 기저귀는 세 번 갈았심더. 저녁에 쪼매 일찍 주무셨어예.",
+  "transcript_ko": "오늘 할매가 아침부터 걸신져가 밥을 두 그릇이나 자셨어예. 낮에 자꾸 집에 간다꼬 문 앞을 왔다갔다 하시데예. 기저귀는 세 번 갈았심더. 저녁에 쪼매 일찍 주무셨어예.",
+  "terms_used": [
+    "T18 기저귀 교환",
+    "T44 배회"
+  ],
+  "draft": {
+    "transcript_ko": "오늘 할매가 아침부터 걸신져가 밥을 두 그릇이나 자셨어예. 낮에 자꾸 집에 간다꼬 문 앞을 왔다갔다 하시데예. 기저귀는 세 번 갈았심더. 저녁에 쪼매 일찍 주무셨어예.",
+    "items": [
+      {
+        "item_key": "visit_time",
+        "status": "not_mentioned",
+        "value_ko": "",
+        "value_native": "",
+        "evidence": "",
+        "reason": "",
+        "detail": {}
+      },
+      {
+        "item_key": "support",
+        "status": "observed",
+        "value_ko": "기저귀 교환 3회",
+        "value_native": "Thay tã 3 lần",
+        "evidence": "기저귀는 세 번 갈았심더.",
+        "reason": "",
+        "detail": {
+          "checks": [
+            "화장실이용하기(기저귀 교환)"
+          ],
+          "toilet_count": 3
+        }
+      },
+      {
+        "item_key": "meal",
+        "status": "needs_check",
+        "value_ko": "아침 밥을 두 그릇 드심 (섭취량 확인 필요)",
+        "value_native": "Bữa sáng ăn hai bát cơm (cần xác nhận lượng)",
+        "evidence": "오늘 할매가 아침부터 걸신져가 밥을 두 그릇이나 자셨어예.",
+        "reason": "사투리 '걸신지다'를 '많이 드시다'로 짐작(용어 목록에 없음, AI 규칙 '확인 필요' 2번 예시). 두 그릇을 섭취량 1(전량)로 둘지 확인",
+        "detail": {
+          "meal_type": "일반식",
+          "intake": null
+        }
+      },
+      {
+        "item_key": "sleep",
+        "status": "needs_check",
+        "value_ko": "저녁에 조금 일찍 주무심",
+        "value_native": "Buổi tối ngủ sớm hơn một chút",
+        "evidence": "저녁에 쪼매 일찍 주무셨어예.",
+        "reason": "사투리 '쪼매'를 '조금'으로 짐작",
+        "detail": {}
+      },
+      {
+        "item_key": "discomfort",
+        "status": "not_mentioned",
+        "value_ko": "",
+        "value_native": "",
+        "evidence": "",
+        "reason": "",
+        "detail": {}
+      },
+      {
+        "item_key": "medication",
+        "status": "not_mentioned",
+        "value_ko": "",
+        "value_native": "",
+        "evidence": "",
+        "reason": "",
+        "detail": {}
+      },
+      {
+        "item_key": "cognition",
+        "status": "observed",
+        "value_ko": "낮에 집에 간다고 하시며 문 앞을 여러 번 오가심(배회)",
+        "value_native": "Ban ngày nói muốn về nhà và đi tới đi lui trước cửa nhiều lần",
+        "evidence": "낮에 자꾸 집에 간다꼬 문 앞을 왔다갔다 하시데예.",
+        "reason": "",
+        "detail": {},
+        "source_note": "용어 T44 배회: 시간·장소를 함께. 제16호 인지관리 및 의사소통 특이사항"
+      },
+      {
+        "item_key": "notes",
+        "status": "observed",
+        "value_ko": "아침 밥 두 그릇 드심(섭취량 확인 필요). 낮에 집에 간다며 문 앞을 여러 번 오가심. 기저귀 3회 교환. 저녁에 조금 일찍 주무심.",
+        "value_native": "Bữa sáng ăn hai bát (cần xác nhận lượng). Ban ngày đi tới đi lui trước cửa, nói muốn về nhà. Thay tã 3 lần. Buổi tối ngủ sớm hơn một chút.",
+        "evidence": "오늘 할매가 아침부터 걸신져가 밥을 두 그릇이나 자셨어예. 낮에 자꾸 집에 간다꼬 문 앞을 왔다갔다 하시데예. 기저귀는 세 번 갈았심더. 저녁에 쪼매 일찍 주무셨어예.",
+        "reason": "",
+        "detail": {}
+      },
+      {
+        "item_key": "next_check",
+        "status": "not_mentioned",
+        "value_ko": "",
+        "value_native": "",
+        "evidence": "",
+        "reason": "",
+        "detail": {}
+      }
+    ],
+    "form_fields": {}
+  },
+  "review_flow_expected": {
+    "needs_check_count": 2,
+    "approve_blocked_until": "meal, sleep에 [확인함] 또는 [기록 안 함]"
+  },
+  "must_not_appear": [
+    {
+      "item_key": "meal",
+      "wrong": "섭취량 1(전량)을 AI가 고름 / '과식' 판단",
+      "why": "사투리 짐작 + 두 그릇은 선택지 밖"
+    },
+    {
+      "item_key": "cognition",
+      "wrong": "치매 악화, 섬망",
+      "why": "진단 금지. 수급자 상태 '치매'는 기관 등록 정보라 AI가 바꾸지 않음"
+    },
+    {
+      "item_key": "sleep",
+      "wrong": "수면 양호, 불면",
+      "why": "판단 표현"
+    }
+  ],
+  "transcript_review": "베트남어 문장·번역은 Claude 초안. 원어민 검수 전"
+}
