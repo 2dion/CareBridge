@@ -66,14 +66,17 @@ begin
 end $$;
 
 -- ── 담당 연결 ─────────────────────────────────────────────
-insert into public.assignments (worker_id, resident_id, schedule)
-select p.id, r.id, t.schedule
+-- 못 쓴 기록(데이터 구조 v1.5): 시작일은 시드를 돌린 날(한국)의 7일 전이라 지난 7일이 모두 계산에 들어감.
+-- 방문 요일은 재가(이○○)만 평일(월~금), 시설은 비움(매일). 이미 있는 담당 연결도 이 두 칸을 다시 맞춤.
+insert into public.assignments (worker_id, resident_id, schedule, visit_days, start_date)
+select p.id, r.id, t.schedule, t.visit_days, (now() at time zone 'Asia/Seoul')::date - 7
 from (values
-  ('worker@carebridge.test',  '00000000-0000-4000-b000-000000000001'::uuid, '매일 07:00~16:00'),
-  ('worker@carebridge.test',  '00000000-0000-4000-b000-000000000002'::uuid, '평일 14:00~17:00'),
-  ('trainee@carebridge.test', '00000000-0000-4000-b000-000000000003'::uuid, '실습 09:00~12:00')
-) as t(email, resident_id, schedule)
+  ('worker@carebridge.test',  '00000000-0000-4000-b000-000000000001'::uuid, '매일 07:00~16:00', null::smallint[]),
+  ('worker@carebridge.test',  '00000000-0000-4000-b000-000000000002'::uuid, '평일 14:00~17:00', '{1,2,3,4,5}'::smallint[]),
+  ('trainee@carebridge.test', '00000000-0000-4000-b000-000000000003'::uuid, '실습 09:00~12:00', null::smallint[])
+) as t(email, resident_id, schedule, visit_days)
 join auth.users u on u.email = t.email
 join public.profiles p on p.id = u.id
 join public.residents r on r.id = t.resident_id
-on conflict (worker_id, resident_id) do nothing;
+on conflict (worker_id, resident_id) do update
+  set start_date = excluded.start_date, visit_days = excluded.visit_days;
