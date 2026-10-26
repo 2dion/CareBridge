@@ -33,7 +33,16 @@
         "cycle": "방문",
         "times": null
       }
-    ]
+    ],
+    "visit_days": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "schedule": "평일 14:00~17:00",
+    "visit_days_note": "seed.sql과 같음(시나리오 2)"
   },
   "worker_lang": "vi",
   "transcript": "두 시부터 다섯 시까지 있었어요. 목욕 도와드리고 청소했어요. 한 시간 동안 이야기 나눴는데 오늘이 며칠인지 두 번 물어보셨어요.",
