@@ -27,7 +27,12 @@
         "cycle": "방문",
         "times": null
       }
-    ]
+    ],
+    "visit_days": [
+      2,
+      5
+    ],
+    "schedule": "화·금 15:00~18:00"
   },
   "worker_lang": "vi",
   "transcript": "세 시부터 여섯 시까지 있었어요. 지난주보다 걷는 게 훨씬 좋아지셨어요. 같이 동네 한 바퀴 산책했어요. Bà ăn hết bữa xế như mọi khi. 같이 그림 색칠하기 한 시간 했어요.",
