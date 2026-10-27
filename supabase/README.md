@@ -15,6 +15,10 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 | `migrations/20261021000000_init.sql` | 표 12개, 기관별 RLS, 상태 변화 검사 트리거, 용어 검색 함수, 녹음 버킷 `audio`와 Storage RLS |
 | `migrations/20261025230000_missed_records.sql` | 못 쓴 기록: 방문 요일·담당 시작일, 하루 1건, 한국 날짜, `no_care_days`, `list_missed_records` |
 | `migrations/20261027100000_trainer_flow.sql` | 강사흐름통일: `commented`·`comments` 표 뺌, 교육용 기관도 수정·되돌리기·승인 |
+| `migrations/20261027110000_missed_draft.sql` | 못 쓴 기록: 임시 저장은 날짜 제한 없이, 기록 없음(`missing`)만 지난 7일 |
+| `migrations/20261027120000_late_submit.sql` | 늦게 보낸 기록 계산 함수 `record_late_submit` |
+| `migrations/20261027130000_join_codes.sql` | 가입 코드 표 `join_codes`(담당자·강사는 같은 기관 것 읽기만) |
+| `migrations/20261027140000_permissions.sql` | 권한 정리: 이력은 DB 트리거만, `agent_steps`·`audio_jobs` 상태는 서버만, 되돌린 사유·원문·`source` 보호 |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 
 ## 쓰는 법
@@ -62,9 +66,11 @@ npx supabase db push                               # migrations/ 를 클라우�
 
 - RLS로 걸러진 갱신은 오류 없이 **0행**이 됩니다. API는 `update(...).select()`로 바뀐 행이 있는지 봐야 합니다.
 - 화면·API가 보내지 않아도 DB가 채우는 칸: 모든 표의 `org_id`(기록·어르신에서), `records.form_type`(care_type에서), `worker_id`·`author_id`·`actor_id`(로그인한 사람), `submitted_at`·`approved_at`·`approved_by`(상태 변화 때). 클라이언트는 이 칸을 쓸 권한이 없습니다.
-- 기록을 만들면 9개 항목(`not_mentioned`, `source = ai`)과 `created` 이력이 자동으로 생깁니다. 상태가 바뀌면 `submitted`·`returned`·`approved` 이력도 자동입니다. API가 직접 쓰는 이력은 `ai_filled`·`edited`·`resolved`뿐입니다.
+- 기록을 만들면 9개 항목(`not_mentioned`, `source = ai`)과 `created` 이력이 자동으로 생깁니다. 상태가 바뀌면 `submitted`·`returned`·`approved` 이력도 자동입니다. 항목이 바뀌면 `ai_filled`(source = ai)·`edited`·`resolved`(담당자가 resolution을 바꿈)도, 원문·서식 칸·방문 시간이 바뀌면 `edited`(item_key 빈값)도 DB 트리거가 바뀐 칸만 남깁니다. **API는 이력을 쓰지 않습니다**(결정 `2026-10-27-권한정리`).
+- 서버 전용 쓰기: `agent_steps` 넣기와 `audio_jobs` 상태·경로 바꾸기는 service_role로 합니다(클라이언트는 PR #63의 `web/lib/supabase/admin.ts`). 로그인 사용자 권한으로는 거절됩니다.
+- 되돌린 사유(`return_reason`·`return_reason_native`)는 담당자만(`reviewer_only`), 원문(`transcript`·`transcript_ko`)은 기록의 작성자만(`not_record_worker`) 바꿉니다. 담당자가 항목 내용을 고치면 `source`는 DB가 `reviewer`로 채웁니다.
 - 작성자가 아닌 사람이 `value_ko`를 고치면 `confirmed`가 자동으로 false가 됩니다. [맞아요](`confirmed`)는 작성자만 바꿀 수 있습니다.
-- 기록이 returned일 때 작성자(작성자 권한으로 도는 AI 항목 보태기 포함)가 `value_ko`·`status`·`detail`을 바꾸면 그 항목의 `resolution`이 자동으로 비워집니다(결정 `2026-10-21-되돌림재확인`). 비운 일을 `edited` 이력의 before/after에 `resolution`으로 남기는 것은 API가 합니다(고치기 전 행을 읽어 둘 것).
+- 기록이 returned일 때 작성자(작성자 권한으로 도는 AI 항목 보태기 포함)가 `value_ko`·`status`·`detail`을 바꾸면 그 항목의 `resolution`이 자동으로 비워집니다(결정 `2026-10-21-되돌림재확인`). 비운 일도 `edited` 이력의 before/after에 `resolution`으로 자동으로 남습니다.
 - 실명 검사: validate_draft·submit_draft를 부를 때 `blockedNames`에 `getBlockedNames(supabase, org_id)`(`web/lib/agent/blocked-names.ts`) 결과를 넣습니다(결정 `2026-10-21-재가분칸-실명목록`).
 - 용어 검색(search_terms)은 `supabase.rpc('search_glossary', { expression, max_results })`를 부릅니다. 결과 칸: `matched_expression, term_ko, term_vi, plain_ko, chapter, page`. 받아쓴 문장 안에 용어 표현이 들어 있어도 찾습니다.
 
