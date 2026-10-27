@@ -65,6 +65,12 @@ export type ProblemCode =
   | "not_mentioned_with_value"
   | "support_minutes_exceed_visit"
   | "visit_minutes_missing"
+  | "invalid_minutes"
+  | "needs_check_without_reason"
+  | "needs_check_without_evidence"
+  | "observed_without_value"
+  | "not_mentioned_with_evidence"
+  | "form_field_not_for_facility"
   | "real_name";
 
 export type Problem = {
@@ -91,7 +97,32 @@ export const REASONS = {
   supportMinutesExceed: "지원별 제공시간 합이 방문 시간보다 김",
   visitMinutesMissing: "방문 시간이 없어 제공시간 합을 확인하지 못함",
   realName: "실명이 들어 있음",
+  invalidMinutes: "제공시간 형식 오류",
+  noReason: "AI가 이유를 남기지 않음",
+  observedWithoutValue: "내용 없음",
 } as const;
+
+// 재가 지원별 분 칸 키 6개 (별지 제12호). 다른 키는 쓰지 않는다.
+// 근거: 문서/결정/2026-10-21-재가분칸-실명목록.md 결정 1
+export const MINUTE_KEYS = [
+  "physical",
+  "cognitive_stimulation",
+  "daily_living_together",
+  "cognitive_management",
+  "emotional",
+  "housework",
+] as const;
+
+// 재가(별지 제12호)에만 있는 form_fields 칸. 시설(별지 제16호) 기록에는 두지 않는다.
+// 근거: 문서/설계/데이터구조-v1.6.md 'form_fields (재가 제12호 전용)'
+export const HOME_ONLY_FORM_FIELDS = [
+  "total_minutes",
+  "body_trend",
+  "meal_trend",
+  "cognition_trend",
+  "stool_accidents",
+  "urine_accidents",
+] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -119,16 +150,37 @@ export function evidenceInTranscript(evidence: string, transcript: string): bool
   return normalizeForMatch(transcript).includes(needle);
 }
 
-// support.detail 안의 분(minutes)을 모두 더한다.
+const isMinuteKey = (key: string): boolean => (MINUTE_KEYS as readonly string[]).includes(key);
+
+// 분 값은 0 이상의 정수만 맞다 (값은 정수(분), 제공하지 않으면 빼거나 0).
+const isValidMinute = (value: unknown): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0;
+
+// support.detail.minutes 안의 정해진 6개 키 중 맞는 값(0 이상 정수)만 더한다.
 // detail.minutes = { physical, cognitive_stimulation, daily_living_together, cognitive_management,
 // emotional, housework: 분 } (별지 제12호 분 칸 6개, 문서/결정/2026-10-21-재가분칸-실명목록.md).
 export function sumSupportMinutes(detail: Record<string, unknown>): number {
   const minutes = detail.minutes;
   if (!isRecord(minutes)) return 0;
-  return Object.values(minutes).reduce<number>(
-    (sum, value) => (typeof value === "number" && Number.isFinite(value) ? sum + value : sum),
+  return Object.entries(minutes).reduce<number>(
+    (sum, [key, value]) => (isMinuteKey(key) && isValidMinute(value) ? sum + value : sum),
     0,
   );
+}
+
+// detail.minutes의 형식 문제를 찾는다: 객체가 아님, 6개 밖의 키, 음수·소수·글자 값.
+// 값 자체는 메시지에 적지 않는다(키 이름만).
+export function minuteProblems(detail: Record<string, unknown>): string[] {
+  if (!("minutes" in detail) || detail.minutes === undefined || detail.minutes === null) return [];
+  const minutes = detail.minutes;
+  if (!isRecord(minutes)) return ["minutes가 { 영역: 분 } 객체가 아닙니다."];
+  const found: string[] = [];
+  for (const [key, value] of Object.entries(minutes)) {
+    if (!isMinuteKey(key))
+      found.push(`${key}는 정해진 분 칸(${MINUTE_KEYS.join(", ")})이 아닙니다.`);
+    else if (!isValidMinute(value)) found.push(`${key} 값이 0 이상의 정수(분)가 아닙니다.`);
+  }
+  return found;
 }
 
 function readVisitMinutes(ctx: ValidateContext, formFields: Record<string, unknown>) {
@@ -212,7 +264,23 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
     return fail();
   }
   const transcriptKo = typeof draft.transcript_ko === "string" ? draft.transcript_ko : "";
-  const formFields = isRecord(draft.form_fields) ? draft.form_fields : {};
+  let formFields = isRecord(draft.form_fields) ? draft.form_fields : {};
+
+  // 시설 기록에 재가(별지 제12호) 전용 칸이 있으면 빼고 알린다. 시설 서식에 인쇄되면 안 된다.
+  if (ctx.careType === "facility") {
+    const homeOnly = Object.keys(formFields).filter((key) =>
+      (HOME_ONLY_FORM_FIELDS as readonly string[]).includes(key),
+    );
+    if (homeOnly.length > 0) {
+      problems.push({
+        code: "form_field_not_for_facility",
+        message: `시설 기록에 재가 전용 칸(${homeOnly.join(", ")})이 있어 뺐습니다.`,
+      });
+      formFields = Object.fromEntries(
+        Object.entries(formFields).filter(([key]) => !homeOnly.includes(key)),
+      );
+    }
+  }
 
   const byKey = new Map<ItemKey, DraftItem>();
   draft.items.forEach((raw, index) => {
@@ -267,6 +335,26 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
       lower("형식 오류");
     }
 
+    // AI가 처음부터 '확인 필요'로 둔 항목: 이유와 근거가 있어야 한다 (AI 규칙 v1.1 '상태 판정 기준').
+    // 서버가 낮춘 항목은 downgrade가 이유를 채우므로 여기서 보지 않는다.
+    if (item.status === "needs_check") {
+      if (!item.reason.trim()) {
+        problems.push({
+          code: "needs_check_without_reason",
+          item_key: key,
+          message: "'확인 필요'인데 이유(reason)가 비어 있습니다.",
+        });
+        item = { ...item, reason: REASONS.noReason };
+      }
+      if (!item.evidence.trim()) {
+        problems.push({
+          code: "needs_check_without_evidence",
+          item_key: key,
+          message: "'확인 필요'인데 근거 문장(evidence)이 비어 있습니다.",
+        });
+      }
+    }
+
     // 검사 4: 언급 없음인데 내용이 있음 → 내용을 비움 (지어낸 내용)
     if (item.status === "not_mentioned" && (item.value_ko.trim() || item.value_native.trim())) {
       problems.push({
@@ -275,6 +363,27 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
         message: "'언급 없음'인데 내용이 있어 비웠습니다.",
       });
       item = { ...item, value_ko: "", value_native: "" };
+    }
+
+    // 검사 4의 근거 칸: '언급 없음'은 근거도 빈칸이다 → 근거를 비움
+    if (item.status === "not_mentioned" && item.evidence.trim()) {
+      problems.push({
+        code: "not_mentioned_with_evidence",
+        item_key: key,
+        message:
+          "'언급 없음'인데 근거 문장이 있어 비웠습니다. 내용이 있으면 '관찰'이나 '확인 필요'로 두세요.",
+      });
+      item = { ...item, evidence: "" };
+    }
+
+    // 검사 3의 내용 칸: '관찰'인데 기록 내용(value_ko)이 비었음
+    if (item.status === "observed" && !item.value_ko.trim()) {
+      problems.push({
+        code: "observed_without_value",
+        item_key: key,
+        message: "'관찰'인데 기록 내용(value_ko)이 비어 있습니다.",
+      });
+      lower(REASONS.observedWithoutValue);
     }
 
     // 검사 3: 관찰인데 근거가 없음
@@ -307,6 +416,14 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 
     // 검사 5: 재가 제공시간 합 ≤ 방문 시간
     if (key === "support" && ctx.careType === "home") {
+      // 분 칸 형식: 6개 키, 0 이상 정수. 틀린 값은 합에 넣지 않고 확인 필요로 둔다.
+      const minuteIssues = minuteProblems(item.detail);
+      if (minuteIssues.length > 0) {
+        for (const message of minuteIssues) {
+          problems.push({ code: "invalid_minutes", item_key: key, message });
+        }
+        lower(REASONS.invalidMinutes);
+      }
       const total = sumSupportMinutes(item.detail);
       if (visitMinutes === null) {
         // 방문 시간을 모르면 합을 비교할 수 없다. 분이 적힌 경우만 확인 필요로 둔다.

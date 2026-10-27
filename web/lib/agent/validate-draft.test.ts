@@ -202,7 +202,7 @@ describe("검사 4: '언급 없음'인데 내용 있음", () => {
 describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
   // 시나리오 2: 14:00~17:00 방문(180분)인데 지원별 분 합이 200분
   const HOME: ValidateContext = { transcript: TRANSCRIPT, careType: "home", visitMinutes: 180 };
-  const withMinutes = (minutes: Record<string, number>) =>
+  const withMinutes = (minutes: Record<string, unknown>) =>
     withItem(scenarioOneDraft(), "support", { detail: { minutes } });
 
   it("합이 방문 시간보다 크면 제공 지원을 확인 필요로", () => {
@@ -240,9 +240,110 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
     expect(codes(withMinutes({ physical: 999 }), { ...FACILITY, visitMinutes: 180 })).toEqual([]);
   });
 
-  it("숫자가 아닌 값은 더하지 않음", () => {
-    expect(sumSupportMinutes({ minutes: { a: 30, b: "40", c: Number.NaN } })).toBe(30);
+  it("정해진 6개 키의 0 이상 정수만 더함", () => {
+    expect(
+      sumSupportMinutes({
+        minutes: { physical: 30, emotional: "40", housework: Number.NaN, bath: 200 },
+      }),
+    ).toBe(30);
+    expect(sumSupportMinutes({ minutes: { physical: 30, emotional: -10, housework: 1.5 } })).toBe(
+      30,
+    );
     expect(sumSupportMinutes({})).toBe(0);
+  });
+
+  it("음수 분으로 합을 줄여 숨기지 못함 (80+60+60, -100)", () => {
+    const draft = withMinutes({
+      physical: 80,
+      housework: 60,
+      emotional: 60,
+      cognitive_management: -100,
+    });
+    const result = validateDraft(draft, HOME);
+    const support = result.fixed?.items.find((i) => i.item_key === "support");
+    expect(result.problems.map((p) => p.code)).toEqual(
+      expect.arrayContaining(["invalid_minutes", "support_minutes_exceed_visit"]),
+    );
+    expect(support?.status).toBe("needs_check");
+    expect(support?.reason).toContain(REASONS.invalidMinutes);
+  });
+
+  it("글자·소수 분은 형식 오류로 확인 필요", () => {
+    expect(codes(withMinutes({ physical: "200" }), HOME)).toContain("invalid_minutes");
+    expect(codes(withMinutes({ physical: 30.5 }), HOME)).toContain("invalid_minutes");
+  });
+
+  it("6개 밖의 키(bath)는 형식 오류, 합에도 넣지 않음", () => {
+    const result = validateDraft(withMinutes({ physical: 60, bath: 200 }), HOME);
+    expect(result.problems.map((p) => p.code)).toEqual(["invalid_minutes"]);
+  });
+
+  it("0분은 맞는 값", () => {
+    expect(codes(withMinutes({ physical: 60, emotional: 0 }), HOME)).toEqual([]);
+  });
+
+  it("minutes가 객체가 아니면 형식 오류", () => {
+    const draft = withItem(scenarioOneDraft(), "support", { detail: { minutes: [60, 60] } });
+    expect(codes(draft, HOME)).toContain("invalid_minutes");
+  });
+});
+
+describe("상태별 빈칸 규칙 (AI 규칙 v1.1 '상태 판정 기준')", () => {
+  it("'확인 필요'인데 이유가 비면 알리고 기본 이유를 채움", () => {
+    const draft = withItem(scenarioOneDraft(), "meal", { reason: "" });
+    const result = validateDraft(draft, FACILITY);
+    const meal = result.fixed?.items.find((i) => i.item_key === "meal");
+    expect(result.problems.map((p) => p.code)).toEqual(["needs_check_without_reason"]);
+    expect(meal?.status).toBe("needs_check");
+    expect(meal?.reason).toBe(REASONS.noReason);
+  });
+
+  it("'확인 필요'인데 근거가 비면 알림 (상태는 그대로)", () => {
+    const draft = withItem(scenarioOneDraft(), "meal", { evidence: "" });
+    const result = validateDraft(draft, FACILITY);
+    expect(result.problems.map((p) => p.code)).toEqual(["needs_check_without_evidence"]);
+    expect(result.fixed?.items.find((i) => i.item_key === "meal")?.status).toBe("needs_check");
+  });
+
+  it("'관찰'인데 내용이 비면 확인 필요로", () => {
+    const draft = withItem(scenarioOneDraft(), "sleep", { value_ko: " " });
+    const result = validateDraft(draft, FACILITY);
+    const sleep = result.fixed?.items.find((i) => i.item_key === "sleep");
+    expect(result.problems.map((p) => p.code)).toEqual(["observed_without_value"]);
+    expect(sleep?.status).toBe("needs_check");
+    expect(sleep?.reason).toContain(REASONS.observedWithoutValue);
+  });
+
+  it("'언급 없음'인데 근거가 있으면 근거를 비움", () => {
+    const draft = withItem(scenarioOneDraft(), "cognition", { evidence: "약은 드셨어요." });
+    const result = validateDraft(draft, FACILITY);
+    const cognition = result.fixed?.items.find((i) => i.item_key === "cognition");
+    expect(result.problems.map((p) => p.code)).toEqual(["not_mentioned_with_evidence"]);
+    expect(cognition?.evidence).toBe("");
+    expect(cognition?.status).toBe("not_mentioned");
+  });
+
+  it("서버가 낮춘 항목은 이유가 채워져 이유 없음으로 걸리지 않음", () => {
+    const draft = withItem(scenarioOneDraft(), "medication", { evidence: "저녁 약도 드셨어요." });
+    expect(codes(draft)).toEqual(["evidence_not_found"]);
+  });
+});
+
+describe("시설 기록의 재가 전용 칸", () => {
+  it("시설 기록의 cognition_trend·total_minutes는 빼고 알림", () => {
+    const draft = {
+      ...scenarioOneDraft(),
+      form_fields: { cognition_trend: "worse", total_minutes: 180, other: "x" },
+    };
+    const result = validateDraft(draft, FACILITY);
+    expect(result.problems.map((p) => p.code)).toEqual(["form_field_not_for_facility"]);
+    expect(result.fixed?.form_fields).toEqual({ other: "x" });
+  });
+
+  it("재가 기록은 그대로 둠", () => {
+    const draft = { ...scenarioOneDraft(), form_fields: { cognition_trend: "same" } };
+    const ctx: ValidateContext = { transcript: TRANSCRIPT, careType: "home", visitMinutes: 180 };
+    expect(codes(draft, ctx)).toEqual([]);
   });
 });
 
