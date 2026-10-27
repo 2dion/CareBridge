@@ -1,268 +1,258 @@
 "use client";
 
-// 인쇄·PDF(피그마 D06, 화면 v1.3 R3): 기록 1건(하루) = 1장. 별지 서식 ‘모양’이며 공식 기록지가 아니다.
-// 칸은 데이터구조 v1.6.2 ‘서식 칸 대응’ 표를 따른다. 서명란: 제16호 = 영역별 작성자, 제12호 = 장기요양요원 + 수급자 또는 보호자.
+// 참고자료의 법정 원문 PDF에 값을 채운다. HTML로 대체 양식을 만들지 않는다.
 import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
-import type { ItemKey } from "@/lib/demo/state";
-import {
-  type DemoRecord,
-  getResident,
-  kstDateOf,
-  kstTime,
-  supportMinuteKeys,
-  supportMinutesTotal,
-  visitMinutes,
-  weekdayLabel,
-} from "@/lib/demo/store";
+import { useToast } from "@/components/desk/shell";
+import { formFieldHint } from "@/lib/demo/review";
+import { displayOrder, getResident, itemLabel, monthDayWeek } from "@/lib/demo/store";
+import { legalForms, type NoteArea, noteAreas, printableItem } from "@/lib/print/fields";
 
-function dotDate(date: string) {
-  const [y, m, d] = date.split("-");
-  return `${y}. ${m}. ${d}. (${weekdayLabel(date)})`;
-}
-
-function value(record: DemoRecord, key: ItemKey) {
-  return record.items.find((item) => item.item_key === key)?.value_ko.trim() ?? "";
-}
-
-function withCheck(record: DemoRecord, key: ItemKey) {
-  const item = record.items.find((entry) => entry.item_key === key);
-  if (!item?.value_ko.trim()) return "";
-  return item.resolution === "confirmed_by_reviewer"
-    ? `${item.value_ko} (담당자 확인함)`
-    : item.value_ko;
-}
-
-function join(parts: string[]) {
-  return parts.filter(Boolean).join(" ") || "언급 없음";
-}
+type GeneratedPdf = { url: string; key: string; recordPages: number; totalPages: number };
 
 export default function PrintPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const demo = useDemo();
+  const toast = useToast();
+  const [notesArea, setNotesArea] = useState<NoteArea | "">("");
+  const [generated, setGenerated] = useState<GeneratedPdf | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const request = useRef(0);
+  useEffect(
+    () => () => {
+      request.current += 1;
+    },
+    [],
+  );
+  useEffect(
+    () => () => {
+      if (generated) URL.revokeObjectURL(generated.url);
+    },
+    [generated],
+  );
+
   if (!demo) return null;
   const { db } = demo;
   const record = db.records[id];
-  if (!record) {
+  if (!record)
     return (
       <main className="d-app p-app">
         <p style={{ padding: 32 }}>기록을 찾을 수 없어요.</p>
       </main>
     );
-  }
   const resident = getResident(db, record.residentId);
-  const name = resident?.alias.replace(" 어르신", "") ?? "";
-  const approved = record.status === "approved";
-  const [, m, d] = record.careDate.split("-").map(Number);
+  const form = legalForms[record.formType];
+  const title = `별지 제${record.formType}호 법정 양식`;
+  const needsArea =
+    record.formType === "16" && Boolean(printableItem(record, "notes")?.value_ko.trim());
+  const resultKey = JSON.stringify([
+    id,
+    record.updatedAt,
+    notesArea,
+    record.items,
+    record.formFields,
+    resident?.alias,
+    db.worker.org,
+  ]);
+  const result = generated?.key === resultKey ? generated : null;
+
+  const generate = async () => {
+    const current = ++request.current;
+    setBusy(true);
+    setError("");
+    try {
+      const [{ createRecordPdf }, templateResponse, fontResponse] = await Promise.all([
+        import("@/lib/print/pdf"),
+        fetch(form.href),
+        fetch("/fonts/noto-sans-kr.ttf"),
+      ]);
+      if (!templateResponse.ok || !fontResponse.ok)
+        throw new Error("양식이나 글꼴을 불러오지 못했어요. 다시 시도해 주세요.");
+      const [template, fontBytes] = await Promise.all([
+        templateResponse.arrayBuffer(),
+        fontResponse.arrayBuffer(),
+      ]);
+      const pdf = await createRecordPdf({
+        template: new Uint8Array(template),
+        fontBytes: new Uint8Array(fontBytes),
+        record,
+        alias: resident?.alias ?? "",
+        org: db.worker.org,
+        notesArea,
+      });
+      if (current !== request.current) return;
+      const url = URL.createObjectURL(
+        new Blob([new Uint8Array(pdf.bytes)], { type: "application/pdf" }),
+      );
+      setGenerated({
+        url,
+        key: resultKey,
+        recordPages: pdf.recordPages,
+        totalPages: pdf.totalPages,
+      });
+    } catch (cause) {
+      if (current === request.current)
+        setError(
+          cause instanceof Error ? cause.message : "PDF를 만들지 못했어요. 다시 시도해 주세요.",
+        );
+    } finally {
+      if (current === request.current) setBusy(false);
+    }
+  };
 
   return (
     <main className="d-app p-app">
       <header className="p-bar no-print">
         <b>
-          인쇄 미리보기 · {resident?.alias} · {m}월 {d}일
+          {title} · {resident?.alias} · {monthDayWeek(record.careDate)}
         </b>
         <div>
           <button
             type="button"
             className="dbtn"
-            onClick={() => (window.history.length > 1 ? router.back() : window.close())}
+            onClick={() =>
+              router.push(record.status === "approved" ? `/approved?id=${id}` : `/review/${id}`)
+            }
           >
-            닫기
+            기록으로 돌아가기
           </button>
-          <button type="button" className="dbtn" onClick={() => window.print()}>
-            PDF로 저장
-          </button>
-          <button type="button" className="dbtn primary" onClick={() => window.print()}>
-            인쇄
-          </button>
+          <a className="dbtn" href={form.href} target="_blank" rel="noopener noreferrer">
+            빈 원문 보기
+          </a>
+          {result && (
+            <>
+              <a
+                className="dbtn"
+                href={result.url}
+                download={`carebridge-form-${record.formType}-${record.id}.pdf`}
+              >
+                기록 PDF 내려받기
+              </a>
+              <a
+                className="dbtn primary"
+                href={result.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                기록 PDF 열기·인쇄
+              </a>
+            </>
+          )}
         </div>
       </header>
-      {!approved && (
-        <p className="p-note no-print">
-          승인 전 미리보기예요. 인쇄는 승인한 뒤 승인한 기록에서 해요. ‘PDF로 저장’은 인쇄 창에서
-          ‘PDF로 저장’을 고르면 돼요.
-        </p>
-      )}
-      <article className="sheet">
-        <div className="sheet-head">
-          <div>
-            <small>[별지 제{record.formType}호 서식 모양]</small>
-            <h1>장기요양급여 제공기록지 ({record.formType === "16" ? "시설급여" : "방문요양"})</h1>
-          </div>
-          <span className="stamp">공식 기록지 아님 · 합성 사례{approved ? "" : " · 승인 전"}</span>
+      <section className="legal-form-layout no-print">
+        <div className="legal-form-view">
+          <section className="panel legal-form-record">
+            <h1>법정 양식에 기록 채우기</h1>
+            <p>
+              {form.revised} 개정 원문의 {form.days}일 칸 중 첫 날짜 열을 사용합니다. 뒤쪽
+              유의사항과 서명란은 그대로 남깁니다.
+            </p>
+            {needsArea && (
+              <label className="flabel">
+                특이사항을 넣을 영역 (담당자 선택)
+                <select
+                  className="field"
+                  value={notesArea}
+                  disabled={busy}
+                  onChange={(event) => setNotesArea(event.target.value as NoteArea | "")}
+                >
+                  <option value="">영역을 골라 주세요</option>
+                  {noteAreas.map(({ key, label }) => (
+                    <option value={key} key={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <p className="info-note">
+              기록에 없는 정보와 서명은 비워 둡니다. 칸보다 긴 내용은 같은 법정 양식에 이어 쓰며
+              자르지 않습니다. PDF에 합성 사례{record.status !== "approved" ? "·승인 전" : ""}{" "}
+              표시가 들어갑니다.
+            </p>
+            <button
+              type="button"
+              className="dbtn primary"
+              disabled={busy || (needsArea && !notesArea)}
+              onClick={generate}
+            >
+              {busy ? "기록 PDF 만드는 중" : "기록 채운 PDF 만들기"}
+            </button>
+            {error && (
+              <p role="alert" className="warn-text">
+                {error}
+              </p>
+            )}
+            {result && (
+              <p role="status">
+                기록 {result.recordPages}쪽과 원문 뒤쪽을 포함해 총 {result.totalPages}쪽입니다.
+              </p>
+            )}
+          </section>
+          {result && (
+            <>
+              <iframe className="legal-form-pdf" title={`${title} 기록 PDF`} src={result.url} />
+              <p>
+                PDF가 보이지 않으면{" "}
+                <a
+                  className="text-link"
+                  href={result.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  기록 PDF를 새 탭에서 열어 주세요.
+                </a>
+              </p>
+            </>
+          )}
         </div>
-        <table className="form-grid">
-          <tbody>
-            <tr>
-              <th>수급자</th>
-              <td>{name} (가명)</td>
-              <th>제공일</th>
-              <td>{dotDate(record.careDate)}</td>
-            </tr>
-            <tr>
-              <th>장기요양기관</th>
-              <td>{db.worker.org}</td>
-              <th>{record.formType === "16" ? "작성자" : "장기요양요원"}</th>
-              <td>{db.worker.name}</td>
-            </tr>
-          </tbody>
-        </table>
-        {record.formType === "16" ? <Form16 record={record} /> : <Form12 record={record} />}
-        <p className="sign-line">
-          {approved
-            ? `승인: ${record.approvedBy} · ${dotDate(kstDateOf(record.approvedAt!)).replace(/ \(.\)$/, "")} ${kstTime(record.approvedAt)}`
-            : "승인 전"}
-        </p>
-        <footer>
-          <span>케어브릿지에서 만든 인쇄용 화면입니다. 실제 제출은 기관의 공식 서식을 쓰세요.</span>
-          <span>1 / 1</span>
-        </footer>
-      </article>
+        <aside className="panel legal-form-record" aria-label="양식에 넣을 기록">
+          <h2>양식에 넣을 기록</h2>
+          <p>
+            {resident?.alias} · {record.careDate} · {db.worker.org}
+          </p>
+          {record.status !== "approved" && <p className="info-note">승인 전 미리보기입니다.</p>}
+          {displayOrder
+            .filter((key) => key !== "next_check")
+            .map((key) => {
+              const item = printableItem(record, key);
+              if (!item?.value_ko.trim()) return null;
+              return (
+                <section key={key} className="legal-form-item">
+                  <h2>{itemLabel(key).ko}</h2>
+                  <p className="muted">{formFieldHint[record.formType][key]}</p>
+                  <p>{item.value_ko}</p>
+                  {item.status === "needs_check" && !item.resolution && (
+                    <span className="chip warn">확인 필요</span>
+                  )}
+                  <button
+                    type="button"
+                    className="dbtn sm"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(item.value_ko);
+                        toast.show("내용을 복사했어요.");
+                      } catch {
+                        toast.show("복사하지 못했어요. 글을 직접 골라 복사해 주세요.");
+                      }
+                    }}
+                  >
+                    내용 복사
+                  </button>
+                </section>
+              );
+            })}
+        </aside>
+      </section>
+      <p className="legal-print-help">
+        화면의 ‘기록 PDF 열기·인쇄’에서 기록을 채운 법정 양식 PDF를 열어 인쇄해 주세요.
+      </p>
+      {toast.node}
     </main>
-  );
-}
-
-function Form16({ record }: { record: DemoRecord }) {
-  const { db } = useDemo()!;
-  const signed = `${db.worker.name} (서명)`;
-  const rows = [
-    {
-      area: "신체활동지원",
-      text: join([
-        withCheck(record, "support"),
-        withCheck(record, "meal"),
-        withCheck(record, "sleep"),
-        withCheck(record, "discomfort"),
-      ]),
-    },
-    { area: "인지관리 및 의사소통", text: join([withCheck(record, "cognition")]) },
-    { area: "건강 및 간호관리", text: join([withCheck(record, "medication")]) },
-    { area: "기능회복훈련", text: "언급 없음" },
-  ];
-  const visit = value(record, "visit_time");
-  const notes = withCheck(record, "notes");
-  return (
-    <>
-      {visit && (
-        <p className="sub-line">
-          <b>맺음(입·퇴소·외박·외출)</b> {visit}
-        </p>
-      )}
-      <h2>영역별 특이사항</h2>
-      <table className="form-grid">
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.area}>
-              <th>{row.area}</th>
-              <td className="wide">{row.text}</td>
-              <th>작성자</th>
-              <td>{row.text === "언급 없음" ? "—" : signed}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {notes && (
-        <p className="sub-line">
-          <b>특이사항</b> {notes}
-        </p>
-      )}
-    </>
-  );
-}
-
-function Form12({ record }: { record: DemoRecord }) {
-  const visitItem = record.items.find((item) => item.item_key === "visit_time");
-  const start = typeof visitItem?.detail?.start === "string" ? visitItem.detail.start : "";
-  const end = typeof visitItem?.detail?.end === "string" ? visitItem.detail.end : "";
-  const support = record.items.find((item) => item.item_key === "support");
-  const minutes = (support?.detail?.minutes ?? {}) as Record<string, number>;
-  const checks = Array.isArray(support?.detail?.checks) ? (support.detail.checks as string[]) : [];
-  const fields = record.formFields ?? {};
-  const count = (key: string) => (typeof fields[key] === "number" ? `${fields[key]}회` : "—");
-  const total = supportMinutesTotal(record);
-  const visit = visitMinutes(record);
-  return (
-    <>
-      <h2>일정관리</h2>
-      <table className="form-grid">
-        <tbody>
-          <tr>
-            <th>시작시간</th>
-            <td>{start || "—"}</td>
-            <th>종료시간</th>
-            <td>{end || "—"}</td>
-            <th>총시간</th>
-            <td>{visit !== null ? `${visit}분` : "—"}</td>
-          </tr>
-        </tbody>
-      </table>
-      <h2>지원별 제공시간</h2>
-      <table className="form-grid">
-        <tbody>
-          {supportMinuteKeys.map(({ key, ko }) => (
-            <tr key={key}>
-              <th>{ko}</th>
-              <td>{minutes[key] ? `${minutes[key]}분` : "—"}</td>
-            </tr>
-          ))}
-          <tr>
-            <th>합계</th>
-            <td>
-              {total}분{visit !== null && total > visit ? " (방문 시간보다 김 · 확인 필요)" : ""}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      {checks.length > 0 && (
-        <p className="sub-line">
-          <b>제공 지원 체크</b> {checks.join(", ")}
-        </p>
-      )}
-      <h2>변화상태 · 배변변화</h2>
-      <table className="form-grid">
-        <tbody>
-          <tr>
-            <th>인지기능</th>
-            <td className="wide">{value(record, "cognition") || "언급 없음"}</td>
-          </tr>
-          <tr>
-            <th>대변 실수 횟수</th>
-            <td>{count("stool_accidents")}</td>
-          </tr>
-          <tr>
-            <th>소변 실수 횟수</th>
-            <td>{count("urine_accidents")}</td>
-          </tr>
-        </tbody>
-      </table>
-      <h2>특이사항 (확인 사항과 조치사항)</h2>
-      <table className="form-grid">
-        <tbody>
-          <tr>
-            <td className="wide tall">
-              {join([
-                withCheck(record, "meal"),
-                withCheck(record, "sleep"),
-                withCheck(record, "discomfort"),
-                withCheck(record, "medication"),
-                withCheck(record, "notes"),
-              ])}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <table className="form-grid sign">
-        <tbody>
-          <tr>
-            <th>장기요양요원</th>
-            <td>(서명)</td>
-            <th>수급자 또는 보호자</th>
-            <td>(서명)</td>
-          </tr>
-        </tbody>
-      </table>
-    </>
   );
 }

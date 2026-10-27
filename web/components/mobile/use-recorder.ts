@@ -48,9 +48,11 @@ export function useRecorder() {
       chunksRef.current = [];
       blobRef.current = null;
       recorder.ondataavailable = (event) => {
+        if (session !== sessionRef.current) return;
         if (event.data.size > 0) chunksRef.current.push(event.data);
       };
       recorder.onstop = () => {
+        if (session !== sessionRef.current) return;
         blobRef.current = new Blob(chunksRef.current, { type: recorder.mimeType });
         chunksRef.current = [];
         stopTracks();
@@ -67,7 +69,13 @@ export function useRecorder() {
   /** [다시 시도]·[나가기]·받아쓰기 성공·로그아웃 때 메모리의 녹음을 지운다. */
   const discard = useCallback(() => {
     sessionRef.current += 1;
-    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      if (recorder.state === "recording") recorder.stop();
+    }
     stopTracks();
     chunksRef.current = [];
     blobRef.current = null;
@@ -100,8 +108,16 @@ export function useRecorder() {
   useEffect(
     () => () => {
       sessionRef.current += 1;
-      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+      const recorder = recorderRef.current;
+      recorderRef.current = null;
+      if (recorder) {
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
+        if (recorder.state === "recording") recorder.stop();
+      }
       stopTracks();
+      chunksRef.current = [];
+      blobRef.current = null;
     },
     [],
   );

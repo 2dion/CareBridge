@@ -217,7 +217,7 @@ export const formFieldHint: Record<"16" | "12", Record<ItemKey, string>> = {
     sleep: "별지 제16호 · 신체활동지원 특이사항",
     discomfort: "별지 제16호 · 신체활동지원 특이사항",
     cognition: "별지 제16호 · 인지관리 및 의사소통 특이사항",
-    medication: "별지 제16호 · 건강 및 간호관리 (투약관리)",
+    medication: "별지 제16호 · 신체활동지원 특이사항 (요양보호사가 관찰한 내용)",
     notes: "별지 제16호 · 영역별 특이사항",
     next_check: "서식 칸 없음 · 기관 내부 메모",
   },

@@ -15,6 +15,8 @@ import {
   lateDays,
   listMissed,
   markProcessing,
+  markDraftFailed,
+  retryDraft,
   returnedRecords,
   submitRecord,
   todayCards,
@@ -25,6 +27,30 @@ const TODAY = "2026-10-27"; // 화요일
 const NOW = "2026-10-27T10:00:00+09:00";
 
 describe("Mock 데이터 규칙 (데이터구조 v1.6.2)", () => {
+  it.each(["voice", "text"] as const)(
+    "실패한 %s 초안은 입력과 항목을 보존하고 W3에서 재처리한다",
+    (mode) => {
+      const db = createDemoDb(TODAY);
+      const made = ensureRecord(db, "kim", TODAY, TODAY, NOW);
+      if ("error" in made) throw new Error(made.error);
+      const processing = markProcessing(
+        made.db,
+        made.id,
+        mode === "text" ? "점심 죽 절반 드심." : null,
+        NOW,
+      );
+      const failed = markDraftFailed(processing, made.id, NOW);
+      const before = failed.records[made.id];
+      const retried = retryDraft(failed, made.id, NOW).records[made.id];
+      expect(retried.draftState).toBe("processing");
+      expect(retried.inputMode).toBe(mode);
+      expect(retried.transcript).toBe(before.transcript);
+      expect(retried.items).toEqual(before.items);
+      const submitted = { ...before, status: "submitted" as const };
+      const locked = { ...failed, records: { ...failed.records, [made.id]: submitted } };
+      expect(retryDraft(locked, made.id, NOW).records[made.id]).toEqual(submitted);
+    },
+  );
   it("한국 날짜 계산: 요일 1=월 … 7=일", () => {
     expect(isoWeekday("2026-10-26")).toBe(1);
     expect(isoWeekday("2026-11-01")).toBe(7);

@@ -1010,7 +1010,7 @@
   font-weight: 700;
 }
 
-/* 인쇄·PDF: 화면에서는 회색 바탕 위 A4 한 장, 인쇄하면 종이만 */
+/* 인쇄·PDF: 법정 원문 PDF와 옮겨 적을 기록. PDF 자체를 열어 인쇄한다. */
 .d-app.p-app {
   display: block;
   background: #dfe5e2;
@@ -1027,6 +1027,67 @@
 .p-app .p-bar div {
   display: flex;
   gap: 8px;
+}
+
+.p-app .p-bar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.p-app .p-bar div {
+  flex-wrap: wrap;
+}
+
+.legal-form-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 20px;
+  max-width: 1440px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.legal-form-view,
+.legal-form-record {
+  min-width: 0;
+}
+
+.legal-form-pdf {
+  width: 100%;
+  height: 80vh;
+  min-height: 600px;
+  margin-top: 12px;
+  border: 1px solid #aab6af;
+  background: #fff;
+}
+
+.legal-form-record {
+  padding: 20px;
+  overflow-wrap: anywhere;
+}
+
+.legal-form-record h1 {
+  font-size: 20px;
+  margin: 0 0 12px;
+}
+
+.legal-form-item {
+  padding: 16px 0;
+  border-top: 1px solid #dfe5e2;
+}
+
+.legal-form-item h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.legal-form-item p {
+  white-space: pre-wrap;
+  margin: 8px 0;
+}
+
+.legal-print-help {
+  display: none;
 }
 
 .p-app .p-note {
@@ -1139,6 +1200,11 @@
 }
 
 @media (max-width: 900px) {
+  .legal-form-layout {
+    grid-template-columns: 1fr;
+    padding: 0 12px;
+  }
+
   .d-app .settings-grid {
     grid-template-columns: 1fr;
   }
@@ -1153,6 +1219,11 @@
 }
 
 @media print {
+  .legal-print-help {
+    display: block;
+    padding: 20px;
+  }
+
   .no-print {
     display: none !important;
   }

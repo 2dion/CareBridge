@@ -185,7 +185,7 @@ function ReviewRecord() {
           그대로 {summary.aiCount}개
         </span>
         <span className={`checks ${unresolved === 0 ? "ok" : ""}`}>
-          확인 필요 {unresolved} · 정함 {resolvedCount}
+          확인 필요 {unresolved} · 처리 완료 {resolvedCount}
         </span>
       </section>
 

@@ -124,7 +124,7 @@ export default function VoicePage() {
           right={
             send !== "sending" && (
               <button type="button" className="text-link" onClick={() => setLeaving(true)}>
-                나가기
+                <BtnLabel ko="나가기" vi="Thoát" />
               </button>
             )
           }

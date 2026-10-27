@@ -1,7 +1,7 @@
 "use client";
 
 // W3(기록 초안 확인, 피그마 M10·M12·M15·M16): 정리 중 → 항목 카드 → 담당자에게 보내기.
-// 항목 내용·확인 이유·되돌림 사유는 병기(②), 제목·버튼·배지는 한국어만(③).
+// 항목 내용·확인 이유·되돌림 사유와 제목·버튼은 병기, 상태 배지·항목 이름은 한국어만.
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -22,6 +22,7 @@ import {
   groupItems,
   itemLabel,
   markDraftFailed,
+  retryDraft,
   type RecordItem,
   setFormField,
   submitRecord,
@@ -52,10 +53,11 @@ export default function DraftPage() {
   const [step, setStep] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [retried, setRetried] = useState(false);
 
   const record = demo?.db.records[id];
   const processing = record?.draftState === "processing";
-  const failDemo = search.get("demo") === "fail";
+  const failDemo = search.get("demo") === "fail" && !retried;
 
   // Mock 정리: 단계 표시 뒤 합성 사례 초안을 채운다. 실제로는 /api/records/:id/draft(Agent).
   useEffect(() => {
@@ -138,7 +140,6 @@ export default function DraftPage() {
   }
 
   if (record.draftState === "failed") {
-    const retryHref = record.inputMode === "text" ? `/records/${id}/write` : `/records/${id}/voice`;
     return (
       <MobileScreen tab="today">
         <AppBar title="기록 초안" vi="Bản nháp" back="/today" />
@@ -153,9 +154,18 @@ export default function DraftPage() {
           <span className="p-vi vi">
             Hãy thử lại sau hoặc viết trực tiếp. Nội dung đã viết vẫn còn.
           </span>
-          <Link className="btn btn-primary" href={retryHref}>
-            <span className="label">다시 시도 · Thử lại</span>
-          </Link>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setStep(0);
+              setRetried(true);
+              demo.update((db) => retryDraft(db, id, nowIso()));
+              router.replace(`/records/${id}`);
+            }}
+          >
+            <BtnLabel ko="다시 시도" vi="Thử lại" />
+          </button>
           <Link className="btn btn-outline" href={`/records/${id}/write`}>
             <span className="label">글로 쓰기 · Viết trực tiếp</span>
           </Link>

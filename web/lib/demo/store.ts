@@ -691,6 +691,15 @@ export function markDraftFailed(db: DemoDb, id: string, now: string): DemoDb {
   return updateRecord(db, id, (record) => ({ ...record, draftState: "failed", updatedAt: now }));
 }
 
+/** W3에서 실패한 처리만 다시 시작. 입력 방법·원문·사람이 고친 항목은 유지한다. */
+export function retryDraft(db: DemoDb, id: string, now: string): DemoDb {
+  return updateRecord(db, id, (record) =>
+    editable(record) && record.draftState === "failed"
+      ? { ...record, draftState: "processing", updatedAt: now }
+      : record,
+  );
+}
+
 function editable(record: DemoRecord) {
   return record.status === "draft" || record.status === "returned";
 }
