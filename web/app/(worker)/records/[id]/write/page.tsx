@@ -1,7 +1,6 @@
 "use client";
 
 // 글로 쓰기(피그마 M11): 쓴 글로 초안을 만든다. 쓰는 화면이라 안내는 한국어만(병기 원칙 ①).
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -87,11 +86,7 @@ export default function WritePage() {
           <BtnLabel ko="초안 만들기" vi="Tạo bản nháp" />
         </button>
       </div>
-      <div className="link-row" style={{ margin: "14px 0 18px" }}>
-        <Link className="on" href={`/records/${id}/voice`}>
-          음성으로 기록
-        </Link>
-      </div>
+      <div style={{ height: 18 }} />
     </MobileScreen>
   );
 }

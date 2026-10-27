@@ -2,6 +2,7 @@
 
 // W2(음성 메모, 피그마 M07~M09): 준비 → 녹음 → 정지하면 바로 보냄 → W3 ‘정리 중’.
 // 녹음은 탭 메모리에만 두고, 보내지 못하면 [다시 보내기](2026-10-27-녹음임시보관 결정).
+// 말하기·글쓰기는 기록 시작 화면에서 하나만 고른다(10/27 팀장). 여기서 글쓰기로 넘어가는 길은 마이크를 못 쓸 때만.
 // 녹음 화면 안내는 내가 말하는 곳이라 한국어만(병기 원칙 ①), 마이크 권한·오류 안내는 병기(②).
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -191,11 +192,7 @@ export default function VoicePage() {
             <BtnLabel ko="다시 시도" vi="Thử lại" />
           </button>
         </div>
-        <div className="link-row" style={{ margin: "16px 0 22px" }}>
-          <Link className="on" href={writeHref} onClick={() => recorder.discard()}>
-            글로 쓰기
-          </Link>
-        </div>
+        <div style={{ height: 22 }} />
         <Modal open={leaving} onClose={() => setLeaving(false)} label="녹음을 버리고 나갈까요?">
           <h2 style={{ fontSize: 22, fontWeight: 700 }}>녹음을 버리고 나갈까요?</h2>
           <span className="vi" style={{ fontSize: 13 }}>
@@ -277,10 +274,6 @@ export default function VoicePage() {
             vi="Bắt đầu ghi âm"
           />
         </button>
-        <Link className="btn btn-outline btn-center btn-sm" href={writeHref}>
-          <Icon name="pencil" />
-          <BtnLabel ko="글로 쓰기" vi="Viết trực tiếp" />
-        </Link>
       </section>
     </MobileScreen>
   );
