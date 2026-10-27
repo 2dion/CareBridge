@@ -15,7 +15,9 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 | `migrations/20261021000000_init.sql` | 표 12개, 기관별 RLS, 상태 변화 검사 트리거, 용어 검색 함수, 녹음 버킷 `audio`와 Storage RLS |
 | `migrations/20261025230000_missed_records.sql` | 못 쓴 기록: 방문 요일·담당 시작일, 하루 1건, 한국 날짜, `no_care_days`, `list_missed_records` |
 | `migrations/20261027100000_trainer_flow.sql` | 강사흐름통일: `commented`·`comments` 표 뺌, 교육용 기관도 수정·되돌리기·승인 |
+| `migrations/20261027110000_missed_draft.sql` | 못 쓴 기록: 임시 저장은 날짜 제한 없이, 기록 없음(`missing`)만 지난 7일 |
 | `migrations/20261027120000_late_submit.sql` | 늦게 보낸 기록 계산 함수 `record_late_submit` |
+| `migrations/20261027130000_join_codes.sql` | 가입 코드 표 `join_codes`(담당자·강사는 같은 기관 것 읽기만) |
 | `migrations/20261027140000_permissions.sql` | 권한 정리: 이력은 DB 트리거만, `agent_steps`·`audio_jobs` 상태는 서버만, 되돌린 사유·원문·`source` 보호 |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 
