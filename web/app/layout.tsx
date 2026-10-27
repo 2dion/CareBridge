@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 
+import { DemoProvider } from "@/components/demo/demo-provider";
 import { MockBadge } from "@/components/mock-badge";
 
 import "./globals.css";
@@ -22,7 +23,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <MockBadge />
         </Suspense>
-        {children}
+        <DemoProvider>
+          {/* 화면들이 주소의 값(useParams·useSearchParams)을 읽으므로 경계를 둔다(cacheComponents). */}
+          <Suspense fallback={null}>{children}</Suspense>
+        </DemoProvider>
       </body>
     </html>
   );

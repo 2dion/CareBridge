@@ -23,7 +23,7 @@ export type ItemKey =
   | "next_check";
 export type ItemStatus = "observed" | "not_mentioned" | "needs_check";
 export type Resolution = "confirmed_by_reviewer" | "omitted" | null;
-export type RecordStatus = "draft" | "submitted" | "returned" | "approved" | "commented";
+export type RecordStatus = "draft" | "submitted" | "returned" | "approved";
 
 export type Item = {
   item_key: ItemKey;
@@ -69,7 +69,6 @@ export const statusLabel: Record<RecordStatus, string> = {
   submitted: "보냄",
   returned: "되돌아옴",
   approved: "승인됨",
-  commented: "코멘트 받음",
 };
 export const itemStatusLabel: Record<ItemStatus, string> = {
   observed: "관찰",
@@ -81,7 +80,6 @@ export const statusVi: Record<RecordStatus, string> = {
   submitted: "Đã gửi",
   returned: "Bị trả lại",
   approved: "Đã duyệt",
-  commented: "Đã có nhận xét",
 };
 export const STORAGE_KEY = "carebridge-sf01-mock-v1";
 
