@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=390" />
+    <title>M11 글로 쓰기</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="screens.css" />
+  </head>
+  <body>
+    <main class="screen has-tabs" data-screen="M11_text_input">
+      <div class="status-bar">
+        <span>9:41</span
+        ><svg width="68" height="12" viewBox="0 0 68 12" aria-hidden="true">
+          <g fill="currentColor">
+            <rect x="0" y="8" width="3" height="4" rx="1" />
+            <rect x="5" y="5.5" width="3" height="6.5" rx="1" />
+            <rect x="10" y="3" width="3" height="9" rx="1" />
+            <rect x="15" y="0" width="3" height="12" rx="1" />
+            <path
+              d="M30 2.2a10 10 0 0 1 7.2 3l-1.4 1.4a8 8 0 0 0-11.6 0l-1.4-1.4A10 10 0 0 1 30 2.2zm0 4a6 6 0 0 1 4.3 1.8L30 12.3 25.7 8A6 6 0 0 1 30 6.2z"
+            />
+            <rect
+              x="42"
+              y="1"
+              width="23"
+              height="10"
+              rx="3"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.2"
+              opacity="0.5"
+            />
+            <rect x="44" y="3" width="19" height="6" rx="1.5" />
+            <rect x="66" y="4" width="2" height="4" rx="1" opacity="0.5" />
+          </g>
+        </svg>
+      </div>
+      <header class="app-bar">
+        <div class="side">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+        </div>
+        <div class="title"><strong>글로 쓰기</strong><span class="vi">Viết trực tiếp</span></div>
+        <div class="side side-right"></div>
+      </header>
+      <div class="resident-pill">
+        <span class="mini-avatar">김</span><span><b>김영희 어르신</b> · 10월 26일</span>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          padding: 12px 0 0 24px;
+        "
+      >
+        <div style="padding-bottom: 16px">
+          <p class="headline">글로 돌봄 내용을<br /><em>남겨 주세요.</em></p>
+          <span class="vi" style="font-size: 12px">Hãy viết về việc chăm sóc.</span>
+        </div>
+        <img class="art flush" src="art/robot-writing.png" alt="새싹로봇" style="width: 130px" />
+      </div>
+      <section class="write-card card grow" style="margin-top: -6px">
+        <div class="write-head">
+          <span class="icon-bubble sm"
+            ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></svg
+          ></span>
+          <div><b>돌봄 내용</b><span class="vi">Nội dung chăm sóc</span></div>
+        </div>
+        <div class="placeholder">
+          오늘 도운 일, 식사, 수면,<br />달라진 점을 자유롭게<br />적어 주세요.
+        </div>
+        <div class="note-line">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8h.01" /></svg
+          ><span>한국어 또는 베트남어로 작성할 수 있어요.</span>
+        </div>
+      </section>
+      <div class="pad" style="margin-top: 12px">
+        <div class="btn btn-primary"><span class="label">초안 만들기</span></div>
+      </div>
+      <div class="card link-row" style="margin: 10px 16px 14px; padding: 14px 0">
+        <span>임시저장</span><span class="bar"></span><span class="on">글로 쓰기</span>
+      </div>
+      <nav class="tab-bar">
+        <div class="tab active">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></svg
+          ><span>오늘</span>
+        </div>
+        <div class="tab">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="3" width="16" height="18" rx="2" />
+            <path d="M8 8h8M8 12h8M8 16h5" /></svg
+          ><span>기록함</span>
+        </div>
+        <div class="tab">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
+            <path d="M19 2v4M17 4h4" /></svg
+          ><span>도우미</span>
+        </div>
+        <div class="tab">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21a8 8 0 0 1 16 0" /></svg
+          ><span>내 정보</span>
+        </div>
+      </nav>
+    </main>
+  </body>
+</html>
