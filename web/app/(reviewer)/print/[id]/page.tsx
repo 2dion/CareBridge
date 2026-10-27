@@ -1,7 +1,7 @@
 "use client";
 
 // 인쇄·PDF(피그마 D06, 화면 v1.3 R3): 기록 1건(하루) = 1장. 별지 서식 ‘모양’이며 공식 기록지가 아니다.
-// 칸은 데이터구조 v1.6.1 ‘서식 칸 대응’ 표를 따른다. 서명란: 제16호 = 영역별 작성자, 제12호 = 장기요양요원 + 수급자 또는 보호자.
+// 칸은 데이터구조 v1.6.2 ‘서식 칸 대응’ 표를 따른다. 서명란: 제16호 = 영역별 작성자, 제12호 = 장기요양요원 + 수급자 또는 보호자.
 import { useParams, useRouter } from "next/navigation";
 
 import { useDemo } from "@/components/demo/demo-provider";

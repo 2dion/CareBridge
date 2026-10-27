@@ -24,7 +24,7 @@ import {
 const TODAY = "2026-10-27"; // 화요일
 const NOW = "2026-10-27T10:00:00+09:00";
 
-describe("Mock 데이터 규칙 (데이터구조 v1.6.1)", () => {
+describe("Mock 데이터 규칙 (데이터구조 v1.6.2)", () => {
   it("한국 날짜 계산: 요일 1=월 … 7=일", () => {
     expect(isoWeekday("2026-10-26")).toBe(1);
     expect(isoWeekday("2026-11-01")).toBe(7);
@@ -154,6 +154,8 @@ describe("Mock 데이터 규칙 (데이터구조 v1.6.1)", () => {
     let support = db.records[made.id].items.find((item) => item.item_key === "support")!;
     expect(support.status).toBe("needs_check");
     expect(support.reason).toContain("200분");
+    // 코드가 쓴 이유도 모국어 문장이 함께 있다(확인필요이유병기 결정).
+    expect(support.reason_native).toContain("200 phút");
     db = workerEditItem(
       db,
       made.id,
@@ -166,6 +168,17 @@ describe("Mock 데이터 규칙 (데이터구조 v1.6.1)", () => {
     );
     support = db.records[made.id].items.find((item) => item.item_key === "support")!;
     expect(support.status).toBe("observed");
+    expect(support.reason_native).toBe("");
+  });
+
+  it("AI가 쓴 ‘확인 필요’ 이유는 모국어 번역이 함께 온다", () => {
+    let db = createDemoDb(TODAY);
+    const made = ensureRecord(db, "kim", TODAY, TODAY, NOW);
+    if ("error" in made) throw new Error(made.error);
+    db = fillMockDraft(made.db, made.id, NOW);
+    const checks = db.records[made.id].items.filter((item) => item.status === "needs_check");
+    expect(checks.length).toBeGreaterThan(0);
+    expect(checks.every((item) => (item.reason_native ?? "").trim() !== "")).toBe(true);
   });
 
   it("같은 어르신·같은 날 기록은 하나만", () => {

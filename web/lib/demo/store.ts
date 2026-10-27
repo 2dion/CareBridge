@@ -1,5 +1,5 @@
 // 작성자·담당자 화면이 함께 쓰는 Mock 데이터(브라우저 저장).
-// 실제 API·Supabase가 붙기 전까지 화면이 같은 규칙(데이터구조 v1.6.1 공통 계약)으로 움직이게 한다.
+// 실제 API·Supabase가 붙기 전까지 화면이 같은 규칙(데이터구조 v1.6.2 공통 계약)으로 움직이게 한다.
 // 상태 변화·승인 조건·못 쓴 기록 계산은 여기 코드가 맡고, AI에게 맡기지 않는다(AGENTS.md 원칙 5).
 import f01 from "./s-f01.json";
 import f05 from "./s-f05.json";
@@ -212,6 +212,7 @@ function caseItems(caseId: CaseId): RecordItem[] {
     value_native: value.value_native,
     evidence: value.evidence,
     reason: value.reason,
+    reason_native: "reason_native" in value ? String(value.reason_native ?? "") : "",
     confirmed: false,
     resolution: null,
     source: "ai" as const,
@@ -238,6 +239,7 @@ function emptyItems(): RecordItem[] {
     value_native: "",
     evidence: "",
     reason: "",
+    reason_native: "",
     confirmed: false,
     resolution: null,
     source: "ai" as const,
@@ -344,6 +346,7 @@ export function withMealAddition(record: DemoRecord): DemoRecord {
         value_native: patch.value_native,
         evidence: patch.evidence,
         reason: patch.reason,
+        reason_native: "",
         source: "worker" as const,
         confirmed: true,
         resolution: null,
@@ -465,7 +468,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
             ? {
                 ...item,
                 status: "needs_check" as const,
-                reason: "지원별 제공시간 합(200분)이 방문 시간(180분)보다 김",
+                ...minutesReason(200, 180),
                 source: "worker" as const,
                 confirmed: true,
                 detail: { ...(item.detail ?? {}), minutes },
@@ -516,7 +519,7 @@ export function getResident(db: DemoDb, id: string) {
   return db.residents.find((resident) => resident.id === id);
 }
 
-/** 그날이 ‘기록이 있어야 하는 날’인지(데이터구조 v1.6.1 못 쓴 기록). */
+/** 그날이 ‘기록이 있어야 하는 날’인지(데이터구조 v1.6.2 못 쓴 기록). */
 export function isCareDay(db: DemoDb, resident: Resident, date: string): boolean {
   if (date < resident.startDate) return false;
   if (resident.visitDays && !resident.visitDays.includes(isoWeekday(date))) return false;
@@ -708,7 +711,7 @@ export function confirmItem(db: DemoDb, id: string, key: ItemKey, now: string): 
 
 export type WorkerEdit = { value_ko: string; detail?: Record<string, unknown> };
 
-/** 제12호 지원별 분 키 6개(데이터구조 v1.6.1 support detail 칸 이름). */
+/** 제12호 지원별 분 키 6개(데이터구조 v1.6.2 support detail 칸 이름). */
 export const supportMinuteKeys = [
   { key: "physical", ko: "신체활동지원 (합계)" },
   { key: "cognitive_stimulation", ko: "인지자극활동" },
@@ -741,6 +744,14 @@ export function supportMinutesTotal(record: DemoRecord): number {
   );
 }
 
+/** 코드가 쓰는 이유는 한국어·모국어 문장을 함께 정해 둔다(확인필요이유병기 결정 2번). */
+export function minutesReason(total: number, visit: number) {
+  return {
+    reason: `지원별 제공시간 합(${total}분)이 방문 시간(${visit}분)보다 김`,
+    reason_native: `Tổng thời gian hỗ trợ (${total} phút) dài hơn thời gian thăm (${visit} phút).`,
+  };
+}
+
 /** 기록 검증 검사 5(support_minutes_exceed_visit): 제12호 지원별 분 합이 방문 시간보다 길면 ‘확인 필요’. 코드가 맡는다. */
 function checkSupportMinutes(record: DemoRecord): DemoRecord {
   if (record.formType !== "12") return record;
@@ -754,7 +765,7 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
         return {
           ...item,
           status: "needs_check" as const,
-          reason: `지원별 제공시간 합(${total}분)이 방문 시간(${visit}분)보다 김`,
+          ...minutesReason(total, visit),
         };
       }
       return item.status === "needs_check"
@@ -762,6 +773,7 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
             ...item,
             status: item.value_ko.trim() ? ("observed" as const) : ("not_mentioned" as const),
             reason: "",
+            reason_native: "",
           }
         : item;
     }),
@@ -790,6 +802,7 @@ export function workerEditItem(
               value_native: "",
               status: edit.value_ko.trim() ? ("observed" as const) : ("not_mentioned" as const),
               reason: "",
+              reason_native: "",
               detail: edit.detail ?? item.detail,
               source: "worker" as const,
               confirmed: true,

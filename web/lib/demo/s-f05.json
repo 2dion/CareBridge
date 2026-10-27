@@ -82,6 +82,7 @@
         "value_native": "Bữa trưa ăn cháo, cần xác nhận lượng ăn (\"một ít\")",
         "evidence": "Bữa trưa bà ăn cháo, ăn được một ít.",
         "reason": "\"조금\"은 제16호 섭취량(1 / 1/2이상 / 1/2미만) 중 하나로 정할 수 없음",
+        "reason_native": "Từ “조금” (một ít) không xác định được lượng ăn theo mẫu số 16 (1 / từ 1/2 trở lên / dưới 1/2).",
         "detail": {
           "meal_type": "죽",
           "intake": null

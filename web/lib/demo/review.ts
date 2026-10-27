@@ -1,5 +1,5 @@
 // 담당자 화면(R1~R4) Mock 규칙. 승인 조건·되돌림·덮어쓰기 금지는 코드가 맡는다(AGENTS.md 원칙 3·5).
-// 실제로는 PATCH /api/records/:id/items/:key, POST /approve, POST /return(데이터구조 v1.6.1 공통 계약).
+// 실제로는 PATCH /api/records/:id/items/:key, POST /approve, POST /return(데이터구조 v1.6.2 공통 계약).
 import { countUnresolved, demoAgentSteps, type ItemKey } from "./state";
 import {
   canApproveRecord,
@@ -208,7 +208,7 @@ export function updateResident(db: DemoDb, residentId: string, edit: ResidentEdi
   };
 }
 
-/** 공식 기록지 칸 안내(데이터구조 v1.6.1 '서식 칸 대응' 표). */
+/** 공식 기록지 칸 안내(데이터구조 v1.6.2 '서식 칸 대응' 표). */
 export const formFieldHint: Record<"16" | "12", Record<ItemKey, string>> = {
   "16": {
     visit_time: "별지 제16호 · 맺음(입·퇴소·외박·외출 시간)",

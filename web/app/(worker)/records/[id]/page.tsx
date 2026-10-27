@@ -396,7 +396,14 @@ function ItemCard({
         </span>
       )}
       {item.status === "needs_check" && item.reason && (
-        <div className="reason-box">확인 이유 · {item.reason}</div>
+        <div className="reason-box">
+          확인 이유 · {item.reason}
+          {item.reason_native && (
+            <span className="vi" style={{ display: "block" }}>
+              {item.reason_native}
+            </span>
+          )}
+        </div>
       )}
       {item.item_key === "notes" && notesLength > 0 && (
         <p className={`counter ${notesLength > NOTES_LIMIT ? "over" : ""}`}>

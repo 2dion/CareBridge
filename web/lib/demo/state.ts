@@ -32,6 +32,8 @@ export type Item = {
   value_native: string;
   evidence: string;
   reason: string;
+  /** reason의 모국어 번역(데이터구조 v1.6.2, 확인필요이유병기 결정). */
+  reason_native?: string;
   confirmed: boolean;
   source: "ai" | "worker" | "reviewer";
   resolution: Resolution;

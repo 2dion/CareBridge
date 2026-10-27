@@ -1,7 +1,7 @@
 "use client";
 
 // R4(어르신·작성자, 피그마 D03·D11·D12): 어르신 목록·추가, 작성자 목록, 담당 연결(작성자·담당 시작일·방문 요일·방문 시간).
-// 방문 요일은 1=월 … 7=일(assignments.visit_days). 담당 시작일부터 못 쓴 기록을 센다(데이터구조 v1.6.1).
+// 방문 요일은 1=월 … 7=일(assignments.visit_days). 담당 시작일부터 못 쓴 기록을 센다(데이터구조 v1.6.2).
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
