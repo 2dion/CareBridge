@@ -1,0 +1,468 @@
+[
+  {
+    "expression": "세수해 드렸어요",
+    "aliases": ["얼굴 닦아 드렸어요", "세수", "얼굴 닦"],
+    "term_ko": "세면도움",
+    "term_vi": "Hỗ trợ rửa mặt",
+    "plain_ko": "얼굴·목·손 씻기를 도움",
+    "chapter": "10장 4절 5. 세면 돕기",
+    "page": "425"
+  },
+  {
+    "expression": "양치 도와드렸어요",
+    "aliases": ["틀니 닦았어요", "양치", "틀니"],
+    "term_ko": "구강청결",
+    "term_vi": "Vệ sinh răng miệng",
+    "plain_ko": "양치·틀니 손질을 도움",
+    "chapter": "10장 4절 1. 구강 청결 돕기",
+    "page": "410"
+  },
+  {
+    "expression": "옷 갈아입혀 드렸어요",
+    "aliases": ["옷 갈아입"],
+    "term_ko": "옷 갈아입기 도움",
+    "term_vi": "Hỗ trợ thay quần áo",
+    "plain_ko": "속옷·겉옷 갈아입기를 도움",
+    "chapter": "10장 4절 10. 옷 갈아입기 도움",
+    "page": "441"
+  },
+  {
+    "expression": "머리 감겨 드렸어요",
+    "aliases": ["머리 감"],
+    "term_ko": "머리감기 도움",
+    "term_vi": "Hỗ trợ gội đầu",
+    "plain_ko": "머리 감기·말리기를 도움",
+    "chapter": "10장 4절 2. 두발 청결 돕기",
+    "page": "418"
+  },
+  {
+    "expression": "면도해 드렸어요",
+    "aliases": ["손톱 깎아 드렸어요", "면도", "손톱"],
+    "term_ko": "몸단장",
+    "term_vi": "Chăm sóc ngoại hình (cạo râu, cắt móng)",
+    "plain_ko": "머리단장·손발톱 깎기·면도를 도움",
+    "chapter": "2장 3절 2. 요양보호 업무의 유형과 내용",
+    "page": "70"
+  },
+  {
+    "expression": "씻겨 드렸어요",
+    "aliases": ["샤워해 드렸어요", "씻겨", "샤워", "목욕"],
+    "term_ko": "목욕도움(몸 씻기 도움)",
+    "term_vi": "Hỗ trợ tắm",
+    "plain_ko": "입욕·샤워를 도움",
+    "chapter": "10장 4절 7. 목욕 돕기",
+    "page": "428"
+  },
+  {
+    "expression": "밥 먹여 드렸어요",
+    "aliases": ["식사 도와드렸어요", "밥 먹여", "식사 도와"],
+    "term_ko": "식사도움",
+    "term_vi": "Hỗ trợ ăn uống",
+    "plain_ko": "식사 차리기·보조·지켜보기",
+    "chapter": "10장 1절 5. 식사 돕기",
+    "page": "375"
+  },
+  {
+    "expression": "다 드셨어요",
+    "aliases": ["다 드셨"],
+    "term_ko": "섭취량 1(전량)",
+    "term_vi": "Ăn hết khẩu phần",
+    "plain_ko": "정해진 양을 다 먹음",
+    "chapter": "9장 1절 4. 각종 기록지 양식",
+    "page": "348"
+  },
+  {
+    "expression": "반 넘게 드셨어요",
+    "aliases": ["반 넘게", "반 이상"],
+    "term_ko": "섭취량 1/2이상",
+    "term_vi": "Ăn được hơn một nửa",
+    "plain_ko": "반 이상 먹음",
+    "chapter": "9장 1절 4. 각종 기록지 양식",
+    "page": "348"
+  },
+  {
+    "expression": "반도 못 드셨어요",
+    "aliases": ["반도 못", "반 안 되게", "반 안되게"],
+    "term_ko": "섭취량 1/2미만",
+    "term_vi": "Ăn chưa được một nửa",
+    "plain_ko": "반보다 적게 먹음",
+    "chapter": "9장 1절 4. 각종 기록지 양식",
+    "page": "348"
+  },
+  {
+    "expression": "조금 드셨어요",
+    "aliases": ["조금 드셨", "조금 먹"],
+    "term_ko": "(섭취량 확인 필요)",
+    "term_vi": "Ăn một ít (cần hỏi lại lượng)",
+    "plain_ko": "선택지 하나로 정할 수 없는 표현",
+    "chapter": "",
+    "page": ""
+  },
+  {
+    "expression": "죽 드셨어요",
+    "aliases": ["죽"],
+    "term_ko": "죽",
+    "term_vi": "Cháo",
+    "plain_ko": "식사 종류",
+    "chapter": "10장 1절 3. 식사의 종류",
+    "page": "371"
+  },
+  {
+    "expression": "콧줄로 드셨어요",
+    "aliases": ["콧줄"],
+    "term_ko": "경관영양(튜브영양공급)",
+    "term_vi": "Nuôi ăn qua ống",
+    "plain_ko": "관을 통해 영양을 공급함",
+    "chapter": "10장 1절 7. 경관영양 돕기",
+    "page": "381"
+  },
+  {
+    "expression": "자세 바꿔 드렸어요",
+    "aliases": [
+      "돌려 눕혀 드렸어요",
+      "자세 바꿔",
+      "자세 바꿨",
+      "자세 바꾸",
+      "돌려 눕혀",
+      "돌려 드렸"
+    ],
+    "term_ko": "체위변경",
+    "term_vi": "Đổi tư thế",
+    "plain_ko": "누운 자세를 바꿔 드림",
+    "chapter": "10장 5절 3. 침대에서의 체위변경",
+    "page": "457"
+  },
+  {
+    "expression": "하루 종일 누워 계세요",
+    "aliases": ["누워 계세요", "누워만"],
+    "term_ko": "와상",
+    "term_vi": "Nằm liệt giường",
+    "plain_ko": "거의 누워서만 지냄",
+    "chapter": "9장 1절 4. 각종 기록지 양식",
+    "page": "348"
+  },
+  {
+    "expression": "부축해서 걸었어요",
+    "aliases": ["휠체어로 옮겨 드렸어요", "부축", "휠체어"],
+    "term_ko": "이동도움",
+    "term_vi": "Hỗ trợ di chuyển",
+    "plain_ko": "보행·옮겨 타기를 도움",
+    "chapter": "10장 5절 체위변경과 이동",
+    "page": "452"
+  },
+  {
+    "expression": "화장실 모시고 갔어요",
+    "aliases": ["화장실"],
+    "term_ko": "화장실이용하기",
+    "term_vi": "Hỗ trợ đi vệ sinh",
+    "plain_ko": "화장실 이동·배뇨·배변을 도움",
+    "chapter": "10장 3절 3. 화장실 이용 돕기",
+    "page": "391"
+  },
+  {
+    "expression": "기저귀 갈았어요",
+    "aliases": ["기저귀"],
+    "term_ko": "기저귀 교환",
+    "term_vi": "Thay tã",
+    "plain_ko": "기저귀를 바꿈",
+    "chapter": "10장 3절 6. 기저귀 사용 돕기",
+    "page": "400"
+  },
+  {
+    "expression": "소변 실수하셨어요",
+    "aliases": ["소변 실수", "오줌 실수"],
+    "term_ko": "소변 실수(요실금)",
+    "term_vi": "Tiểu không tự chủ",
+    "plain_ko": "모르는 사이 소변이 나옴",
+    "chapter": "5장 2절 5. 비뇨·생식기계(요실금)",
+    "page": "205"
+  },
+  {
+    "expression": "사레 들리셨어요",
+    "aliases": ["삼키기 힘들어하세요", "사레", "삼키기"],
+    "term_ko": "삼킴 어려움 관찰",
+    "term_vi": "Bị sặc / khó nuốt",
+    "plain_ko": "삼키기를 힘들어함 (연하곤란을 의심하는 표현은 쓰지 않음)",
+    "chapter": "10장 1절 5. 식사 돕기(연하곤란 증상)",
+    "page": "377"
+  },
+  {
+    "expression": "잠을 잘 못 주무셨대요",
+    "aliases": ["잘 못 주무", "잠을 못", "잠 못"],
+    "term_ko": "수면 상태(본인 진술)",
+    "term_vi": "Bà nói ngủ không ngon",
+    "plain_ko": "잠을 잘 못 잤다고 말씀하심",
+    "chapter": "7장 3절 수면",
+    "page": "268"
+  },
+  {
+    "expression": "아프다고 하셨어요",
+    "aliases": ["아프다고", "아프대요", "아파하"],
+    "term_ko": "통증 호소",
+    "term_vi": "Kêu đau",
+    "plain_ko": "아프다고 말씀하심 (부위를 함께)",
+    "chapter": "9장 1절 1. 요양보호 관찰",
+    "page": "321"
+  },
+  {
+    "expression": "빨개요",
+    "aliases": ["붉어요", "빨개", "붉어"],
+    "term_ko": "발적 관찰",
+    "term_vi": "Da bị đỏ",
+    "plain_ko": "피부가 붉어짐",
+    "chapter": "10장 3절 6. 기저귀 사용 돕기",
+    "page": "401"
+  },
+  {
+    "expression": "부었어요",
+    "aliases": ["부었", "부어"],
+    "term_ko": "부종 관찰",
+    "term_vi": "Bị sưng / phù",
+    "plain_ko": "몸 일부가 부어 보임 (반대쪽과 비교)",
+    "chapter": "10장 5절 3. 침대에서의 체위변경",
+    "page": "458"
+  },
+  {
+    "expression": "약 드시는 거 봤어요",
+    "aliases": ["약 드시", "약은 드셨", "약 드셨", "약을 드셨"],
+    "term_ko": "복약 확인",
+    "term_vi": "Đã thấy uống thuốc",
+    "plain_ko": "약을 드신 것을 봄",
+    "chapter": "10장 2절 투약돕기",
+    "page": "383"
+  },
+  {
+    "expression": "말동무해 드렸어요",
+    "aliases": ["이야기 나눴어요", "말동무", "이야기 나눴"],
+    "term_ko": "말벗·격려(의사소통 도움)",
+    "term_vi": "Trò chuyện, động viên",
+    "plain_ko": "대화하며 정서를 지원함",
+    "chapter": "8장 1절 5. 말벗하기",
+    "page": "304"
+  },
+  {
+    "expression": "같이 색칠·숫자 놀이 했어요",
+    "aliases": ["색칠", "숫자 놀이"],
+    "term_ko": "인지관리 지원",
+    "term_vi": "Hỗ trợ hoạt động nhận thức",
+    "plain_ko": "인지기능 유지를 돕는 활동",
+    "chapter": "2장 3절 2. 요양보호 업무의 유형과 내용",
+    "page": "70"
+  },
+  {
+    "expression": "산책 같이 했어요",
+    "aliases": ["산책"],
+    "term_ko": "산책(외출) 동행",
+    "term_vi": "Đi dạo cùng",
+    "plain_ko": "산책·외출을 함께함",
+    "chapter": "11장 6절 1. 외출동행",
+    "page": "576"
+  },
+  {
+    "expression": "넘어지셨어요",
+    "aliases": ["넘어지"],
+    "term_ko": "낙상",
+    "term_vi": "Té ngã",
+    "plain_ko": "넘어짐",
+    "chapter": "5장 2절 4. 근골격계(골절과 낙상)",
+    "page": "203"
+  },
+  {
+    "expression": "변을 못 보셨어요",
+    "aliases": ["묽게 보셨어요", "변을 못", "묽게"],
+    "term_ko": "배변 상태(변비·설사 관찰)",
+    "term_vi": "Không đi ngoài được / đi ngoài phân lỏng",
+    "plain_ko": "대변 상태를 본 대로",
+    "chapter": "10장 3절 2. 배설 상태 관찰",
+    "page": "390"
+  },
+  {
+    "expression": "침대에서 앉혀 드려야 일어나세요",
+    "aliases": ["앉혀 드려"],
+    "term_ko": "준와상",
+    "term_vi": "Nằm liệt một phần (ngồi được khi có hỗ trợ)",
+    "plain_ko": "도움을 받으면 앉거나 일어날 수 있음",
+    "chapter": "9장 1절 4. 각종 기록지 양식",
+    "page": "348"
+  },
+  {
+    "expression": "엉덩이에 상처가 생겼어요",
+    "aliases": ["살이 헐었어요", "욕창", "상처가 생겼", "살이 헐"],
+    "term_ko": "욕창",
+    "term_vi": "Loét tì đè",
+    "plain_ko": "오래 눌린 피부가 상함",
+    "chapter": "5장 2절 6. 피부계(욕창)",
+    "page": "211"
+  },
+  {
+    "expression": "한쪽 팔다리를 못 쓰세요",
+    "aliases": ["한쪽 팔다리"],
+    "term_ko": "편마비",
+    "term_vi": "Liệt nửa người",
+    "plain_ko": "몸 한쪽이 마비됨",
+    "chapter": "10장 1절 4. 식사자세(편마비 대상자)",
+    "page": "374"
+  },
+  {
+    "expression": "코에 줄 끼고 계세요",
+    "aliases": ["코에 줄"],
+    "term_ko": "비위관(L-tube)",
+    "term_vi": "Ống thông dạ dày qua mũi",
+    "plain_ko": "코로 위까지 넣은 영양 관",
+    "chapter": "10장 1절 7. 경관영양 돕기",
+    "page": "381"
+  },
+  {
+    "expression": "소변 줄 달고 계세요",
+    "aliases": ["소변 줄"],
+    "term_ko": "유치도뇨관(고정소변배출관)",
+    "term_vi": "Ống thông tiểu lưu",
+    "plain_ko": "방광에 넣어 둔 소변 관",
+    "chapter": "10장 3절 7. 유치도뇨관의 소변주머니 관리",
+    "page": "403"
+  },
+  {
+    "expression": "배에 변 주머니 차고 계세요",
+    "aliases": ["대변 주머니", "배에 변 주머니"],
+    "term_ko": "장루(창자샛길)",
+    "term_vi": "Hậu môn nhân tạo",
+    "plain_ko": "배에 만든 대변 배출구",
+    "chapter": "10장 3절 7. 장루관리",
+    "page": "405"
+  },
+  {
+    "expression": "배에 소변 주머니 차고 계세요",
+    "aliases": ["소변 주머니"],
+    "term_ko": "요루(요도샛길)",
+    "term_vi": "Lỗ dẫn lưu nước tiểu ra da",
+    "plain_ko": "배에 만든 소변 배출구",
+    "chapter": "10장 3절 7. 요루관리",
+    "page": "405"
+  },
+  {
+    "expression": "기저귀 닿는 데가 빨개요",
+    "aliases": ["기저귀 닿는"],
+    "term_ko": "기저귀피부염",
+    "term_vi": "Viêm da do tã",
+    "plain_ko": "기저귀 부위 피부가 붉어지고 헒",
+    "chapter": "5장 2절 6. 피부계(기저귀피부염)",
+    "page": "218"
+  },
+  {
+    "expression": "살 접히는 데가 짓물렀어요",
+    "aliases": ["짓물"],
+    "term_ko": "간찰진",
+    "term_vi": "Hăm da ở nếp gấp",
+    "plain_ko": "피부가 접히는 곳이 짓무름",
+    "chapter": "5장 2절 6. 피부계(간찰진)",
+    "page": "219"
+  },
+  {
+    "expression": "걸쭉하게 만들어 드려요",
+    "aliases": ["갈아서 드려요", "걸쭉하게", "갈아서"],
+    "term_ko": "연하도움식",
+    "term_vi": "Thức ăn mềm cho người khó nuốt",
+    "plain_ko": "삼키기 쉽게 만든 식사",
+    "chapter": "10장 1절 3. 식사의 종류(연하 도움식)",
+    "page": "371"
+  },
+  {
+    "expression": "입술이 파래요",
+    "aliases": ["입술이 파래", "파래요"],
+    "term_ko": "청색증",
+    "term_vi": "Tím tái",
+    "plain_ko": "입술·손끝이 파랗게 변함",
+    "chapter": "10장 1절 1. 섭취 요양보호의 일반적 원칙",
+    "page": "366"
+  },
+  {
+    "expression": "어지럽대요",
+    "aliases": ["어지럽"],
+    "term_ko": "현기증",
+    "term_vi": "Chóng mặt",
+    "plain_ko": "어지럽다고 느낌",
+    "chapter": "5장 2절 3. 심혈관계",
+    "page": "195"
+  },
+  {
+    "expression": "갑자기 엉뚱한 말씀을 하세요",
+    "aliases": ["평소랑 달라요", "엉뚱한 말"],
+    "term_ko": "섬망",
+    "term_vi": "Mê sảng",
+    "plain_ko": "갑자기 의식·생각이 흐려짐",
+    "chapter": "5장 2절 10. 심리·정신계(섬망)",
+    "page": "235"
+  },
+  {
+    "expression": "밤에 계속 돌아다니세요",
+    "aliases": ["돌아다니"],
+    "term_ko": "배회",
+    "term_vi": "Đi lang thang",
+    "plain_ko": "목적 없이 돌아다님",
+    "chapter": "12장 3절 4. 배회",
+    "page": "621"
+  },
+  {
+    "expression": "없는 사람이 보인대요",
+    "aliases": ["없는 사람"],
+    "term_ko": "환각",
+    "term_vi": "Ảo giác",
+    "plain_ko": "없는 것을 보거나 들음",
+    "chapter": "12장 3절 5. 의심, 망상, 환각",
+    "page": "622"
+  },
+  {
+    "expression": "불러도 대답을 안 하세요",
+    "aliases": ["대답을 안"],
+    "term_ko": "의식장애",
+    "term_vi": "Rối loạn ý thức",
+    "plain_ko": "불러도 반응이 없거나 흐림",
+    "chapter": "5장 2절 10. 심리·정신계(섬망)",
+    "page": "235"
+  },
+  {
+    "expression": "넘어지고 팔이 이상해요",
+    "aliases": ["팔이 이상"],
+    "term_ko": "골절",
+    "term_vi": "Gãy xương",
+    "plain_ko": "뼈가 부러짐",
+    "chapter": "14장 3절 7. 골절",
+    "page": "706"
+  },
+  {
+    "expression": "팔에 멍이 들었어요",
+    "aliases": ["멍이"],
+    "term_ko": "노인성 자반",
+    "term_vi": "Vết bầm (ban xuất huyết tuổi già)",
+    "plain_ko": "잘 생기는 멍·붉은 반점",
+    "chapter": "5장 2절 6. 피부계(노인성 자반)",
+    "page": "220"
+  },
+  {
+    "expression": "소변 볼 때 아프대요",
+    "aliases": ["냄새가 심해요", "소변 볼 때 아프"],
+    "term_ko": "요로감염",
+    "term_vi": "Nhiễm trùng đường tiết niệu",
+    "plain_ko": "소변길에 생긴 감염",
+    "chapter": "5장 2절 5. 비뇨·생식기계",
+    "page": "206"
+  },
+  {
+    "expression": "보청기 끼워 드렸어요",
+    "aliases": ["보청기"],
+    "term_ko": "보청기",
+    "term_vi": "Máy trợ thính",
+    "plain_ko": "소리를 키워 주는 기구",
+    "chapter": "5장 2절 8. 감각기계",
+    "page": "228"
+  },
+  {
+    "expression": "진지 잡수세요",
+    "aliases": ["진지", "잡수"],
+    "term_ko": "식사 (진지: 밥의 높임말)",
+    "term_vi": "Mời ông/bà dùng bữa (cách nói kính trọng)",
+    "plain_ko": "'밥 드세요'를 어르신께 높여 하는 말. 식사를 권할 때 씀",
+    "chapter": "",
+    "page": ""
+  }
+]

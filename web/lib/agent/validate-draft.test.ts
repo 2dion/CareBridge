@@ -288,7 +288,7 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
   });
 });
 
-describe("상태별 빈칸 규칙 (AI 규칙 v1.1 '상태 판정 기준')", () => {
+describe("상태별 빈칸 규칙 (AI 규칙 v1.1.1 '상태 판정 기준')", () => {
   it("'확인 필요'인데 이유가 비면 알리고 기본 이유를 채움", () => {
     const draft = withItem(scenarioOneDraft(), "meal", { reason: "" });
     const result = validateDraft(draft, FACILITY);

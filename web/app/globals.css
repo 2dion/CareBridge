@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "./styles/mobile.css";
+@import "./styles/desk.css";
 
 :root {
   --cb-primary: #246b52;

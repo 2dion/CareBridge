@@ -23,7 +23,7 @@ export type ItemKey =
   | "next_check";
 export type ItemStatus = "observed" | "not_mentioned" | "needs_check";
 export type Resolution = "confirmed_by_reviewer" | "omitted" | null;
-export type RecordStatus = "draft" | "submitted" | "returned" | "approved" | "commented";
+export type RecordStatus = "draft" | "submitted" | "returned" | "approved";
 
 export type Item = {
   item_key: ItemKey;
@@ -32,6 +32,8 @@ export type Item = {
   value_native: string;
   evidence: string;
   reason: string;
+  /** reason의 모국어 번역(데이터구조 v1.6.2, 확인필요이유병기 결정). */
+  reason_native?: string;
   confirmed: boolean;
   source: "ai" | "worker" | "reviewer";
   resolution: Resolution;
@@ -66,10 +68,9 @@ export const itemOrder: { key: ItemKey; ko: string; vi: string }[] = [
 ];
 export const statusLabel: Record<RecordStatus, string> = {
   draft: "임시 저장",
-  submitted: "보냄",
-  returned: "되돌아옴",
-  approved: "승인됨",
-  commented: "코멘트 받음",
+  submitted: "전송 완료",
+  returned: "수정 필요",
+  approved: "승인 완료",
 };
 export const itemStatusLabel: Record<ItemStatus, string> = {
   observed: "관찰",
@@ -79,9 +80,8 @@ export const itemStatusLabel: Record<ItemStatus, string> = {
 export const statusVi: Record<RecordStatus, string> = {
   draft: "Đã lưu tạm",
   submitted: "Đã gửi",
-  returned: "Bị trả lại",
+  returned: "Cần sửa",
   approved: "Đã duyệt",
-  commented: "Đã có nhận xét",
 };
 export const STORAGE_KEY = "carebridge-sf01-mock-v1";
 

@@ -1,0 +1,181 @@
+{
+  "case_id": "S-F05",
+  "version": "0.1",
+  "is_synthetic": true,
+  "scenario": "시설 기록 (베트남어만)",
+  "language_type": "베트남어만",
+  "care_type": "facility",
+  "form_type": "16",
+  "care_date": "2026-10-23",
+  "origin": "10/20 이전판 S-F01 v0.1(참고용)을 v1.2 형식으로 다시 씀",
+  "resident": {
+    "alias": "박○○ 어르신",
+    "is_synthetic": true,
+    "status_flags": ["준와상", "기저귀"],
+    "planned_services": [
+      {
+        "service": "세면, 구강청결, 머리감기, 몸단장, 옷 갈아입기 도움 등",
+        "cycle": "일",
+        "times": 1
+      },
+      {
+        "service": "식사도움",
+        "cycle": "일",
+        "times": 3
+      },
+      {
+        "service": "체위변경(2시간마다)",
+        "cycle": "일",
+        "times": null
+      },
+      {
+        "service": "화장실이용하기(기저귀 교환)",
+        "cycle": "필요시",
+        "times": null
+      }
+    ]
+  },
+  "worker_lang": "vi",
+  "transcript": "Sáng nay tôi rửa mặt và thay quần áo cho bà. Cứ hai tiếng tôi đổi tư thế cho bà một lần. Bữa trưa bà ăn cháo, ăn được một ít. Hôm nay tôi thay tã cho bà ba lần. Bà nói tối qua bà ngủ không ngon. Bà nói đầu gối bên phải bị đau. Sau bữa trưa tôi thấy bà uống thuốc. Ngày mai chắc phải xem lại đầu gối của bà.",
+  "transcript_ko": "아침에 세수해 드리고 옷 갈아입혀 드렸어요. 두 시간마다 자세 바꿔 드렸어요. 점심은 죽으로 조금 드셨어요. 오늘 기저귀는 세 번 갈아 드렸어요. 어젯밤에 잠을 잘 못 주무셨다고 하셨어요. 오른쪽 무릎이 아프다고 하셨어요. 점심 드시고 약 드시는 거 봤어요. 내일 무릎 다시 봐야 할 것 같아요.",
+  "terms_used": [
+    "T01 세면도움",
+    "T14 체위변경",
+    "T18 기저귀 교환",
+    "T22 통증 호소",
+    "T25 복약 확인"
+  ],
+  "draft": {
+    "transcript_ko": "아침에 세수해 드리고 옷 갈아입혀 드렸어요. 두 시간마다 자세 바꿔 드렸어요. 점심은 죽으로 조금 드셨어요. 오늘 기저귀는 세 번 갈아 드렸어요. 어젯밤에 잠을 잘 못 주무셨다고 하셨어요. 오른쪽 무릎이 아프다고 하셨어요. 점심 드시고 약 드시는 거 봤어요. 내일 무릎 다시 봐야 할 것 같아요.",
+    "items": [
+      {
+        "item_key": "visit_time",
+        "status": "not_mentioned",
+        "value_ko": "",
+        "value_native": "",
+        "evidence": "",
+        "reason": "",
+        "detail": {}
+      },
+      {
+        "item_key": "support",
+        "status": "observed",
+        "value_ko": "세면·옷 갈아입기 도움, 체위변경(2시간마다), 기저귀 교환 3회",
+        "value_native": "Hỗ trợ rửa mặt và thay quần áo, đổi tư thế (mỗi 2 giờ), thay tã 3 lần",
+        "evidence": "Sáng nay tôi rửa mặt và thay quần áo cho bà. Cứ hai tiếng tôi đổi tư thế cho bà một lần.",
+        "reason": "",
+        "detail": {
+          "checks": [
+            "세면·구강청결·머리감기·몸단장·옷 갈아입기 도움 등",
+            "체위변경(2시간마다)",
+            "화장실이용하기(기저귀 교환)"
+          ],
+          "toilet_count": 3
+        },
+        "evidence_ko": "아침에 세수해 드리고 옷 갈아입혀 드렸어요. 두 시간마다 자세 바꿔 드렸어요.",
+        "evidence_extra": ["Hôm nay tôi thay tã cho bà ba lần."]
+      },
+      {
+        "item_key": "meal",
+        "status": "needs_check",
+        "value_ko": "점심 죽 섭취, 섭취량 확인 필요(\"조금\")",
+        "value_native": "Bữa trưa ăn cháo, cần xác nhận lượng ăn (\"một ít\")",
+        "evidence": "Bữa trưa bà ăn cháo, ăn được một ít.",
+        "reason": "\"조금\"은 제16호 섭취량(1 / 1/2이상 / 1/2미만) 중 하나로 정할 수 없음",
+        "reason_native": "Từ “조금” (một ít) không xác định được lượng ăn theo mẫu số 16 (1 / từ 1/2 trở lên / dưới 1/2).",
+        "detail": {
+          "meal_type": "죽",
+          "intake": null
+        },
+        "evidence_ko": "점심은 죽으로 조금 드셨어요."
+      },
+      {
+        "item_key": "sleep",
+        "status": "observed",
+        "value_ko": "어젯밤 잠을 잘 못 주무셨다고 말씀하심(본인 진술)",
+        "value_native": "Bà nói tối qua bà ngủ không ngon",
+        "evidence": "Bà nói tối qua bà ngủ không ngon.",
+        "reason": "",
+        "detail": {},
+        "evidence_ko": "어젯밤에 잠을 잘 못 주무셨다고 하셨어요."
+      },
+      {
+        "item_key": "discomfort",
+        "status": "observed",
+        "value_ko": "오른쪽 무릎이 아프다고 말씀하심",
+        "value_native": "Bà nói đầu gối bên phải bị đau",
+        "evidence": "Bà nói đầu gối bên phải bị đau.",
+        "reason": "",
+        "detail": {},
+        "evidence_ko": "오른쪽 무릎이 아프다고 하셨어요."
+      },
+      {
+        "item_key": "medication",
+        "status": "observed",
+        "value_ko": "점심 식사 후 약 드시는 것 확인함",
+        "value_native": "Đã thấy bà uống thuốc sau bữa trưa",
+        "evidence": "Sau bữa trưa tôi thấy bà uống thuốc.",
+        "reason": "",
+        "detail": {},
+        "evidence_ko": "점심 드시고 약 드시는 거 봤어요.",
+        "source_note": "투약관리 칸(건강 및 간호관리)은 체크하지 않음"
+      },
+      {
+        "item_key": "cognition",
+        "status": "not_mentioned",
+        "value_ko": "",
+        "value_native": "",
+        "evidence": "",
+        "reason": "",
+        "detail": {}
+      },
+      {
+        "item_key": "notes",
+        "status": "observed",
+        "value_ko": "점심 죽 섭취(섭취량 확인 필요). 어젯밤 잠을 잘 못 주무셨다고 하심. 오른쪽 무릎 통증 호소하심. 점심 식사 후 복약 확인함.",
+        "value_native": "Bữa trưa ăn cháo (cần xác nhận lượng ăn). Bà nói tối qua ngủ không ngon. Bà kêu đau đầu gối phải. Đã xác nhận bà uống thuốc sau bữa trưa.",
+        "evidence": "Bữa trưa bà ăn cháo, ăn được một ít. Hôm nay tôi thay tã cho bà ba lần. Bà nói tối qua bà ngủ không ngon. Bà nói đầu gối bên phải bị đau. Sau bữa trưa tôi thấy bà uống thuốc.",
+        "reason": "",
+        "detail": {}
+      },
+      {
+        "item_key": "next_check",
+        "status": "observed",
+        "value_ko": "내일 오른쪽 무릎 상태 다시 확인",
+        "value_native": "Ngày mai kiểm tra lại đầu gối phải",
+        "evidence": "Ngày mai chắc phải xem lại đầu gối của bà.",
+        "reason": "",
+        "detail": {},
+        "evidence_ko": "내일 무릎 다시 봐야 할 것 같아요."
+      }
+    ],
+    "form_fields": {}
+  },
+  "review_flow_expected": {
+    "needs_check_count": 1,
+    "approve_blocked_until": "meal에 [확인함] 또는 [기록 안 함]"
+  },
+  "must_not_appear": [
+    {
+      "item_key": "meal",
+      "wrong": "섭취량 1/2미만 또는 1/2이상",
+      "why": "\"조금\"에서 고르면 지어낸 값"
+    },
+    {
+      "item_key": "discomfort",
+      "wrong": "관절염, 퇴행성 관절",
+      "why": "진단 금지"
+    },
+    {
+      "item_key": "sleep",
+      "wrong": "불면증",
+      "why": "진단명"
+    },
+    {
+      "item_key": "medication",
+      "wrong": "약 이름·용량, 투약관리 체크",
+      "why": "말하지 않았고 간호 영역"
+    }
+  ],
+  "transcript_review": "베트남어 문장·번역은 Claude 초안. 원어민 검수 전"
+}
