@@ -6,7 +6,7 @@
 
 - **목적:** 케어브릿지 서버가 코디세이 공개 API로 Claude를 부르는 방법을 한 곳에 정해, 팀원 누구나 같은 설정으로 개발하게 합니다.
 - **배경:** v1.1 설계는 Claude API와 OpenAI STT를 팀이 직접 결제해 쓰는 것으로 가정했고, 키를 누가 준비할지는 비어 있었습니다.[1] 10/20 코디세이가 학습자용 공개 API를 열어, 기관 비용으로 Claude를 쓸 수 있게 되었습니다.[2]
-- **근거:** 코디세이 공개 API 매뉴얼과 콘솔 문서 탭(`참고자료/코디세이/2026-10-20-공개api매뉴얼.md`), 기술 선택·AI 규칙 v1.1, 결정 기록 [2026-10-20-코디세이api.md](../결정/2026-10-20-코디세이api.md)입니다.[1][2][3][4]
+- **근거:** 코디세이 공개 API 매뉴얼과 콘솔 문서 탭(`참고자료/코디세이/2026-10-20-공개api매뉴얼.md`), 기술 선택·AI 규칙 v1.1.1, 결정 기록 [2026-10-20-코디세이api.md](../결정/2026-10-20-코디세이api.md)입니다.[1][2][3][4]
 - **사유:** 공개 API는 Anthropic 규격(`/v1/messages`)을 그대로 받으므로, v1.1의 Agent 구조(도구 사용 + 서버 반복)를 바꾸지 않고 주소와 키만 바꿔 쓸 수 있습니다.[2][3]
 
 ## 한눈에 보기
@@ -81,7 +81,7 @@ const client = new Anthropic(); // ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN(Bear
 const response = await client.messages.create({
   model: process.env.AI_MODEL_MAIN!,
   max_tokens: 2048,                 // 필수
-  system: "<AI 규칙 v1.1의 시스템 프롬프트>",
+  system: "<AI 규칙 v1.1.1의 시스템 프롬프트>",
   tools: [/* 도구 4개: get_form_spec, search_terms, validate_draft, submit_draft */],
   messages: [{ role: "user", content: "<받아쓴 글과 어르신 정보>" }],
 });
@@ -110,7 +110,7 @@ const response = await client.messages.create({
 
 ## 5. 오류 처리
 
-**왜:** AI 규칙 v1.1의 '서버 검사와 예외 처리'에 공개 API 오류를 맞춥니다.[4]
+**왜:** AI 규칙 v1.1.1의 '서버 검사와 예외 처리'에 공개 API 오류를 맞춥니다.[4]
 
 | 오류 | 뜻 | 서버가 할 일 |
 | --- | --- | --- |
@@ -195,6 +195,6 @@ curl https://copa.codyssey.kr/v1/chat/completions \
 1. [기술 선택 v1.1](기술선택-v1.1.md) §5~8, '비용·위험·확인할 것'("STT·Claude API 키와 결제 수단을 누가 준비하는지").
 2. [코디세이 공개 API 매뉴얼 옮김](../../참고자료/코디세이/2026-10-20-공개api매뉴얼.md): 엔드포인트, 키 정책, 차감 배수, 오류, 보안 주의사항.
 3. [결정 기록: 텍스트 AI는 코디세이 공개 API로](../결정/2026-10-20-코디세이api.md).
-4. [AI 규칙 v1.1](ai규칙-v1.1.md) 'AI가 하는 일', '서버 검사와 예외 처리', '비용·지연 (B5)'.
+4. [AI 규칙 v1.1.1](ai규칙-v1.1.1.md) 'AI가 하는 일', '서버 검사와 예외 처리', '비용·지연 (B5)'.
 5. [기술검토 v1.5](기술검토-v1.5.md) 3장 #4 Mock 모드, 7장 #5.
 6. 2dion 팀장 맥에서 10/20 직접 시험(합성 질문 1개, 도구 1개): `x-api-key`는 401, `Authorization: Bearer`는 200, 도구 사용 왕복 통과. 결정 기록의 '시험 결과' 참고.
