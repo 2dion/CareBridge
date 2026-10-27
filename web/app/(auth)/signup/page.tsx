@@ -122,7 +122,7 @@ export default function SignupPage() {
     const joined = encodeURIComponent(
       `${orgName} · ${role === "worker" ? "작성자" : "담당자"}로 가입했습니다`,
     );
-    router.push(role === "worker" ? `/guide?joined=${joined}` : "/legacy");
+    router.push(role === "worker" ? `/guide?joined=${joined}` : "/review");
   };
 
   const codeError = serverError === "invalid_code";

@@ -43,8 +43,7 @@ export default function LoginPage() {
       return;
     }
     if (result.role === "reviewer") {
-      // 담당자 화면(R1~R4)은 다음 묶음에서 새로 만든다. 그때까지 옛 시연 화면.
-      router.push("/legacy");
+      router.push("/review");
       return;
     }
     const onboarded = supabaseConfigured() ? result.onboarded : Boolean(demo?.db.onboarded);

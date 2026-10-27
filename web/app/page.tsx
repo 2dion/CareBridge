@@ -36,7 +36,7 @@ export default function Home() {
             <span className="label">작성자로 시작</span>
             <Icon name="next" />
           </Link>
-          <Link className="btn btn-outline" href="/legacy">
+          <Link className="btn btn-outline" href="/review">
             <span className="spacer" />
             <span className="label">담당자로 시작</span>
             <Icon name="next" />

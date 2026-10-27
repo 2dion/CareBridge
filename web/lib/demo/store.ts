@@ -35,6 +35,10 @@ export type Resident = {
 export type RecordItem = Item & {
   /** 담당자가 고치기 전 내용(W3 되돌아온 기록 ‘고치기 전’). */
   before_ko?: string;
+  /** [기록 안 함] 사유. */
+  resolution_note?: string;
+  resolved_by?: string;
+  resolved_at?: string;
 };
 
 export type RecordEvent = {
@@ -190,7 +194,7 @@ export function kstTime(iso: string | null): string {
   }).format(new Date(iso));
 }
 
-function kstDateOf(iso: string): string {
+export function kstDateOf(iso: string): string {
   return kstToday(new Date(iso));
 }
 
@@ -637,7 +641,11 @@ export function ensureRecord(
   return { db: { ...db, records: { ...db.records, [record.id]: record } }, id: record.id };
 }
 
-function updateRecord(db: DemoDb, id: string, change: (record: DemoRecord) => DemoRecord): DemoDb {
+export function updateRecord(
+  db: DemoDb,
+  id: string,
+  change: (record: DemoRecord) => DemoRecord,
+): DemoDb {
   const record = db.records[id];
   if (!record) return db;
   return { ...db, records: { ...db.records, [id]: change(record) } };
