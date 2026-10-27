@@ -41,6 +41,9 @@ export default function Home() {
             <span className="label">담당자로 시작</span>
             <Icon name="next" />
           </Link>
+          <Link className="text-link" href="/login">
+            로그인 화면으로 들어가기
+          </Link>
           <button
             type="button"
             className="text-link"

@@ -1,7 +1,7 @@
 "use client";
 
 // W0(사용 안내): 처음 한 번 3장. 로그인 전·처음 보는 곳이라 병기(화면 v1.3 병기 원칙 ③ 예외).
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
@@ -87,6 +87,7 @@ const steps: Step[] = [
 
 export default function GuidePage() {
   const router = useRouter();
+  const joined = useSearchParams().get("joined");
   const demo = useDemo();
   const [index, setIndex] = useState(0);
   const step = steps[index];
@@ -105,6 +106,11 @@ export default function GuidePage() {
         viAlways
         back={index === 0 ? "/" : () => setIndex(index - 1)}
       />
+      {joined && index === 0 && (
+        <p className="join-toast" role="status">
+          {joined}
+        </p>
+      )}
       <div className="progress" aria-label={`${steps.length}장 중 ${index + 1}장`}>
         {steps.map((_, i) => (
           <span key={i} className={i === index ? "on" : ""} />
