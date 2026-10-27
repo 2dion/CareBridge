@@ -64,7 +64,7 @@ export function useRecorder() {
     }
   }, []);
 
-  /** [삭제]·받아쓰기 성공·로그아웃 때 메모리의 녹음을 지운다. */
+  /** [다시 시도]·[나가기]·받아쓰기 성공·로그아웃 때 메모리의 녹음을 지운다. */
   const discard = useCallback(() => {
     sessionRef.current += 1;
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();

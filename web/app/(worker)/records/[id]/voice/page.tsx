@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { nowIso, useDemo } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
-import { BtnLabel } from "@/components/mobile/parts";
+import { BtnLabel, Modal } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
 import { clock, MAX_SECONDS, useRecorder } from "@/components/mobile/use-recorder";
 import { getResident, markProcessing } from "@/lib/demo/store";
@@ -24,6 +24,7 @@ export default function VoicePage() {
   const demo = useDemo();
   const recorder = useRecorder();
   const [send, setSend] = useState<SendState>("idle");
+  const [leaving, setLeaving] = useState(false);
 
   const record = demo?.db.records[id];
   const locked = record && record.status !== "draft" && record.status !== "returned";
@@ -119,6 +120,13 @@ export default function VoicePage() {
         <AppBar
           title={stopped ? "보내는 중" : "녹음 중"}
           vi={stopped ? "Đang gửi" : "Đang ghi âm"}
+          right={
+            send !== "sending" && (
+              <button type="button" className="text-link" onClick={() => setLeaving(true)}>
+                나가기
+              </button>
+            )
+          }
         />
         <ResidentPill resident={resident} date={record.careDate} />
         {dateLine}
@@ -172,13 +180,15 @@ export default function VoicePage() {
             type="button"
             className="btn btn-outline btn-center"
             onClick={() => {
+              // 지금 녹음을 버리고 바로 새로 녹음한다(10/27 팀장: [삭제] → [다시 시도]).
               recorder.discard();
               setSend("idle");
+              void recorder.start();
             }}
             disabled={send === "sending"}
           >
-            <Icon name="close" />
-            <BtnLabel ko="삭제" vi="Xóa" />
+            <Icon name="refresh" />
+            <BtnLabel ko="다시 시도" vi="Thử lại" />
           </button>
         </div>
         <div className="link-row" style={{ margin: "16px 0 22px" }}>
@@ -186,6 +196,31 @@ export default function VoicePage() {
             글로 쓰기
           </Link>
         </div>
+        <Modal open={leaving} onClose={() => setLeaving(false)} label="녹음을 버리고 나갈까요?">
+          <h2 style={{ fontSize: 22, fontWeight: 700 }}>녹음을 버리고 나갈까요?</h2>
+          <span className="vi" style={{ fontSize: 13 }}>
+            Bỏ bản ghi âm và thoát?
+          </span>
+          <p style={{ fontSize: 16 }}>지금까지 말한 내용은 저장되지 않아요.</p>
+          <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
+            Nội dung đã nói sẽ không được lưu.
+          </span>
+          <div className="btn-row" style={{ width: "100%", marginTop: 6 }}>
+            <button type="button" className="btn btn-outline" onClick={() => setLeaving(false)}>
+              <BtnLabel ko="계속하기" vi="Tiếp tục" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                recorder.discard();
+                router.replace(`/start/${resident.id}?date=${record.careDate}`);
+              }}
+            >
+              <BtnLabel ko="나가기" vi="Thoát" />
+            </button>
+          </div>
+        </Modal>
       </MobileScreen>
     );
   }
