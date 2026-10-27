@@ -135,16 +135,16 @@ export function ResidentPill({
   );
 }
 
-/** 기록 상태 배지(화면 틀이라 한국어만). 값은 records.status. */
+/** 기록 상태 배지(화면 틀이라 한국어만). 값은 records.status, 이름은 2026-10-27-상태이름 결정. */
 export const recordStatusBadge: Record<
   RecordStatus | "not_started",
   { label: string; tone: "gray" | "green" | "orange" | "blue"; icon?: IconName }
 > = {
   not_started: { label: "작성 전", tone: "gray" },
   draft: { label: "임시 저장", tone: "blue" },
-  submitted: { label: "보냄", tone: "green" },
-  returned: { label: "되돌아옴", tone: "orange" },
-  approved: { label: "승인됨", tone: "green", icon: "check" },
+  submitted: { label: "전송 완료", tone: "green" },
+  returned: { label: "수정 필요", tone: "orange" },
+  approved: { label: "승인 완료", tone: "green", icon: "check" },
 };
 
 export function StatusBadge({ status }: { status: RecordStatus | "not_started" }) {

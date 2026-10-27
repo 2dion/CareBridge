@@ -68,9 +68,9 @@ export const itemOrder: { key: ItemKey; ko: string; vi: string }[] = [
 ];
 export const statusLabel: Record<RecordStatus, string> = {
   draft: "임시 저장",
-  submitted: "보냄",
-  returned: "되돌아옴",
-  approved: "승인됨",
+  submitted: "전송 완료",
+  returned: "수정 필요",
+  approved: "승인 완료",
 };
 export const itemStatusLabel: Record<ItemStatus, string> = {
   observed: "관찰",
@@ -80,7 +80,7 @@ export const itemStatusLabel: Record<ItemStatus, string> = {
 export const statusVi: Record<RecordStatus, string> = {
   draft: "Đã lưu tạm",
   submitted: "Đã gửi",
-  returned: "Bị trả lại",
+  returned: "Cần sửa",
   approved: "Đã duyệt",
 };
 export const STORAGE_KEY = "carebridge-sf01-mock-v1";

@@ -1,6 +1,6 @@
 "use client";
 
-// W1(오늘): 오늘 기록이 있어야 하는 어르신 카드, 되돌아옴·못 쓴 기록 띠.
+// W1(오늘): 오늘 기록이 있어야 하는 어르신 카드, 수정 필요·작성 전 기록 띠.
 // 병기(10/26): 카드 버튼·띠·카드 안내 줄은 병기, 날짜·배지·탭은 한국어만.
 import Link from "next/link";
 
@@ -87,7 +87,7 @@ export default function TodayPage() {
           <Link className="returned" href="/archive?tab=returned">
             <span className="dot" />
             <div className="txt">
-              <strong>되돌아온 기록 {returned.length}건</strong>
+              <strong>수정 필요 기록 {returned.length}건</strong>
               <span className="vi">Có {returned.length} bản ghi cần sửa.</span>
             </div>
             <Icon name="next" />

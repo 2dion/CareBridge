@@ -116,7 +116,7 @@ function Approved() {
                       · {db.worker.name}
                     </small>
                   </span>
-                  <span className="chip green">승인됨</span>
+                  <span className="chip green">승인 완료</span>
                   <Icon name="next" />
                 </button>
               );
@@ -144,7 +144,7 @@ function ApprovedDetail({ record }: { record: DemoRecord }) {
     .map((item) => itemLabel(item.item_key).ko);
   const steps = [
     { label: "작성", who: db.worker.name, at: created?.at },
-    { label: "보냄", who: db.worker.name, at: submitted?.at ?? record.submittedAt },
+    { label: "전송", who: db.worker.name, at: submitted?.at ?? record.submittedAt },
     {
       label: "검토·수정",
       who: `${db.reviewer.name}${edited.length ? ` · ${edited.join(", ")} 수정` : " · 수정 없음"}`,

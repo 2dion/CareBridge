@@ -1,6 +1,6 @@
 "use client";
 
-// W4(기록함, 피그마 M18·M19·M44·M45): 못 쓴 기록 / 임시 저장 / 보냄 / 되돌아옴 / 승인됨, 기간 거르기, 기록 없음 처리.
+// W4(기록함, 피그마 M18·M19·M44·M45): 작성 전 / 임시 저장 / 전송 완료 / 수정 필요 / 승인 완료, 기간 거르기, 기록 없음 처리.
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -30,19 +30,19 @@ import {
 type Tab = "missed" | "draft" | "submitted" | "returned" | "approved";
 
 const tabs: { key: Tab; label: string }[] = [
-  { key: "missed", label: "못 쓴 기록" },
+  { key: "missed", label: "작성 전" },
   { key: "draft", label: "임시 저장" },
-  { key: "submitted", label: "보냄" },
-  { key: "returned", label: "되돌아옴" },
-  { key: "approved", label: "승인됨" },
+  { key: "submitted", label: "전송 완료" },
+  { key: "returned", label: "수정 필요" },
+  { key: "approved", label: "승인 완료" },
 ];
 
 const empties: Record<Tab, { ko: string; vi: string }> = {
-  missed: { ko: "못 쓴 기록이 없습니다.", vi: "Không có bản ghi chưa viết." },
+  missed: { ko: "작성 전 기록이 없습니다.", vi: "Không có bản ghi chưa viết." },
   draft: { ko: "임시 저장한 기록이 없습니다.", vi: "Không có bản ghi lưu tạm." },
-  submitted: { ko: "보낸 기록이 없습니다.", vi: "Không có bản ghi đã gửi." },
-  returned: { ko: "되돌아온 기록이 없습니다.", vi: "Không có bản ghi bị trả lại." },
-  approved: { ko: "승인된 기록이 없습니다.", vi: "Không có bản ghi đã duyệt." },
+  submitted: { ko: "전송 완료된 기록이 없습니다.", vi: "Không có bản ghi đã gửi." },
+  returned: { ko: "수정 필요 기록이 없습니다.", vi: "Không có bản ghi cần sửa." },
+  approved: { ko: "승인 완료된 기록이 없습니다.", vi: "Không có bản ghi đã duyệt." },
 };
 
 function isTab(value: string | null): value is Tab {

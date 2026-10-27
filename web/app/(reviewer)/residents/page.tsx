@@ -132,7 +132,7 @@ function Residents() {
           {noDays && (
             <p className="warn-row">
               <Icon name="alert" />
-              방문 요일을 정해야 못 쓴 기록을 알려 줄 수 있어요.
+              방문 요일을 정해야 작성 전 기록을 알려 줄 수 있어요.
             </p>
           )}
         </section>
@@ -277,7 +277,7 @@ function AssignDrawer({
         value={startDate}
         onChange={(event) => setStartDate(event.target.value)}
       />
-      <p className="fhint">이 날부터 못 쓴 기록을 셉니다.</p>
+      <p className="fhint">이 날부터 작성 전 기록을 셉니다.</p>
       {home ? (
         <>
           <p className="flabel">방문 요일</p>

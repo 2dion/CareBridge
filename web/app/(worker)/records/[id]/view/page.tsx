@@ -61,7 +61,7 @@ export default function RecordViewPage() {
           <Icon name="check" />
         </span>
         <div>
-          <b>{approved ? "승인됨" : "보냄"}</b>
+          <b>{approved ? "승인 완료" : "전송 완료"}</b>
           <p>{approved ? "담당자가 검토하고 승인했어요." : "담당자 확인을 기다리고 있어요."}</p>
           <span className="vi">
             {approved
@@ -73,7 +73,7 @@ export default function RecordViewPage() {
       <div className="content-head">
         기록 내용
         <small>
-          {approved ? `${kstTime(record.approvedAt)} 승인` : `${kstTime(record.submittedAt)} 보냄`}
+          {approved ? `${kstTime(record.approvedAt)} 승인` : `${kstTime(record.submittedAt)} 전송`}
           {late ? ` · ${late}일 늦게 보냄` : ""}
         </small>
       </div>

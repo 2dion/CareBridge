@@ -1,6 +1,6 @@
 "use client";
 
-// R1(검토 대기, 피그마 D00): 확인 필요가 많은 기록부터. 위에 지난 7일 못 쓴 기록·기록 없음 처리.
+// R1(검토 대기, 피그마 D00): 확인 필요가 많은 기록부터. 위에 지난 7일 작성 전 기록·기록 없음 처리.
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -104,9 +104,9 @@ function ReviewQueue() {
       </div>
 
       {boxRows.length > 0 && (
-        <section className="missed-box" aria-label="못 쓴 기록">
+        <section className="missed-box" aria-label="작성 전 기록">
           <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
-            지난 7일 못 쓴 기록 {missed.length}건 · 기록 없음 처리 {noCare.length}건
+            지난 7일 작성 전 기록 {missed.length}건 · 기록 없음 처리 {noCare.length}건
             <span>
               {open ? "접기" : "펼치기"} <Icon name="down" />
             </span>
@@ -135,7 +135,7 @@ function ReviewQueue() {
                               removeNoCareDay(current, row.residentId, row.careDate),
                             );
                             toast.show(
-                              "기록 없음 처리를 지웠어요. 작성자 못 쓴 기록에 다시 보여요.",
+                              "기록 없음 처리를 지웠어요. 작성자 기록함 ‘작성 전’에 다시 보여요.",
                             );
                           }}
                         >
