@@ -389,7 +389,8 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
       visitDays: null,
       visitTime: "07:00~16:00",
       caseId: "S-F05",
-      startDate,
+      // 담당을 10일 전에 시작: 8~10일 전 빈 날이 R1 '기한 지난 빈 기록'에 보이게(기한지난빈기록 결정)
+      startDate: addDays(today, -10),
     },
   ];
   const [kim, lee, park] = residents;
@@ -560,6 +561,26 @@ export function listMissed(db: DemoDb, today: string, days = 7): MissedRecord[] 
     }
   }
   return rows.sort((a, b) => (a.careDate === b.careDate ? 0 : a.careDate < b.careDate ? 1 : -1));
+}
+
+/** 기한 지난 빈 기록 범위: 8일 전~30일 전(기한지난빈기록 결정). 7일 안은 listMissed가 맡는다. */
+export const OVERDUE_FROM = 8;
+export const OVERDUE_TO = 30;
+
+export type OverdueDay = { residentId: string; careDate: string };
+
+/** list_overdue_records와 같은 규칙: 기록이 있어야 했는데 기록도 기록 없음 처리도 없는 날. 최신이 위. */
+export function listOverdue(db: DemoDb, today: string): OverdueDay[] {
+  const rows: OverdueDay[] = [];
+  for (let n = OVERDUE_FROM; n <= OVERDUE_TO; n += 1) {
+    const date = addDays(today, -n);
+    for (const resident of db.residents) {
+      if (isCareDay(db, resident, date) && !findRecord(db, resident.id, date)) {
+        rows.push({ residentId: resident.id, careDate: date });
+      }
+    }
+  }
+  return rows;
 }
 
 export type TodayCard = { resident: Resident; record?: DemoRecord };

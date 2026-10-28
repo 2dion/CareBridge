@@ -2,10 +2,15 @@
 // 실제로는 PATCH /api/records/:id/items/:key, POST /approve, POST /return(데이터구조 v1.6.2 공통 계약).
 import { countUnresolved, demoAgentSteps, type ItemKey } from "./state";
 import {
+  addDays,
   canApproveRecord,
   type DemoDb,
   type DemoRecord,
   displayOrder,
+  findRecord,
+  type NoCareDay,
+  OVERDUE_FROM,
+  OVERDUE_TO,
   type Resident,
   updateRecord,
 } from "./store";
@@ -191,6 +196,20 @@ export function returnRecord(
         }
       : record,
   );
+}
+
+/** R1 기한 지난 빈 기록 → [기록 없음으로 정리]. 담당자만, 8~30일 전 날짜만(기한지난빈기록 결정). */
+export function markOverdueNoCare(
+  db: DemoDb,
+  day: Omit<NoCareDay, "createdBy">,
+  today: string,
+): DemoDb | { error: "has_record" | "out_of_range" | "note_required" } {
+  if (findRecord(db, day.residentId, day.careDate)) return { error: "has_record" };
+  if (day.careDate > addDays(today, -OVERDUE_FROM) || day.careDate < addDays(today, -OVERDUE_TO)) {
+    return { error: "out_of_range" };
+  }
+  if (day.reason === "other" && !day.note.trim()) return { error: "note_required" };
+  return { ...db, noCareDays: [...db.noCareDays, { ...day, createdBy: db.reviewer.name }] };
 }
 
 export function removeNoCareDay(db: DemoDb, residentId: string, careDate: string): DemoDb {

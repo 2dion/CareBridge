@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addResident,
   approveRecord,
+  markOverdueNoCare,
   removeNoCareDay,
   resolveItem,
   returnRecord,
@@ -13,7 +14,15 @@ import {
   wasResent,
 } from "./review";
 import { countUnresolved } from "./state";
-import { addNoCareDay, createDemoDb, listMissed, submitRecord, type DemoDb } from "./store";
+import {
+  addDays,
+  addNoCareDay,
+  createDemoDb,
+  listMissed,
+  listOverdue,
+  submitRecord,
+  type DemoDb,
+} from "./store";
 
 const TODAY = "2026-10-27";
 const NOW = "2026-10-27T11:00:00+09:00";
@@ -90,6 +99,36 @@ describe("담당자 규칙 (R1~R4)", () => {
     const resent = submitRecord(returned, record.id, "2026-10-27T12:00:00+09:00");
     expect(resent.records[record.id].status).toBe("submitted");
     expect(wasResent(resent.records[record.id])).toBe(true);
+  });
+
+  it("기한 지난 빈 기록: 8~30일 전 빈 날만, 담당자가 기록 없음으로 정리하면 빠진다", () => {
+    const db = createDemoDb(TODAY);
+    const overdue = listOverdue(db, TODAY);
+    expect(overdue.map((row) => row.careDate)).toEqual([
+      addDays(TODAY, -8),
+      addDays(TODAY, -9),
+      addDays(TODAY, -10),
+    ]);
+    expect(overdue.every((row) => row.residentId === "park")).toBe(true);
+    const day = overdue[0];
+    expect(addNoCareDay(db, { ...day, reason: "hospital", note: "" }, TODAY)).toEqual({
+      error: "too_old",
+    });
+    expect(markOverdueNoCare(db, { ...day, reason: "other", note: " " }, TODAY)).toEqual({
+      error: "note_required",
+    });
+    expect(
+      markOverdueNoCare(
+        db,
+        { residentId: "park", careDate: addDays(TODAY, -31), reason: "hospital", note: "" },
+        TODAY,
+      ),
+    ).toEqual({ error: "out_of_range" });
+    const next = ok(markOverdueNoCare(db, { ...day, reason: "hospital", note: "" }, TODAY));
+    expect(next.noCareDays.at(-1)?.createdBy).toBe(next.reviewer.name);
+    expect(listOverdue(next, TODAY)).toHaveLength(2);
+    const cleared = removeNoCareDay(next, day.residentId, day.careDate);
+    expect(listOverdue(cleared, TODAY)).toHaveLength(3);
   });
 
   it("기록 없음 처리를 지우면 못 쓴 기록에 다시 나온다", () => {

@@ -20,6 +20,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 | `migrations/20261027130000_join_codes.sql` | 가입 코드 표 `join_codes`(담당자·강사는 같은 기관 것 읽기만) |
 | `migrations/20261027140000_permissions.sql` | 권한 정리: 이력은 DB 트리거만, `agent_steps`·`audio_jobs` 상태는 서버만, 되돌린 사유·원문·`source` 보호 |
 | `migrations/20261028093357_record_contract_guards.sql` | 이유 번역 보존·needs_check+omitted·제출 검사·출처 보호·프로필 조회 분리 |
+| `migrations/20261028100000_overdue_records.sql` | 기한 지난 빈 기록: `list_overdue_records`(8~30일 전, 담당자·강사만), 담당자는 `no_care_days`를 30일 전까지 |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 
 ## 쓰는 법
