@@ -94,7 +94,8 @@ export default function GuidePage() {
   const last = index === steps.length - 1;
 
   const finish = () => {
-    demo?.update((db) => ({ ...db, onboarded: true }));
+    if (demo?.real) void demo.real.actions.setProfile({ onboarded: true });
+    else demo?.update((db) => ({ ...db, onboarded: true }));
     router.push("/today");
   };
 

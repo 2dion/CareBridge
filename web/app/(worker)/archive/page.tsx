@@ -189,9 +189,17 @@ export default function ArchivePage() {
         row={noCare}
         db={db}
         onClose={() => setNoCare(null)}
-        onSave={(change) => {
+        onSave={(change, day) => {
+          if (demo.real) {
+            // no_care_days에 바로 넣는다(작성자, 내 담당 어르신, 오늘~7일 전)
+            return demo.real.actions.addNoCare(day).then((result) => {
+              if (result.ok) setNoCare(null);
+              return result.ok ? "" : `${result.ko} ${result.vi}`;
+            });
+          }
           demo.update(change);
           setNoCare(null);
+          return Promise.resolve("");
         }}
         today={today}
       />
@@ -375,7 +383,10 @@ function NoCareSheet({
   db: DemoDb;
   today: string;
   onClose: () => void;
-  onSave: (change: (db: DemoDb) => DemoDb) => void;
+  onSave: (
+    change: (db: DemoDb) => DemoDb,
+    day: { residentId: string; careDate: string; reason: NoCareReason; note: string },
+  ) => Promise<string>;
 }) {
   const [reason, setReason] = useState<NoCareReason | null>(null);
   const [note, setNote] = useState("");
@@ -404,10 +415,13 @@ function NoCareSheet({
       );
       return;
     }
-    onSave(() => next);
-    setReason(null);
-    setNote("");
-    setError("");
+    const day = { residentId: row.residentId, careDate: row.careDate, reason, note: note.trim() };
+    void onSave(() => next, day).then((failed) => {
+      if (failed) return setError(failed);
+      setReason(null);
+      setNote("");
+      setError("");
+    });
   };
   return (
     <BottomSheet open={row !== null} onClose={close} label="이 날은 돌봄이 없었나요?">

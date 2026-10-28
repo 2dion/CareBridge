@@ -4,7 +4,7 @@
 // 담당자는 항목을 고치거나 ‘확인 필요’를 [확인함]/[기록 안 함]으로 정한다. 하나라도 안 정하면 승인할 수 없다(원칙 3).
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
@@ -35,6 +35,12 @@ import {
 } from "@/lib/demo/store";
 
 const NOTES_LIMIT = 200;
+const TOOL_NAMES: Record<string, string> = {
+  get_form_spec: "서식 기준 조회",
+  search_terms: "용어 검색",
+  validate_draft: "기록 검증",
+  submit_draft: "초안 반환",
+};
 const RETURN_LIMIT = 300;
 
 export default function ReviewRecordPage() {
@@ -76,6 +82,30 @@ function ReviewRecord() {
   const record = db.records[id];
   const [selected, setSelected] = useState<ItemKey | null>(null);
   const [returning, setReturning] = useState(false);
+  const [realSteps, setRealSteps] = useState<
+    { tool: string; key: string; name: string; reason: string; result: string }[]
+  >([]);
+  const realActions = demo.real?.actions;
+  // R2 'AI 작업 기록': agent_steps(담당자는 같은 기관 읽기)
+  useEffect(() => {
+    if (!realActions) return;
+    let alive = true;
+    void realActions.agentSteps(id).then((rows) => {
+      if (!alive) return;
+      setRealSteps(
+        rows.map((row) => ({
+          tool: row.tool,
+          key: String(row.step_no),
+          name: TOOL_NAMES[row.tool] ?? row.tool,
+          reason: row.reason,
+          result: row.result_summary,
+        })),
+      );
+    });
+    return () => {
+      alive = false;
+    };
+  }, [realActions, id]);
 
   if (!record) {
     return (
@@ -101,9 +131,21 @@ function ReviewRecord() {
   ).length;
   const selectedItem = record.items.find((item) => item.item_key === selected);
   const native = record.transcript !== record.transcriptKo;
-  const steps = mockAgentSteps(record);
+  const real = demo.real;
+  const steps = real
+    ? realSteps
+    : mockAgentSteps(record).map((step) => ({ ...step, key: String(step.tool) }));
+  const fail = (result: { ko: string }) => toast.show(result.ko);
 
   const approve = () => {
+    if (real) {
+      // 서버가 다시 검사한다(원칙 3). 남은 '확인 필요'가 있으면 409와 항목 목록
+      void real.actions.approve(record.id).then((result) => {
+        if (!result.ok) return fail(result);
+        router.push(`/approved?id=${record.id}`);
+      });
+      return;
+    }
     const next = approveRecord(db, record.id, now());
     if ("error" in next) {
       toast.show(`확인 필요 ${unresolved}개를 먼저 정해 주세요.`);
@@ -126,7 +168,8 @@ function ReviewRecord() {
           </h1>
           <p>
             {resident?.careType === "home" ? "재가" : "시설"} · 별지 제{record.formType}호 · 작성자{" "}
-            {db.worker.name} · 받은 시각 {receivedLabel(record.submittedAt, today)}
+            {record.workerName ?? db.worker.name} · 받은 시각{" "}
+            {receivedLabel(record.submittedAt, today)}
             {late > 0 && (
               <>
                 {" "}
@@ -235,14 +278,30 @@ function ReviewRecord() {
               selected={selected === item.item_key}
               editable={reviewable}
               onSelect={() => setSelected(item.item_key)}
-              onEdit={(value) =>
+              onEdit={(value) => {
+                if (real) {
+                  void real.actions
+                    .patchItem(record.id, item.item_key, { value_ko: value })
+                    .then((result) => !result.ok && fail(result));
+                  return;
+                }
                 demo.update((current) =>
                   reviewerEditItem(current, record.id, item.item_key, value, now()),
-                )
-              }
+                );
+              }}
               onResolve={(resolution, note) => {
                 const next = resolveItem(db, record.id, item.item_key, resolution, note, now());
                 if ("error" in next) return false;
+                if (real) {
+                  // [확인함]/[기록 안 함]·사유는 PATCH resolution·resolution_note
+                  void real.actions
+                    .patchItem(record.id, item.item_key, {
+                      resolution,
+                      ...(resolution === "omitted" ? { resolution_note: note.trim() } : {}),
+                    })
+                    .then((result) => !result.ok && fail(result));
+                  return true;
+                }
                 demo.update(() => next);
                 return true;
               }}
@@ -263,7 +322,7 @@ function ReviewRecord() {
             </summary>
             <ol>
               {steps.map((step) => (
-                <li key={step.tool}>
+                <li key={step.key}>
                   <b>{step.name}</b> · {step.reason} → {step.result}
                 </li>
               ))}
@@ -279,6 +338,15 @@ function ReviewRecord() {
         onReturn={(reason) => {
           const next = returnRecord(db, record.id, reason, now());
           if ("error" in next) return;
+          if (real) {
+            // 담당자는 한국어 사유만 보낸다(결정 2026-10-28-되돌림사유한국어)
+            void real.actions.returnRecord(record.id, reason).then((result) => {
+              if (!result.ok) return fail(result);
+              setReturning(false);
+              router.push("/review");
+            });
+            return;
+          }
           demo.update(() => next);
           setReturning(false);
           router.push("/review");

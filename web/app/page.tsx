@@ -3,6 +3,8 @@
 // Mock 시연 입구. 로그인 대신 작성자·담당자를 고른다(화면 v1.3 '개발 환경': Mock에서는 전환 버튼을 그대로 씀).
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
@@ -10,7 +12,13 @@ import { MobileScreen } from "@/components/mobile/shell";
 
 export default function Home() {
   const demo = useDemo();
+  const router = useRouter();
   const workerHref = demo?.db.onboarded ? "/today" : "/guide";
+  // 실제 모드: 로그인한 사람의 역할 화면으로 바로 간다(역할은 가입 코드가 정함)
+  const realRole = demo?.real?.role;
+  useEffect(() => {
+    if (realRole) router.replace(realRole === "reviewer" ? "/review" : workerHref);
+  }, [realRole, workerHref, router]);
   return (
     <MobileScreen>
       <div className="grow stack" style={{ justifyContent: "center", gap: 28, padding: "40px 0" }}>
@@ -44,15 +52,18 @@ export default function Home() {
           <Link className="text-link" href="/login">
             로그인 화면으로 들어가기
           </Link>
-          <button
-            type="button"
-            className="text-link"
-            onClick={() => {
-              if (window.confirm("시연 데이터를 처음 상태로 되돌릴까요?")) demo?.reset();
-            }}
-          >
-            시연 초기화
-          </button>
+          {/* 시연 초기화는 Mock(브라우저 저장)에만 있다. 실제 데이터는 지우지 않는다 */}
+          {!demo?.real && (
+            <button
+              type="button"
+              className="text-link"
+              onClick={() => {
+                if (window.confirm("시연 데이터를 처음 상태로 되돌릴까요?")) demo?.reset();
+              }}
+            >
+              시연 초기화
+            </button>
+          )}
         </div>
         <p
           className="center"

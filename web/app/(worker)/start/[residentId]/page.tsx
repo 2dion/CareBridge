@@ -31,6 +31,7 @@ export default function StartPage() {
   const router = useRouter();
   const demo = useDemo();
   const [error, setError] = useState<CreateError | null>(null);
+  const [realError, setRealError] = useState("");
   if (!demo) return <Loading tab="today" />;
   const { db, today, update } = demo;
   const resident = getResident(db, residentId);
@@ -64,8 +65,24 @@ export default function StartPage() {
       setError(result.error);
       return;
     }
+    const next = mode === "voice" ? "voice" : "write";
+    if (demo.real) {
+      if (existing) {
+        router.push(`/records/${existing.id}/${next}`);
+        return;
+      }
+      // records에 바로 넣는다(작성자, 내 담당 어르신, draft). 날짜·기록 없음 처리는 DB도 다시 막는다
+      void demo.real.actions.createRecord(resident.id, date).then((created) => {
+        if (!created.ok) {
+          setRealError(`${created.ko} ${created.vi}`);
+          return;
+        }
+        router.push(`/records/${created.data.id}/${next}`);
+      });
+      return;
+    }
     update(() => result.db);
-    router.push(`/records/${result.id}/${mode === "voice" ? "voice" : "write"}`);
+    router.push(`/records/${result.id}/${next}`);
   };
 
   const draftBadge = (
@@ -91,6 +108,11 @@ export default function StartPage() {
         <div className="reason-box" role="alert" style={{ margin: "0 16px 12px" }}>
           <b>{createErrors[error].ko}</b>
           <span className="vi">{createErrors[error].vi}</span>
+        </div>
+      )}
+      {realError && (
+        <div className="reason-box" role="alert" style={{ margin: "0 16px 12px" }}>
+          {realError}
         </div>
       )}
       <div className="stack pad" style={{ gap: 12, marginBottom: 14 }}>

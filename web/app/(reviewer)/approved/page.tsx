@@ -113,7 +113,7 @@ function Approved() {
                     <b>{who?.alias}</b>
                     <small>
                       {monthDayWeek(record.careDate)} · {who?.careType === "home" ? "재가" : "시설"}{" "}
-                      · {db.worker.name}
+                      · {record.workerName ?? db.worker.name}
                     </small>
                   </span>
                   <span className="chip green">승인 완료</span>
@@ -143,8 +143,12 @@ function ApprovedDetail({ record }: { record: DemoRecord }) {
     .filter((item) => item.source === "reviewer")
     .map((item) => itemLabel(item.item_key).ko);
   const steps = [
-    { label: "작성", who: db.worker.name, at: created?.at },
-    { label: "전송", who: db.worker.name, at: submitted?.at ?? record.submittedAt },
+    { label: "작성", who: record.workerName ?? db.worker.name, at: created?.at },
+    {
+      label: "전송",
+      who: record.workerName ?? db.worker.name,
+      at: submitted?.at ?? record.submittedAt,
+    },
     {
       label: "검토·수정",
       who: `${db.reviewer.name}${edited.length ? ` · ${edited.join(", ")} 수정` : " · 수정 없음"}`,

@@ -9,6 +9,8 @@ import { useToast } from "@/components/desk/shell";
 import { formFieldHint } from "@/lib/demo/review";
 import { displayOrder, getResident, itemLabel, monthDayWeek } from "@/lib/demo/store";
 import { legalForms, type NoteArea, noteAreas, printableItem } from "@/lib/print/fields";
+import { callApi } from "@/lib/real/actions";
+import { applyPrintData, type PrintData } from "@/lib/real/map";
 
 type GeneratedPdf = { url: string; key: string; recordPages: number; totalPages: number };
 
@@ -65,6 +67,13 @@ export default function PrintPage() {
     setBusy(true);
     setError("");
     try {
+      // 실제 모드는 서버 인쇄 데이터(GET /api/records/:id/print, 승인한 기록만)로 칸을 채운다
+      let source = record;
+      if (demo.real) {
+        const printed = await callApi<PrintData>(`/api/records/${id}/print`, { method: "GET" });
+        if (!printed.ok) throw new Error(printed.ko);
+        source = applyPrintData(record, printed.data);
+      }
       const [{ createRecordPdf }, templateResponse, fontResponse] = await Promise.all([
         import("@/lib/print/pdf"),
         fetch(form.href),
@@ -79,7 +88,7 @@ export default function PrintPage() {
       const pdf = await createRecordPdf({
         template: new Uint8Array(template),
         fontBytes: new Uint8Array(fontBytes),
-        record,
+        record: source,
         alias: resident?.alias ?? "",
         org: db.worker.org,
         notesArea,

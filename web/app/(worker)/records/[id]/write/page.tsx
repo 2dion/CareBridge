@@ -33,6 +33,12 @@ export default function WritePage() {
 
   const make = () => {
     if (!ready) return;
+    if (demo.real) {
+      // 쓴 글을 원문으로 저장하고 Agent를 돌린다. W3는 끝날 때까지 '정리 중'을 보인다
+      void demo.real.actions.writeText(id, value.trim());
+      router.replace(`/records/${id}`);
+      return;
+    }
     demo.update((db) => markProcessing(db, id, value.trim(), nowIso()));
     router.replace(`/records/${id}`);
   };

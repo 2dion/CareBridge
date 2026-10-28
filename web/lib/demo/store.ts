@@ -73,6 +73,8 @@ export type DemoRecord = {
   formFields?: Record<string, number | null>;
   updatedAt: string;
   events: RecordEvent[];
+  /** 작성자 이름. 실제 기관은 작성자가 여럿이라 기록마다 둔다. 없으면 db.worker.name */
+  workerName?: string;
 };
 
 export type NoCareDay = {
@@ -95,6 +97,9 @@ export type DemoDb = {
   residents: Resident[];
   records: Record<string, DemoRecord>;
   noCareDays: NoCareDay[];
+  /** 실제 모드: DB 함수 list_missed_records·list_overdue_records 결과. 있으면 화면 계산 대신 쓴다 */
+  missed?: MissedRecord[];
+  overdue?: OverdueDay[];
 };
 
 export const DB_STORAGE_KEY = "carebridge-demo-db-v2";
@@ -528,7 +533,13 @@ export function isCareDay(db: DemoDb, resident: Resident, date: string): boolean
 }
 
 export function findRecord(db: DemoDb, residentId: string, careDate: string) {
-  return db.records[recordId(residentId, careDate)];
+  // 실제 기록 id는 uuid라 어르신·날짜로 찾는다
+  return (
+    db.records[recordId(residentId, careDate)] ??
+    Object.values(db.records).find(
+      (record) => record.residentId === residentId && record.careDate === careDate,
+    )
+  );
 }
 
 export type MissedRecord = {
@@ -540,6 +551,7 @@ export type MissedRecord = {
 
 /** list_missed_records와 같은 규칙: 지난 7일 빈 날 + 날짜 제한 없는 지난 임시 저장. 최신이 위. */
 export function listMissed(db: DemoDb, today: string, days = 7): MissedRecord[] {
+  if (db.missed) return db.missed;
   const rows: MissedRecord[] = [];
   for (const resident of db.residents) {
     for (let n = 1; n <= days; n += 1) {
@@ -571,6 +583,7 @@ export type OverdueDay = { residentId: string; careDate: string };
 
 /** list_overdue_records와 같은 규칙: 기록이 있어야 했는데 기록도 기록 없음 처리도 없는 날. 최신이 위. */
 export function listOverdue(db: DemoDb, today: string): OverdueDay[] {
+  if (db.overdue) return db.overdue;
   const rows: OverdueDay[] = [];
   for (let n = OVERDUE_FROM; n <= OVERDUE_TO; n += 1) {
     const date = addDays(today, -n);
