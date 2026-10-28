@@ -19,6 +19,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 | `migrations/20261027120000_late_submit.sql` | 늦게 보낸 기록 계산 함수 `record_late_submit` |
 | `migrations/20261027130000_join_codes.sql` | 가입 코드 표 `join_codes`(담당자·강사는 같은 기관 것 읽기만) |
 | `migrations/20261027140000_permissions.sql` | 권한 정리: 이력은 DB 트리거만, `agent_steps`·`audio_jobs` 상태는 서버만, 되돌린 사유·원문·`source` 보호 |
+| `migrations/20261028093357_record_contract_guards.sql` | 이유 번역 보존·needs_check+omitted·제출 검사·출처 보호·프로필 조회 분리 |
 | `migrations/20261028100000_overdue_records.sql` | 기한 지난 빈 기록: `list_overdue_records`(8~30일 전, 담당자·강사만), 담당자는 `no_care_days`를 30일 전까지 |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 
@@ -72,7 +73,7 @@ npx supabase db push                               # migrations/ 를 클라우�
 - 되돌린 사유(`return_reason`·`return_reason_native`)는 담당자만(`reviewer_only`), 원문(`transcript`·`transcript_ko`)은 기록의 작성자만(`not_record_worker`) 바꿉니다. 담당자가 항목 내용을 고치면 `source`는 DB가 `reviewer`로 채웁니다.
 - 작성자가 아닌 사람이 `value_ko`를 고치면 `confirmed`가 자동으로 false가 됩니다. [맞아요](`confirmed`)는 작성자만 바꿀 수 있습니다.
 - 기록이 returned일 때 작성자(작성자 권한으로 도는 AI 항목 보태기 포함)가 `value_ko`·`status`·`detail`을 바꾸면 그 항목의 `resolution`이 자동으로 비워집니다(결정 `2026-10-21-되돌림재확인`). 비운 일도 `edited` 이력의 before/after에 `resolution`으로 자동으로 남습니다.
-- 실명 검사: validate_draft·submit_draft를 부를 때 `blockedNames`에 `getBlockedNames(supabase, org_id)`(`web/lib/agent/blocked-names.ts`) 결과를 넣습니다(결정 `2026-10-21-재가분칸-실명목록`).
+- 실명 검사: validate_draft·submit_draft를 부를 때 `blockedNames`에 `getBlockedNames(serverClient, record_id, worker_id)`(`web/lib/agent/blocked-names.ts`) 결과를 넣습니다(결정 `2026-10-21-재가분칸-실명목록`).
 - 용어 검색(search_terms)은 `supabase.rpc('search_glossary', { expression, max_results })`를 부릅니다. 결과 칸: `matched_expression, term_ko, term_vi, plain_ko, chapter, page`. 받아쓴 문장 안에 용어 표현이 들어 있어도 찾습니다.
 
 ## 남은 것
@@ -80,3 +81,14 @@ npx supabase db push                               # migrations/ 를 클라우�
 - 용어 CSV(`expression,aliases,term_ko,term_vi,plain_ko,chapter,page`)를 데이터 담당이 올리면 시드로 넣기.
 - 남은 녹음 파일 주기 정리(1시간 넘은 것, Storage API, service_role).
 - 서식 기준 데이터(`get_form_spec`용)는 표 없이 서버 코드 안 JSON(결정 기록 `문서/결정/2026-10-21-용어표.md`).
+
+## 10/28 계약 보강
+
+- 기록 안 함은 needs_check + omitted이며 DB가 두 언어 내용을 비웁니다. 다시 정하기는 resolution을 비웁니다.
+- 제출은 9개 항목이 모두 confirmed 또는 source=worker일 때 허용하며 거절 키는 unconfirmed_items입니다.
+- source·evidence·reason·value_native·reason_native는 authenticated가 직접 쓰지 못합니다. 출처는 실제 사용자 내용 수정에 맞춰 DB가 정합니다. 사람 항목을 ai로 재분류하면 human_value_protected로 거절합니다.
+- profiles는 자기 행만 직접 읽습니다. list_org_staff()는 담당자에게 같은 기관 id/name/role만 반환합니다.
+- record_blocked_names(record_id, worker_id)는 해당 기록의 기관 이름만 읽는 service_role 전용 RPC입니다.
+- save_record_ai_draft는 작성자·기관·상태·expected_transcript를 검사하는 service_role 전용 RPC이며 사람 수정 항목은 건너뜁니다. 사용자 RLS 재조회에서 reason_native도 반환합니다.
+- 번역(value_native·reason_native) 변경도 DB 이력에 보존합니다. 실제 Agent API·화면 연결과 클라우드 적용은 후속 작업입니다.
+- 사용자 요청으로 추가 수동 검증을 중단했습니다. supabase/tests/record-contract.sql은 마지막 ROLLBACK으로 합성 픽스처를 제거하는 회귀 SQL입니다.

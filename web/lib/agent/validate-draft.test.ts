@@ -26,6 +26,7 @@ const empty = (key: ItemKey): DraftItem => ({
   status: "not_mentioned",
   evidence: "",
   reason: "",
+  reason_native: "",
   detail: {},
 });
 
@@ -388,5 +389,28 @@ describe("allNeedsCheckDraft", () => {
 
   it("원문을 넘기면 transcript_ko에 그대로 둠", () => {
     expect(allNeedsCheckDraft("형식 오류", TRANSCRIPT).transcript_ko).toBe(TRANSCRIPT);
+  });
+});
+
+describe("이유 번역 보존", () => {
+  it("Agent 번역은 검증 후에도 유지된다", () => {
+    const draft = withItem(scenarioOneDraft(), "meal", { reason_native: "Lượng ăn chưa rõ" });
+    expect(
+      validateDraft(draft, FACILITY).fixed?.items.find((i) => i.item_key === "meal")?.reason_native,
+    ).toBe("Lượng ăn chưa rõ");
+  });
+  it("서버가 이유를 보태면 기존 번역과 코드 이유 번역을 함께 보존한다", () => {
+    const draft = withItem(scenarioOneDraft(), "meal", {
+      reason_native: "Lượng ăn chưa rõ",
+      evidence: "원문에 없는 문장",
+    });
+    const item = validateDraft(draft, FACILITY).fixed?.items.find((i) => i.item_key === "meal");
+    expect(item?.reason_native).toContain("Lượng ăn chưa rõ");
+    expect(item?.reason_native).toContain("Không tìm thấy căn cứ");
+  });
+  it("형식이 틀린 번역은 검증 문제로 남긴다", () => {
+    const draft = scenarioOneDraft();
+    const raw = { ...draft, items: draft.items.map((i) => ({ ...i, reason_native: 123 })) };
+    expect(codes(raw)).toContain("invalid_field");
   });
 });
