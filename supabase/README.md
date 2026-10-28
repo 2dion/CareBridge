@@ -23,6 +23,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 | `migrations/20261028100000_overdue_records.sql` | 기한 지난 빈 기록: `list_overdue_records`(8~30일 전, 담당자·강사만), 담당자는 `no_care_days`를 30일 전까지 |
 | `migrations/20261028120000_resolution_note.sql` | [기록 안 함] 사유 칸 `resolution_note`(담당자만, omitted일 때만, 이력에 남음) |
 | `migrations/20261028130000_save_ai_item.sql` | 서버 전용 `save_ai_item`: 항목 하나 재번역(value_native만)·AI 항목 보태기, 기준 글이 다르면 `stale_item` |
+| `migrations/20261028150000_return_reason_native.sql` | 되돌린 사유 번역 저장 함수 `save_return_reason_native`(service_role 전용, 사유가 바뀌었으면 `stale_reason`) |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 
 ## 쓰는 법
@@ -73,7 +74,7 @@ npx supabase db push                               # migrations/ 를 클라우�
 - 화면·API가 보내지 않아도 DB가 채우는 칸: 모든 표의 `org_id`(기록·어르신에서), `records.form_type`(care_type에서), `worker_id`·`author_id`·`actor_id`(로그인한 사람), `submitted_at`·`approved_at`·`approved_by`(상태 변화 때). 클라이언트는 이 칸을 쓸 권한이 없습니다.
 - 기록을 만들면 9개 항목(`not_mentioned`, `source = ai`)과 `created` 이력이 자동으로 생깁니다. 상태가 바뀌면 `submitted`·`returned`·`approved` 이력도 자동입니다. 항목이 바뀌면 `ai_filled`(source = ai)·`edited`·`resolved`(담당자가 resolution을 바꿈)도, 원문·서식 칸·방문 시간이 바뀌면 `edited`(item_key 빈값)도 DB 트리거가 바뀐 칸만 남깁니다. **API는 이력을 쓰지 않습니다**(결정 `2026-10-27-권한정리`).
 - 서버 전용 쓰기: `agent_steps` 넣기와 `audio_jobs` 상태·경로 바꾸기는 service_role로 합니다(클라이언트는 PR #63의 `web/lib/supabase/admin.ts`). 로그인 사용자 권한으로는 거절됩니다.
-- 되돌린 사유(`return_reason`·`return_reason_native`)는 담당자만(`reviewer_only`), 원문(`transcript`·`transcript_ko`)은 기록의 작성자만(`not_record_worker`) 바꿉니다. 담당자가 항목 내용을 고치면 `source`는 DB가 `reviewer`로 채웁니다.
+- 되돌린 사유(`return_reason`·`return_reason_native`)는 담당자만(`reviewer_only`), 원문(`transcript`·`transcript_ko`)은 기록의 작성자만(`not_record_worker`) 바꿉니다. 예외: 사유의 모국어 번역은 작성자가 기록을 열 때 서버가 `save_return_reason_native`(service_role)로 채웁니다(결정 `2026-10-28-되돌림사유번역`). 담당자가 항목 내용을 고치면 `source`는 DB가 `reviewer`로 채웁니다.
 - 작성자가 아닌 사람이 `value_ko`를 고치면 `confirmed`가 자동으로 false가 됩니다. [맞아요](`confirmed`)는 작성자만 바꿀 수 있습니다.
 - 기록이 returned일 때 작성자(작성자 권한으로 도는 AI 항목 보태기 포함)가 `value_ko`·`status`·`detail`을 바꾸면 그 항목의 `resolution`이 자동으로 비워집니다(결정 `2026-10-21-되돌림재확인`). 비운 일도 `edited` 이력의 before/after에 `resolution`으로 자동으로 남습니다.
 - 실명 검사: validate_draft·submit_draft를 부를 때 `blockedNames`에 `getBlockedNames(serverClient, record_id, worker_id)`(`web/lib/agent/blocked-names.ts`) 결과를 넣습니다(결정 `2026-10-21-재가분칸-실명목록`).
