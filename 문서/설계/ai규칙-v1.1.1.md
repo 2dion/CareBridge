@@ -136,7 +136,7 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
     "input_schema": {
       "type": "object",
       "properties": {
-        "draft": { "type": "object", "description": "transcript_ko, items(9개), form_fields" },
+        "draft": { "$ref": "#/draft" },
         "why": { "type": "string", "description": "이 도구를 부르는 이유 한 줄" }
       },
       "required": ["draft", "why"]
@@ -148,7 +148,7 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
     "input_schema": {
       "type": "object",
       "properties": {
-        "draft": { "type": "object", "description": "transcript_ko, items(9개), form_fields" },
+        "draft": { "$ref": "#/draft" },
         "why": { "type": "string", "description": "이 도구를 부르는 이유 한 줄" }
       },
       "required": ["draft", "why"]
@@ -156,6 +156,8 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
   }
 ]
 ```
+
+**`draft`의 스키마 (10/28 BE 확정):** 위 `"$ref": "#/draft"` 자리에는 아래 모양을 JSON Schema로 그대로 넣습니다(코드 `web/lib/agent/run-agent.ts`의 `DRAFT_SCHEMA`). `items`는 `minItems: 9, maxItems: 9`의 배열이고, 각 항목은 `item_key`(enum 9개)·`value_ko`·`value_native`·`status`(enum 3개)·`evidence`·`reason`·`reason_native`·`detail`을 모두 필수로 가집니다. 10/28 실제 시험에서 `draft`를 "객체"라고만 정의하니 Claude가 `items`를 배열이 아닌 객체로 보내 검증이 세 번 모두 형식 오류로 끝나 4번 상한에 닿았습니다. 서버는 형식 오류 때 `expected_shape`를 문제 목록과 함께 돌려줍니다.
 
 초안(draft)의 모양은 v1.0과 같습니다.
 
