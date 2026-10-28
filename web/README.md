@@ -63,6 +63,6 @@ PR 전에 `npm run check`가 통과해야 합니다. GitHub Actions "web 검사"
 
 ## Vercel 연결
 
-Vercel 프로젝트 설정에서 **Root Directory = `web`**, **Framework Preset = Next.js**로 둡니다. 환경 변수는 위 표와 `.env.example`의 이름 그대로 넣고, Production은 `USE_MOCK_AI=false`여야 합니다(아니면 `/api/health`가 문제로 알림).
+Vercel 프로젝트 설정에서 **Root Directory = `web`**, **Framework Preset = Next.js**로 둡니다. 환경 변수는 위 표와 `.env.example`의 이름 그대로 넣고, Production은 `USE_MOCK_AI=false`여야 합니다(아니면 `/api/health`가 문제로 알림). 녹음 정리용 `CRON_SECRET`은 Vercel과 GitHub 저장소 Secrets에 같은 값으로 둡니다(`.github/workflows/audio-cleanup.yml`, 10/28).
 
 자동 배포는 main 브랜치만 합니다(`vercel.json`의 `git.deploymentEnabled`). 다른 브랜치에 올려도 미리보기 배포가 생기지 않으니, 합치기 전 확인은 로컬과 "web 검사"로 합니다. 꼭 미리보기가 필요하면 Vercel 대시보드 Deployments → Create Deployment에서 브랜치를 골라 만듭니다.

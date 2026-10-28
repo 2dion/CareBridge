@@ -81,8 +81,8 @@ npx supabase db push                               # migrations/ 를 클라우�
 
 ## 남은 것
 
-- 용어 CSV(`expression,aliases,term_ko,term_vi,plain_ko,chapter,page`)를 데이터 담당이 올리면 시드로 넣기.
-- 남은 녹음 파일 주기 정리(1시간 넘은 것, Storage API, service_role).
+- ~~용어 CSV를 시드로 넣기~~ → 10/28 `data/glossary/seed-glossary.sql`(51개)·`data/manual/seed-manual-sections.sql`(12절)을 클라우드 DB에 넣음. 둘 다 다시 돌려도 안전(`on conflict`·`where not exists`).
+- ~~남은 녹음 파일 주기 정리~~ → 10/28 PR #80: `GET /api/cron/audio-cleanup`(service_role, Storage API)을 GitHub Actions `audio-cleanup.yml`이 매시간 부름. `CRON_SECRET`을 Vercel과 GitHub Secrets에 같은 값으로 둠.
 - 서식 기준 데이터(`get_form_spec`용)는 표 없이 서버 코드 안 JSON(결정 기록 `문서/결정/2026-10-21-용어표.md`).
 
 ## 10/28 계약 보강
