@@ -8,6 +8,7 @@ import { getAiMode, getAiModels } from "@/lib/config";
 
 import { getBlockedNames } from "./blocked-names";
 import { readRecordItems, saveValidatedDraft } from "./draft-repository";
+import { cachedSystem, totalTokens, withConversationCache } from "./prompt-cache";
 import { AGENT_TOOLS, runAgent, type AgentDeps, type ContentBlock } from "./run-agent";
 import type { ValidateContext } from "./validate-draft";
 
@@ -120,13 +121,14 @@ export async function runAgentForRecord(
   const claude = getClaudeClient();
   const deps: AgentDeps = {
     async callClaude(system, messages) {
+      // 시스템 프롬프트·도구 정의와 지금까지의 대화에 캐시 표시(프롬프트 캐싱). 적중은 코디세이 콘솔 '캐시' 칸으로 확인
       const response = await claude.messages.create(
         {
           model: getAiModels().main,
           max_tokens: 8000,
-          system,
+          system: cachedSystem(system),
           tools: AGENT_TOOLS as unknown as Anthropic.Tool[],
-          messages: messages as unknown as Anthropic.MessageParam[],
+          messages: withConversationCache(messages) as unknown as Anthropic.MessageParam[],
         },
         { timeout: 90_000, maxRetries: 1 }, // 시간 초과·연결 오류는 한 번 다시
       );
@@ -144,7 +146,7 @@ export async function runAgentForRecord(
         }
         return [];
       });
-      return { content, tokens: response.usage.input_tokens + response.usage.output_tokens };
+      return { content, tokens: totalTokens(response.usage) };
     },
     async searchTerms(expression) {
       const { data, error } = await userClient.rpc("search_glossary", {
