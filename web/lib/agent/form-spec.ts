@@ -1,5 +1,5 @@
 // ① get_form_spec(서식 기준 조회)이 돌려주는 서식 기준. 표 없이 서버 코드 안 JSON으로 둔다(결정 2026-10-21-용어표).
-// 근거: 문서/설계/데이터구조-v1.6.2.md '서식 칸 대응'(verified 표, 항목별 칸, form_fields, support detail)
+// 근거: 문서/설계/데이터구조-v1.6.3.md '서식 칸 대응'(verified 표, 항목별 칸, form_fields, support detail)
 
 import type { CareType } from "./validate-draft";
 

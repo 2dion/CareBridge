@@ -131,7 +131,7 @@ export const MINUTE_KEYS = [
 ] as const;
 
 // 재가(별지 제12호)에만 있는 form_fields 칸. 시설(별지 제16호) 기록에는 두지 않는다.
-// 근거: 문서/설계/데이터구조-v1.6.2.md 'form_fields (재가 제12호 전용)'
+// 근거: 문서/설계/데이터구조-v1.6.3.md 'form_fields (재가 제12호 전용)'
 export const HOME_ONLY_FORM_FIELDS = [
   "total_minutes",
   "body_trend",
