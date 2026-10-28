@@ -1,0 +1,24 @@
+# 목적: Storage에 1시간 넘게 남은 녹음 파일을 매시간 지운다(결정 2026-10-21-녹음업로드 4번, 2026-10-27-녹음임시보관 5번).
+# 배포 사이트의 /api/cron/audio-cleanup을 부른다. 저장소 Secrets에 CRON_SECRET이 없으면 건너뛴다.
+# Vercel Cron은 Hobby 요금제에서 하루 1번만 돌아서 GitHub Actions로 둔다.
+name: 녹음 파일 정리
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1시간 넘은 녹음 지우기
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET이 없어 건너뜁니다."
+            exit 0
+          fi
+          curl --fail-with-body -sS -H "Authorization: Bearer $CRON_SECRET" \
+            https://care-bridge-kappa.vercel.app/api/cron/audio-cleanup
