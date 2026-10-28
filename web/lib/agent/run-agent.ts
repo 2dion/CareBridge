@@ -6,6 +6,7 @@
 import { getFormSpec } from "./form-spec";
 import {
   allNeedsCheckDraft,
+  ITEM_KEYS,
   REASONS_VI,
   validateDraft,
   type CareType,
@@ -74,6 +75,54 @@ export class ToolFailedError extends Error {
   }
 }
 
+// 초안(draft)의 정확한 모양. 10/28 실제 시험에서 모양을 "객체"라고만 적으니 Claude가 items를 배열이 아닌
+// 객체로 보내 검증 3번이 모두 형식 오류로 끝났다. 데이터 구조 '세부 칸 이름은 BE가 정함'에 따라 여기서 정한다.
+export const DRAFT_SCHEMA = {
+  type: "object",
+  description:
+    "초안. items는 반드시 9개 항목을 이 순서의 배열로: visit_time, support, meal, sleep, discomfort, medication, cognition, notes, next_check",
+  properties: {
+    transcript_ko: { type: "string", description: "원문 전체의 한국어 번역" },
+    items: {
+      type: "array",
+      minItems: 9,
+      maxItems: 9,
+      items: {
+        type: "object",
+        properties: {
+          item_key: { type: "string", enum: [...ITEM_KEYS] },
+          value_ko: { type: "string", description: "한국어 기록체. 없으면 빈 문자열" },
+          value_native: { type: "string", description: "value_ko의 모국어 번역. 없으면 빈 문자열" },
+          status: { type: "string", enum: ["observed", "not_mentioned", "needs_check"] },
+          evidence: { type: "string", description: "원문 문장 그대로. 없으면 빈 문자열" },
+          reason: { type: "string", description: "needs_check인 이유. 아니면 빈 문자열" },
+          reason_native: { type: "string", description: "reason의 모국어 번역. 없으면 빈 문자열" },
+          detail: {
+            type: "object",
+            description: "항목별 추가 값(예: intake, checks, minutes, trend). 없으면 {}",
+          },
+        },
+        required: [
+          "item_key",
+          "value_ko",
+          "value_native",
+          "status",
+          "evidence",
+          "reason",
+          "reason_native",
+          "detail",
+        ],
+      },
+    },
+    form_fields: {
+      type: "object",
+      description:
+        "재가(별지 제12호)만: total_minutes, body_trend, meal_trend, cognition_trend, stool_accidents, urine_accidents. 시설이면 {}",
+    },
+  },
+  required: ["transcript_ko", "items", "form_fields"],
+} as const;
+
 // AI 규칙 v1.1.1 '도구 정의 (초안)'
 export const AGENT_TOOLS = [
   {
@@ -113,7 +162,7 @@ export const AGENT_TOOLS = [
     input_schema: {
       type: "object",
       properties: {
-        draft: { type: "object", description: "transcript_ko, items(9개), form_fields" },
+        draft: DRAFT_SCHEMA,
         why: { type: "string", description: "이 도구를 부르는 이유 한 줄" },
       },
       required: ["draft", "why"],
@@ -126,7 +175,7 @@ export const AGENT_TOOLS = [
     input_schema: {
       type: "object",
       properties: {
-        draft: { type: "object", description: "transcript_ko, items(9개), form_fields" },
+        draft: DRAFT_SCHEMA,
         why: { type: "string", description: "이 도구를 부르는 이유 한 줄" },
       },
       required: ["draft", "why"],
@@ -175,6 +224,16 @@ const summarize = (value: unknown) => {
   const text = typeof value === "string" ? value : JSON.stringify(value);
   return text.length > 300 ? `${text.slice(0, 300)}…` : text;
 };
+
+// 형식 오류(고칠 수 없는 문제)면 기대하는 모양을 함께 돌려줘 다음 응답에서 바로 고치게 한다
+const SHAPE_CODES = ["invalid_shape", "missing_item", "duplicate_item", "unknown_item"];
+function shapeHint(result: { fixed: unknown; problems: { code: string }[] }) {
+  if (result.fixed || !result.problems.some((p) => SHAPE_CODES.includes(p.code))) return {};
+  return {
+    expected_shape:
+      '{"transcript_ko": "...", "items": [9개 객체, 순서대로 item_key=visit_time, support, meal, sleep, discomfort, medication, cognition, notes, next_check. 각각 value_ko, value_native, status, evidence, reason, reason_native, detail], "form_fields": {}}',
+  };
+}
 
 const isTool = (name: string): name is AgentTool => AGENT_TOOLS.some((tool) => tool.name === name);
 
@@ -272,14 +331,18 @@ async function runTool(
     case "validate_draft": {
       rememberDraft(use.input.draft);
       const result = validateDraft(use.input.draft, input.context);
-      return JSON.stringify({ passed: result.passed, problems: result.problems });
+      return JSON.stringify({
+        passed: result.passed,
+        problems: result.problems,
+        ...shapeHint(result),
+      });
     }
     case "submit_draft": {
       rememberDraft(use.input.draft);
       const check = validateDraft(use.input.draft, input.context);
       // 형식이 깨져 고칠 수 없으면 저장하지 않고 문제 목록을 돌려준다
       if (!check.fixed) {
-        return JSON.stringify({ saved: false, problems: check.problems });
+        return JSON.stringify({ saved: false, problems: check.problems, ...shapeHint(check) });
       }
       const saved = await deps.saveDraft(use.input.draft);
       return JSON.stringify({ saved: true, downgraded: saved.downgraded });
