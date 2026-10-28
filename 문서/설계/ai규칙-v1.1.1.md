@@ -319,6 +319,10 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
 | 1차 (draft 스키마 없음) | 4번 상한 → 자동 정리 중단(9개 모두 '확인 필요') | 4 | get_form_spec 1, search_terms 4, validate_draft 2, submit_draft 1 | 31,778 (차감 31,778) | 106초 |
 | 2차 (스키마 정의 + 캐시 표시, PR #85·#86) | 초안 반환. 관찰 4·언급 없음 2·확인 필요 2, 사람이 고친 항목 1 건너뜀(원칙 4) | 4 | get_form_spec 1, search_terms 5, validate_draft 1, submit_draft 1 | 26,819 (캐시 읽기 13,717 포함). **차감 16,717** | 78초 |
 
+| 3차 (실제 녹음 경로: webm 14초 → upload-url → Storage → `/audio` → Groq 받아쓰기 → Agent) | 받아쓰기 6.5초, 202 `filling`, 파일 즉시 삭제 확인. 초안 반환(관찰 4·언급 없음 2·확인 필요 2, 사람 항목 1 건너뜀). 받아쓰기가 "빨개요"를 "밝아요"로 들었는데 Agent가 짐작하지 않고 '확인 필요' + "표현 '밝아요'의 의미가 불명확함"으로 둠(합성 TTS 음성이라 실제 발화와 다를 수 있음) | 4 | get_form_spec 1, search_terms 4, validate_draft 2, submit_draft 1 | 37,427 (캐시 읽기 포함) | 124초(받아쓰기 포함) |
+| 4차 (③ 항목 보태기: mp4 → `/audio` target=item, sleep) | 200 `done`, 10.9초. 그 항목만 다시 씀: `source = worker`, `confirmed = false`, 근거·베트남어 번역 채움. 이유가 다른 항목(발적)까지 끌어와 다소 넓게 '확인 필요'로 둠 → 프롬프트 다듬을 때 볼 것 | 1 | (한 번 호출) | — | 11초 |
+
+- 받아쓰기(Groq Whisper): 합성 음성 14초를 6.5초 안에 받아씀. 두 형식(webm·mp4) 모두 Storage 업로드·삭제·`storage_path` 비움 확인(녹음업로드 결정 3·4번).
 - 도우미(W6) 1건(Haiku, 교재 3절 포함): 입력 10,343·출력 813 → 차감 5,578. 교재 절 본문이 길어 Agent 1건의 1/3쯤 듭니다. 절을 줄이거나 캐시하는 것은 추후 확인.
 
 - 1차 실패 원인은 도구 정의의 `draft` 모양이 느슨해 Claude가 `items`를 배열이 아닌 객체로 보낸 것입니다. 지어낸 내용(②)은 두 회차 모두 0이었습니다.
