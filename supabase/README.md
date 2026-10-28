@@ -22,6 +22,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 | `migrations/20261028093357_record_contract_guards.sql` | 이유 번역 보존·needs_check+omitted·제출 검사·출처 보호·프로필 조회 분리 |
 | `migrations/20261028100000_overdue_records.sql` | 기한 지난 빈 기록: `list_overdue_records`(8~30일 전, 담당자·강사만), 담당자는 `no_care_days`를 30일 전까지 |
 | `migrations/20261028120000_resolution_note.sql` | [기록 안 함] 사유 칸 `resolution_note`(담당자만, omitted일 때만, 이력에 남음) |
+| `migrations/20261028130000_save_ai_item.sql` | 서버 전용 `save_ai_item`: 항목 하나 재번역(value_native만)·AI 항목 보태기, 기준 글이 다르면 `stale_item` |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 
 ## 쓰는 법
@@ -94,3 +95,4 @@ npx supabase db push                               # migrations/ 를 클라우�
 - 번역(value_native·reason_native) 변경도 DB 이력에 보존합니다. 실제 Agent API·화면 연결과 클라우드 적용은 후속 작업입니다.
 - 사용자 요청으로 추가 수동 검증을 중단했습니다. supabase/tests/record-contract.sql은 마지막 ROLLBACK으로 합성 픽스처를 제거하는 회귀 SQL입니다.
 - [기록 안 함] 사유는 `record_items.resolution_note`입니다. omitted일 때만 있고 비면 `note_required`, 작성자가 쓰면 `reviewer_only`입니다. resolution이 바뀌면 DB가 비웁니다. 회귀 SQL은 `supabase/tests/resolution-note.sql`입니다(결정 `2026-10-28-기록안함사유`).
+- 항목 하나 저장은 service_role 전용 `save_ai_item(record_id, item_key, actor_id, expected_value_ko, mode, item)`입니다. mode `translation`은 PATCH와 같은 사람(draft·returned 작성자, submitted 담당자)의 value_native만, `item`은 작성자의 음성 보태기 항목 전체(source = worker, confirmed = false)를 저장합니다. 서버 코드는 `saveItemTranslation`·`saveAddedItem`(`web/lib/agent/draft-repository.ts`), 회귀 SQL은 `supabase/tests/save-ai-item.sql`입니다(결정 `2026-10-28-항목하나저장`).

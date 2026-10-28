@@ -73,3 +73,51 @@ export async function saveValidatedDraft(
   // RPC 응답을 그대로 믿고 끝내지 않고, 사용자 RLS로 재조회하여 저장된 번역을 돌려준다.
   return { validation, items: await readRecordItems(userClient, recordId) };
 }
+
+// 항목 하나를 서버가 저장한다(save_ai_item). 근거: 문서/결정/2026-10-28-항목하나저장.md
+// 호출자는 actorId를 userClient.auth.getUser()로 확인한 뒤 넘긴다. expectedValueKo는 번역·보태기의 기준 글이다.
+export async function saveItemTranslation(
+  serverClient: SupabaseClient,
+  recordId: string,
+  itemKey: DraftItem["item_key"],
+  actorId: string,
+  expectedValueKo: string,
+  valueNative: string,
+) {
+  return saveAiItem(serverClient, recordId, itemKey, actorId, expectedValueKo, "translation", {
+    value_native: valueNative,
+  });
+}
+
+export async function saveAddedItem(
+  serverClient: SupabaseClient,
+  recordId: string,
+  actorId: string,
+  expectedValueKo: string,
+  item: DraftItem,
+) {
+  const { item_key, ...fields } = item;
+  return saveAiItem(serverClient, recordId, item_key, actorId, expectedValueKo, "item", fields);
+}
+
+async function saveAiItem(
+  serverClient: SupabaseClient,
+  recordId: string,
+  itemKey: DraftItem["item_key"],
+  actorId: string,
+  expectedValueKo: string,
+  mode: "translation" | "item",
+  item: Record<string, unknown>,
+) {
+  const { data, error } = await serverClient.rpc("save_ai_item", {
+    p_record_id: recordId,
+    p_item_key: itemKey,
+    p_actor_id: actorId,
+    p_expected_value_ko: expectedValueKo,
+    p_mode: mode,
+    p_item: item,
+  });
+  // stale_item이면 그사이 value_ko가 또 바뀐 것: 새 글로 다시 번역·보태기 한다.
+  if (error) throw new Error(`항목 저장 실패: ${error.message}`);
+  return (data as StoredDraftItem[])[0];
+}
