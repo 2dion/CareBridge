@@ -4,7 +4,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 
 - **목적:** 표와 RLS를 대시보드에서 손으로 만들지 않고 파일로 남겨, 누가 언제 무엇을 바꿨는지 PR로 보이게 합니다.
 - **배경:** 모든 표를 기관별 RLS로 나눠야 하고(AGENTS.md 원칙 7), 여러 사람이 동시에 개발합니다.
-- **근거:** 데이터 구조 v1.6.2(`문서/설계/데이터구조-v1.6.2.md`), 기술 선택 v1.1 §3.
+- **근거:** 데이터 구조 v1.6.3(`문서/설계/데이터구조-v1.6.3.md`), 기술 선택 v1.1 §3.
 - **사유:** Supabase CLI의 기본 구조(`config.toml`, `migrations/`, `seed.sql`)를 그대로 써서 새로 배울 것을 줄입니다.
 
 ## 들어 있는 것
@@ -69,7 +69,7 @@ npx supabase db push                               # migrations/ 를 클라우�
 | `human_value_protected` | source가 worker·reviewer인 항목을 source = ai로 덮어쓰려 함 (원칙 4) | 건너뜀 |
 | `org_mismatch` | 작성자와 어르신의 기관이 다름 | 403 |
 
-- 서버 API가 돌려주는 HTTP 코드와 그 밖의 오류 키(`not_signed_in`, `ai_not_configured`, `duplicate_audio` 등)는 데이터 구조 v1.6.2 공통 계약 '응답 코드와 오류 키'에 있습니다(결정 `2026-10-28-api응답코드`).
+- 서버 API가 돌려주는 HTTP 코드와 그 밖의 오류 키(`not_signed_in`, `ai_not_configured`, `duplicate_audio` 등)는 데이터 구조 v1.6.3 공통 계약 '응답 코드와 오류 키'에 있습니다(결정 `2026-10-28-api응답코드`).
 - RLS로 걸러진 갱신은 오류 없이 **0행**이 됩니다. API는 `update(...).select()`로 바뀐 행이 있는지 봐야 합니다.
 - 화면·API가 보내지 않아도 DB가 채우는 칸: 모든 표의 `org_id`(기록·어르신에서), `records.form_type`(care_type에서), `worker_id`·`author_id`·`actor_id`(로그인한 사람), `submitted_at`·`approved_at`·`approved_by`(상태 변화 때). 클라이언트는 이 칸을 쓸 권한이 없습니다.
 - 기록을 만들면 9개 항목(`not_mentioned`, `source = ai`)과 `created` 이력이 자동으로 생깁니다. 상태가 바뀌면 `submitted`·`returned`·`approved` 이력도 자동입니다. 항목이 바뀌면 `ai_filled`(source = ai)·`edited`·`resolved`(담당자가 resolution을 바꿈)도, 원문·서식 칸·방문 시간이 바뀌면 `edited`(item_key 빈값)도 DB 트리거가 바뀐 칸만 남깁니다. **API는 이력을 쓰지 않습니다**(결정 `2026-10-27-권한정리`).

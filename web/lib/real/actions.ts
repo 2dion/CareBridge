@@ -1,6 +1,6 @@
 // 실제 모드의 화면 동작: 서버 API(공통 계약 10개)와 Supabase(RLS) 직접 쓰기. 끝나면 화면이 다시 읽는다(reload).
 // AI 결과는 서버가 만들고, 화면은 가짜 결과를 만들지 않는다.
-// 근거: 문서/설계/데이터구조-v1.6.2.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
+// 근거: 문서/설계/데이터구조-v1.6.3.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { HelperAnswer } from "../demo/helper";

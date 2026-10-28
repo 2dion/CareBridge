@@ -1,5 +1,5 @@
 // ⑤ 도우미 답(W6): 교재 매뉴얼(manual_sections)과 용어 목록(glossary)에서 찾은 내용만으로 답한다. 답은 저장하지 않는다.
-// 근거: 문서/설계/ai규칙-v1.1.1.md '도우미·번역 규칙' W6 1~6, 문서/설계/데이터구조-v1.6.2.md '공통 계약' helper/ask
+// 근거: 문서/설계/ai규칙-v1.1.1.md '도우미·번역 규칙' W6 1~6, 문서/설계/데이터구조-v1.6.3.md '공통 계약' helper/ask
 // DB·Claude 호출은 HelperDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
 import type { NativeLang, Role } from "@/lib/auth/signup";
