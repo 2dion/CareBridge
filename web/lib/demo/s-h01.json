@@ -3,7 +3,7 @@
   "version": "0.1",
   "is_synthetic": true,
   "scenario": "시나리오 2. 재가 방문요양과 되돌리기 (별지 제12호)",
-  "scenario_source": "문서/설계/시연-일정-v1.1.md § 시나리오 2 (1번 문장 그대로). 고은 님 시나리오 2 대본이 나오면 다시 맞춤",
+  "scenario_source": "문서/설계/시연-일정-v1.1.md § 시나리오 2 (1번 문장 그대로). 기획 담당 시나리오 2 대본이 나오면 다시 맞춤",
   "language_type": "한국어만",
   "care_type": "home",
   "form_type": "12",

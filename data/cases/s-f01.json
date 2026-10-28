@@ -3,7 +3,7 @@
   "version": "0.3",
   "is_synthetic": true,
   "scenario": "시나리오 1. 시설 기록 한 건 (별지 제16호)",
-  "scenario_source": "문서/설계/시연-일정-v1.1.md § 시나리오 1 (2번 문장 그대로). 고은 님 대본이 확정되면 문장을 다시 맞춤",
+  "scenario_source": "문서/설계/시연-일정-v1.1.md § 시나리오 1 (2번 문장 그대로). 기획 담당 대본이 확정되면 문장을 다시 맞춤",
   "language_type": "한국어 + 베트남어 섞임",
   "care_type": "facility",
   "form_type": "16",
