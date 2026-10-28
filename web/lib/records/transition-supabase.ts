@@ -1,26 +1,31 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import type { Role } from "@/lib/auth/signup";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import type { ItemRow, RecordRow, TransitionDeps } from "./transition";
+
+/** 로그인한 사람 id와 role. 로그인하지 않았거나 프로필이 없으면 null */
+export async function readCurrentUser(supabase: SupabaseClient) {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return null;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+  if (!profile) return null;
+  return { id: auth.user.id, role: profile.role as Role };
+}
 
 // submit·approve·return의 DB 호출. 읽기·쓰기는 모두 로그인한 사람 권한(RLS)으로 한다.
 export async function createTransitionDeps(): Promise<TransitionDeps> {
   const supabase = await createSupabaseServerClient();
 
   return {
-    async currentUser() {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return null;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", auth.user.id)
-        .maybeSingle();
-      if (!profile) return null;
-      return { id: auth.user.id, role: profile.role as Role };
-    },
+    currentUser: () => readCurrentUser(supabase),
     async findRecord(recordId) {
       const { data } = await supabase
         .from("records")
