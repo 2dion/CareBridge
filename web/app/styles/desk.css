@@ -289,6 +289,29 @@
   font-weight: 500;
 }
 
+.d-app .missed-box.overdue {
+  border-color: #f0cdca;
+  background: #fdf3f2;
+}
+
+.d-app .missed-box.overdue > button {
+  color: #b23b37;
+}
+
+.d-app .missed-box.overdue > button::before {
+  background: #b23b37;
+}
+
+.d-app .missed-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.d-app .overdue-text {
+  color: #b23b37;
+}
+
 .d-app .missed-list {
   margin-top: 12px;
   padding: 6px 14px;

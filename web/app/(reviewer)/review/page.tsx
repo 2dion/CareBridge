@@ -2,21 +2,27 @@
 
 // R1(검토 대기, 피그마 D00): 확인 필요가 많은 기록부터. 위에 지난 7일 작성 전 기록·기록 없음 처리.
 // 되돌린 뒤 다시 보낸 기록은 어르신 이름 옆에 ↻ 아이콘(10/28 알림표시 결정).
+// 그 아래 8~30일 전 빈 날은 ‘기한 지난 빈 기록’ 상자, 담당자가 기록 없음으로 정리(기한지난빈기록 결정).
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
-import { DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
+import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
-import { removeNoCareDay, reviewQueue, wasResent } from "@/lib/demo/review";
+import { markOverdueNoCare, removeNoCareDay, reviewQueue, wasResent } from "@/lib/demo/review";
 import { countUnresolved } from "@/lib/demo/state";
 import {
   addDays,
   getResident,
   lateDays,
   listMissed,
+  listOverdue,
   monthDayWeek,
+  type NoCareDay,
+  type NoCareReason,
   noCareReasonLabel,
+  OVERDUE_FROM,
+  OVERDUE_TO,
   timeRangeLabel,
 } from "@/lib/demo/store";
 
@@ -40,6 +46,8 @@ function ReviewQueue() {
   const [dates, setDates] = useState<DateFilter>("7");
   const [care, setCare] = useState<CareFilter>("all");
   const [open, setOpen] = useState(true);
+  const [overdueOpen, setOverdueOpen] = useState(true);
+  const [marking, setMarking] = useState<{ residentId: string; careDate: string } | null>(null);
 
   const from = dates === "today" ? today : dates === "7" ? addDays(today, -7) : "0000-00-00";
   const rows = reviewQueue(db).filter((record) => {
@@ -63,6 +71,24 @@ function ReviewQueue() {
       noCare: day,
     })),
   ].sort((a, b) => (a.careDate < b.careDate ? 1 : -1));
+
+  const overdue = listOverdue(db, today);
+  const overdueDone = db.noCareDays.filter(
+    (day) =>
+      day.careDate >= addDays(today, -OVERDUE_TO) && day.careDate <= addDays(today, -OVERDUE_FROM),
+  );
+  const overdueRows = [
+    ...overdue.map((row) => ({ ...row, noCare: null as NoCareDay | null })),
+    ...overdueDone.map((day) => ({
+      residentId: day.residentId,
+      careDate: day.careDate,
+      noCare: day,
+    })),
+  ].sort((a, b) => (a.careDate < b.careDate ? 1 : -1));
+  const noCareText = (day: NoCareDay) =>
+    `기록 없음 · ${noCareReasonLabel[day.reason].ko.replace(" (직접 쓰기)", "")}${
+      day.note ? ` (${day.note})` : ""
+    }`;
 
   return (
     <>
@@ -123,11 +149,7 @@ function ReviewQueue() {
                     <span>{db.worker.name}</span>
                     {row.noCare ? (
                       <>
-                        <b>
-                          기록 없음 ·{" "}
-                          {noCareReasonLabel[row.noCare.reason].ko.replace(" (직접 쓰기)", "")}
-                          {row.noCare.note ? ` (${row.noCare.note})` : ""}
-                        </b>
+                        <b>{noCareText(row.noCare)}</b>
                         <button
                           type="button"
                           className="dbtn sm soft"
@@ -152,6 +174,78 @@ function ReviewQueue() {
                 );
               })}
             </ul>
+          )}
+        </section>
+      )}
+
+      {overdueRows.length > 0 && (
+        <section className="missed-box overdue" aria-label="기한 지난 빈 기록">
+          <button
+            type="button"
+            onClick={() => setOverdueOpen(!overdueOpen)}
+            aria-expanded={overdueOpen}
+          >
+            기한 지난 빈 기록 {overdue.length}건 · 정리 {overdueDone.length}건 ({OVERDUE_FROM}~
+            {OVERDUE_TO}일 전)
+            <span>
+              {overdueOpen ? "접기" : "펼치기"} <Icon name="down" />
+            </span>
+          </button>
+          {overdueOpen && (
+            <>
+              <p className="missed-note">
+                7일이 지나 작성자가 더는 쓸 수 없는 날이에요. 작성자에게 사정을 묻고 사유를 남겨
+                주세요.
+              </p>
+              <ul className="missed-list">
+                {overdueRows.map((row) => {
+                  const resident = getResident(db, row.residentId);
+                  return (
+                    <li key={`${row.residentId}-${row.careDate}`}>
+                      <span>{monthDayWeek(row.careDate)}</span>
+                      <b>{resident?.alias}</b>
+                      <span>{db.worker.name}</span>
+                      {row.noCare ? (
+                        <>
+                          <b>
+                            {noCareText(row.noCare)}
+                            {row.noCare.createdBy !== db.worker.name &&
+                              ` · ${row.noCare.createdBy} 정리`}
+                          </b>
+                          <button
+                            type="button"
+                            className="dbtn sm soft"
+                            onClick={() => {
+                              demo.update((current) =>
+                                removeNoCareDay(current, row.residentId, row.careDate),
+                              );
+                              toast.show(
+                                "기록 없음 처리를 지웠어요. 다시 기한 지난 빈 기록으로 보여요.",
+                              );
+                            }}
+                          >
+                            처리 지우기
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <b className="overdue-text">빈 날 · 기한 지남</b>
+                          <button
+                            type="button"
+                            className="dbtn sm"
+                            onClick={() =>
+                              setMarking({ residentId: row.residentId, careDate: row.careDate })
+                            }
+                          >
+                            기록 없음으로 정리
+                          </button>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
         </section>
       )}
@@ -234,7 +328,104 @@ function ReviewQueue() {
           </table>
         )}
       </section>
+      {marking && (
+        <OverdueModal
+          label={`${getResident(db, marking.residentId)?.alias ?? ""} · ${monthDayWeek(marking.careDate)}`}
+          onClose={() => setMarking(null)}
+          onSave={(reason, note) => {
+            const next = markOverdueNoCare(db, { ...marking, reason, note }, today);
+            if ("error" in next) return false;
+            demo.update(() => next);
+            setMarking(null);
+            toast.show("기록 없음으로 정리했어요.");
+            return true;
+          }}
+        />
+      )}
       {toast.node}
     </>
+  );
+}
+
+const REASONS: NoCareReason[] = ["hospital", "overnight", "visit_cancelled", "other"];
+
+/** [기록 없음으로 정리] 창: 작성자 [이 날 기록 없음]과 같은 사유 4가지, 기타는 메모 필수. */
+function OverdueModal({
+  label,
+  onClose,
+  onSave,
+}: {
+  label: string;
+  onClose: () => void;
+  onSave: (reason: NoCareReason, note: string) => boolean;
+}) {
+  const [reason, setReason] = useState<NoCareReason>("hospital");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState(false);
+  return (
+    <DeskModal open onClose={onClose} label="기록 없음으로 정리">
+      <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>기록 없음으로 정리</h2>
+      <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
+        {label}
+      </p>
+      <p className="flabel">돌봄이 없던 사유</p>
+      <div className="chips" style={{ marginBottom: 14 }}>
+        {REASONS.map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={reason === key ? "on" : ""}
+            aria-pressed={reason === key}
+            onClick={() => {
+              setReason(key);
+              setError(false);
+            }}
+          >
+            {noCareReasonLabel[key].ko.replace(" (직접 쓰기)", "")}
+          </button>
+        ))}
+      </div>
+      <label className="flabel" htmlFor="overdue-note">
+        메모 {reason === "other" ? "(꼭 쓰기)" : "(선택)"}
+      </label>
+      <textarea
+        id="overdue-note"
+        className={`field ${error ? "invalid" : ""}`}
+        rows={3}
+        maxLength={100}
+        value={note}
+        onChange={(event) => {
+          setNote(event.target.value);
+          setError(false);
+        }}
+        placeholder="예: 작성자에게 확인함. 이날 병원 진료로 외출."
+      />
+      {error && (
+        <p className="fhint">
+          <span className="warn-text">기타는 사유를 써 주세요.</span>
+        </p>
+      )}
+      <p className="info-note">
+        정리한 사람은 담당자 이름으로 남고, 잘못 정리했으면 지울 수 있어요.
+      </p>
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+        <button type="button" className="dbtn" onClick={onClose}>
+          취소
+        </button>
+        <button
+          type="button"
+          className="dbtn primary"
+          onClick={() => {
+            if (reason === "other" && !note.trim()) {
+              setError(true);
+              return;
+            }
+            if (!onSave(reason, note.trim())) setError(true);
+          }}
+        >
+          정리하기
+        </button>
+      </div>
+    </DeskModal>
   );
 }
