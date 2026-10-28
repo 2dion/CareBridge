@@ -63,6 +63,31 @@ AI는 **초안만** 만듭니다. 작성자가 확인하고 담당자가 승인�
 | 2 | validate_draft | 통과 또는 문제 목록 |
 | 3 | (문제를 고친 뒤) submit_draft | 저장 결과 |
 
+**그림: Agent 한 번이 도는 순서 (흔한 3번 응답)** 그림은 위 내용을 옮긴 것입니다. 그림과 글이 다르면 글이 기준입니다.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant S as 서버 (Next.js)
+  participant C as Claude
+  participant T as 도구 (서버 코드)
+  participant D as DB
+  S->>C: 받아쓴 글, 어르신 정보, 도구 4개 정의
+  C-->>S: 응답 1 · get_form_spec, search_terms 부름
+  S->>T: 도구 실행
+  T-->>S: 서식 칸·선택지, 후보 용어
+  S->>D: agent_steps에 도구마다 한 줄
+  S->>C: 도구 결과
+  C-->>S: 응답 2 · validate_draft 부름
+  S->>T: 서버 검사 1~6 (AI 판단 아님)
+  T-->>S: 통과 또는 문제 목록
+  S->>C: 검사 결과
+  C-->>S: 응답 3 · 고친 초안으로 submit_draft 부름
+  S->>T: 저장 직전 다시 검사
+  T->>D: 초안 저장, 남은 문제 항목은 '확인 필요'
+  Note over S,C: Claude 응답은 최대 4번. 같은 도구·같은 입력은 실행하지 않고 앞 결과를 돌려줌.<br/>4번 안에 submit_draft가 없으면 마지막 초안을 검사해 저장(이유 '자동 정리 중단').
+```
+
 ### 도구 4개
 
 | 이름 | 영문 이름 | 하는 일 | 입력 | 출력 | 누가 실행 |
