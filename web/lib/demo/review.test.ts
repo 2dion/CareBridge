@@ -10,9 +10,10 @@ import {
   reviewOrder,
   reviewQueue,
   updateResident,
+  wasResent,
 } from "./review";
 import { countUnresolved } from "./state";
-import { addNoCareDay, createDemoDb, listMissed, type DemoDb } from "./store";
+import { addNoCareDay, createDemoDb, listMissed, submitRecord, type DemoDb } from "./store";
 
 const TODAY = "2026-10-27";
 const NOW = "2026-10-27T11:00:00+09:00";
@@ -78,6 +79,17 @@ describe("담당자 규칙 (R1~R4)", () => {
     const next = ok(returnRecord(db, record.id, "식사량을 다시 확인해 주세요.", NOW));
     expect(next.records[record.id].status).toBe("returned");
     expect(reviewQueue(next).some((entry) => entry.id === record.id)).toBe(false);
+  });
+
+  it("되돌린 뒤 다시 보낸 기록만 '다시 보냄'으로 표시한다", () => {
+    const db = createDemoDb(TODAY);
+    const record = reviewQueue(db)[0];
+    expect(wasResent(record)).toBe(false);
+    const returned = ok(returnRecord(db, record.id, "식사량을 다시 확인해 주세요.", NOW));
+    expect(wasResent(returned.records[record.id])).toBe(false);
+    const resent = submitRecord(returned, record.id, "2026-10-27T12:00:00+09:00");
+    expect(resent.records[record.id].status).toBe("submitted");
+    expect(wasResent(resent.records[record.id])).toBe(true);
   });
 
   it("기록 없음 처리를 지우면 못 쓴 기록에 다시 나온다", () => {

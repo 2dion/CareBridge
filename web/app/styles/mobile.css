@@ -951,21 +951,6 @@
   flex-shrink: 0;
 }
 
-.m-app .home-header .bell {
-  position: absolute;
-  top: 52px;
-  right: 22px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 22px;
-  background: #f3f9ec;
-  color: var(--color-primary);
-  z-index: 2;
-}
-
 .m-app .home-header .date {
   position: absolute;
   left: 24px;

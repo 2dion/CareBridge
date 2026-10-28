@@ -1,13 +1,14 @@
 "use client";
 
 // R1(검토 대기, 피그마 D00): 확인 필요가 많은 기록부터. 위에 지난 7일 작성 전 기록·기록 없음 처리.
+// 되돌린 뒤 다시 보낸 기록은 어르신 이름 옆에 ↻ 아이콘(10/28 알림표시 결정).
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
 import { DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
-import { removeNoCareDay, reviewQueue } from "@/lib/demo/review";
+import { removeNoCareDay, reviewQueue, wasResent } from "@/lib/demo/review";
 import { countUnresolved } from "@/lib/demo/state";
 import {
   addDays,
@@ -156,6 +157,11 @@ function ReviewQueue() {
       )}
 
       <section className="panel">
+        {rows.some(wasResent) && (
+          <p className="table-legend">
+            <Icon name="refresh" /> 다시 보낸 기록: 되돌린 뒤 작성자가 고쳐서 다시 보냈어요.
+          </p>
+        )}
         {rows.length === 0 ? (
           <p className="empty" style={{ padding: 32, textAlign: "center" }}>
             검토할 기록이 없어요.
@@ -192,6 +198,16 @@ function ReviewQueue() {
                   >
                     <td>
                       <b>{resident?.alias.replace(" 어르신", "")}</b>
+                      {wasResent(record) && (
+                        <span
+                          className="resent"
+                          role="img"
+                          aria-label="다시 보낸 기록"
+                          title="다시 보낸 기록"
+                        >
+                          <Icon name="refresh" />
+                        </span>
+                      )}
                     </td>
                     <td>{resident?.careType === "home" ? "재가" : "시설"}</td>
                     <td>{db.worker.name}</td>

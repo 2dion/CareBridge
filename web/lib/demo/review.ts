@@ -21,6 +21,11 @@ export function reviewQueue(db: DemoDb): DemoRecord[] {
     });
 }
 
+/** R1 '다시 보냄' 아이콘: 한 번이라도 되돌린 뒤 다시 보낸 기록(record_events의 returned로 계산). */
+export function wasResent(record: DemoRecord): boolean {
+  return record.status === "submitted" && record.events.some((event) => event.type === "returned");
+}
+
 export function approvedRecords(db: DemoDb): DemoRecord[] {
   return Object.values(db.records)
     .filter((record) => record.status === "approved")

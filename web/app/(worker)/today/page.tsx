@@ -2,6 +2,7 @@
 
 // W1(오늘): 오늘 기록이 있어야 하는 어르신 카드, 수정 필요·작성 전 기록 띠.
 // 병기(10/26): 카드 버튼·띠·카드 안내 줄은 병기, 날짜·배지·탭은 한국어만.
+// 종 버튼은 두지 않는다(10/28 알림표시 결정): 수정 필요 띠와 하는 일이 같다.
 import Link from "next/link";
 
 import { useDemo } from "@/components/demo/demo-provider";
@@ -74,9 +75,6 @@ export default function TodayPage() {
   return (
     <MobileScreen tab="today">
       <header className="home-header">
-        <Link className="bell" href="/archive?tab=returned" aria-label="알림">
-          <Icon name="bell" />
-        </Link>
         <div className="date">
           <strong>{monthDayWeek(today)}</strong>
         </div>

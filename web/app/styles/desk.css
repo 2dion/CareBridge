@@ -338,6 +338,30 @@
   background: #f7fbf8;
 }
 
+.d-app .table-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-line);
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.d-app .table-legend .icon,
+.d-app .dtable .resent .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-info);
+}
+
+.d-app .dtable .resent {
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: -2px;
+}
+
 .d-app .chip {
   display: inline-flex;
   align-items: center;
