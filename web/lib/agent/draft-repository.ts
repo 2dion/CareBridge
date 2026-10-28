@@ -10,10 +10,11 @@ export type StoredDraftItem = DraftItem & {
   source: "ai" | "worker" | "reviewer";
   confirmed: boolean;
   resolution: "confirmed_by_reviewer" | "omitted" | null;
+  resolution_note: string;
 };
 
 const ITEM_COLUMNS =
-  "id,item_key,value_ko,value_native,status,evidence,reason,reason_native,detail,source,confirmed,resolution";
+  "id,item_key,value_ko,value_native,status,evidence,reason,reason_native,detail,source,confirmed,resolution,resolution_note";
 
 export async function readRecordItems(userClient: SupabaseClient, recordId: string) {
   const { data, error } = await userClient
