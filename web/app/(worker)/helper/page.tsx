@@ -52,7 +52,22 @@ export default function HelperPage() {
         prev.map((m) => (m.id === replaceId ? { id: botId, from: "bot", state: "loading" } : m)),
       );
     }
-    // Mock: 실제로는 POST /api/helper/ask.
+    if (demo?.real) {
+      // POST /api/helper/ask: 교재에서 찾은 내용만으로 답한다. 답은 저장하지 않는다
+      void demo.real.actions.askHelper(q).then((result) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botId
+              ? result.ok
+                ? { id: botId, from: "bot", state: "done", answer: result.data }
+                : { id: botId, from: "bot", state: "error", question: q }
+              : m,
+          ),
+        );
+      });
+      return;
+    }
+    // Mock(Supabase 설정이 없는 로컬 개발)
     window.setTimeout(() => {
       const failed = !navigator.onLine || search.get("demo") === "error";
       setMessages((prev) =>

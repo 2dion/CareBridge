@@ -53,7 +53,7 @@ function ReviewQueue() {
   const rows = reviewQueue(db).filter((record) => {
     const resident = getResident(db, record.residentId);
     if (care !== "all" && resident?.careType !== care) return false;
-    if (worker !== "all" && worker !== db.worker.name) return false;
+    if (worker !== "all" && worker !== (record.workerName ?? db.worker.name)) return false;
     return record.careDate >= from;
   });
 
@@ -154,9 +154,13 @@ function ReviewQueue() {
                           type="button"
                           className="dbtn sm soft"
                           onClick={() => {
-                            demo.update((current) =>
-                              removeNoCareDay(current, row.residentId, row.careDate),
-                            );
+                            if (demo.real) {
+                              void demo.real.actions.removeNoCare(row.residentId, row.careDate);
+                            } else {
+                              demo.update((current) =>
+                                removeNoCareDay(current, row.residentId, row.careDate),
+                              );
+                            }
                             toast.show(
                               "기록 없음 처리를 지웠어요. 작성자 기록함 ‘작성 전’에 다시 보여요.",
                             );
@@ -216,9 +220,13 @@ function ReviewQueue() {
                             type="button"
                             className="dbtn sm soft"
                             onClick={() => {
-                              demo.update((current) =>
-                                removeNoCareDay(current, row.residentId, row.careDate),
-                              );
+                              if (demo.real) {
+                                void demo.real.actions.removeNoCare(row.residentId, row.careDate);
+                              } else {
+                                demo.update((current) =>
+                                  removeNoCareDay(current, row.residentId, row.careDate),
+                                );
+                              }
                               toast.show(
                                 "기록 없음 처리를 지웠어요. 다시 기한 지난 빈 기록으로 보여요.",
                               );
@@ -304,7 +312,7 @@ function ReviewQueue() {
                       )}
                     </td>
                     <td>{resident?.careType === "home" ? "재가" : "시설"}</td>
-                    <td>{db.worker.name}</td>
+                    <td>{record.workerName ?? db.worker.name}</td>
                     <td>
                       {monthDayWeek(record.careDate)}
                       {visit}
@@ -335,7 +343,14 @@ function ReviewQueue() {
           onSave={(reason, note) => {
             const next = markOverdueNoCare(db, { ...marking, reason, note }, today);
             if ("error" in next) return false;
-            demo.update(() => next);
+            if (demo.real) {
+              // 담당자가 no_care_days에 바로 넣는다(8~30일 전, 범위 밖은 DB가 거절)
+              void demo.real.actions
+                .addNoCare({ ...marking, reason, note })
+                .then((result) => !result.ok && toast.show(result.ko));
+            } else {
+              demo.update(() => next);
+            }
             setMarking(null);
             toast.show("기록 없음으로 정리했어요.");
             return true;

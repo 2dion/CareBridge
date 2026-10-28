@@ -70,7 +70,9 @@ export default function FontPage() {
           type="button"
           className="btn btn-primary"
           onClick={() => {
-            demo.update((db) => ({ ...db, fontSize: size }));
+            // 실제 모드는 profiles.font_size에 저장해 다른 기기·다시 로그인해도 남는다
+            if (demo.real) void demo.real.actions.setProfile({ fontSize: size });
+            else demo.update((db) => ({ ...db, fontSize: size }));
             router.push("/me");
           }}
         >

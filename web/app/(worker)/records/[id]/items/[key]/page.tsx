@@ -89,11 +89,48 @@ export default function ItemEditPage() {
     const value =
       text.trim() ||
       (showTimes && times?.start && times.end ? `${times.start}~${times.end} 방문` : item.value_ko);
+    if (demo.real) {
+      const real = demo.real;
+      void (async () => {
+        // 방문 시작·종료는 records.visit_start·visit_end에 둔다
+        if (showTimes && times) {
+          const saved = await real.actions.setVisitTime(id, times.start, times.end);
+          if (!saved.ok) return setNotice(`${saved.ko} ${saved.vi}`);
+        }
+        const rest = Object.fromEntries(
+          Object.entries(detail ?? {}).filter(([k]) => k !== "start" && k !== "end"),
+        );
+        const result = await real.actions.patchItem(id, key, {
+          value_ko: value,
+          ...(detail ? { detail: rest } : {}),
+          confirmed: true,
+        });
+        if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
+        router.push(back);
+      })();
+      return;
+    }
     demo.update((db) => workerEditItem(db, id, key, { value_ko: value, detail }, nowIso()));
     router.push(back);
   };
 
-  const voiceAdd = () => {
+  const voiceAdd = async () => {
+    if (recorder.state === "recording" && demo.real) {
+      recorder.stop();
+      let blob = recorder.blob();
+      for (let wait = 0; !blob && wait < 20; wait++) {
+        await new Promise((resolve) => window.setTimeout(resolve, 100));
+        blob = recorder.blob();
+      }
+      if (!blob) return setNotice("녹음을 찾지 못했어요. 다시 말해 주세요.");
+      setNotice("보내는 중이에요. · Đang gửi.");
+      // 이 항목만 다시 쓴다(③ 항목 보태기, save_ai_item item)
+      const result = await demo.real.actions.sendItemVoice(id, key, blob);
+      if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
+      recorder.discard();
+      router.push(back);
+      return;
+    }
     if (recorder.state === "recording") {
       recorder.stop();
       const next = mockVoiceAddition(demo.db, id, key, nowIso());

@@ -59,19 +59,24 @@ export default function DraftPage() {
   const processing = record?.draftState === "processing";
   const failDemo = search.get("demo") === "fail" && !retried;
 
-  // Mock 정리: 단계 표시 뒤 합성 사례 초안을 채운다. 실제로는 /api/records/:id/draft(Agent).
+  // 단계 표시. 실제 모드는 서버(받아쓰기·Agent)가 끝나면 공급자가 다시 읽어 바뀐다.
+  // Mock 정리는 단계 표시 뒤 합성 사례 초안을 채운다(Supabase 설정이 없는 로컬 개발만).
   useEffect(() => {
     if (!processing || !demo) return;
     const timers = [
       window.setTimeout(() => setStep(1), 900),
       window.setTimeout(() => setStep(2), 1800),
-      window.setTimeout(() => {
-        demo.update((db) =>
-          failDemo ? markDraftFailed(db, id, nowIso()) : fillMockDraft(db, id, nowIso()),
-        );
-        setStep(0);
-      }, 2700),
     ];
+    if (!demo.real) {
+      timers.push(
+        window.setTimeout(() => {
+          demo.update((db) =>
+            failDemo ? markDraftFailed(db, id, nowIso()) : fillMockDraft(db, id, nowIso()),
+          );
+          setStep(0);
+        }, 2700),
+      );
+    }
     return () => timers.forEach((timer) => window.clearTimeout(timer));
     // demo는 렌더마다 새 객체라 넣지 않는다. processing이 바뀔 때만 다시 시작한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -160,6 +165,11 @@ export default function DraftPage() {
             onClick={() => {
               setStep(0);
               setRetried(true);
+              if (demo.real) {
+                // 원문·입력 방법은 그대로 두고 저장된 원문으로 Agent를 다시 돌린다
+                void demo.real.actions.retryDraft(id);
+                return;
+              }
               demo.update((db) => retryDraft(db, id, nowIso()));
               router.replace(`/records/${id}`);
             }}
@@ -175,15 +185,44 @@ export default function DraftPage() {
   }
 
   const groups = groupItems(record.items);
-  const canSend = canSubmitRecord(record);
+  // 실제 모드는 DB 제출 검사와 같게 9개 모두 확인 또는 작성자가 고친 것이어야 보낸다(unconfirmed_items)
+  const canSend =
+    canSubmitRecord(record) &&
+    (!demo.real ||
+      (record.items.length === 9 &&
+        record.items.every((item) => item.confirmed || item.source === "worker")));
   const doneCount = groups.done.length;
   const total = record.items.length;
   const needsLeft = record.items.filter((item) => item.status === "needs_check").length;
 
+  const real = demo.real;
   const act = (change: (db: DemoDb) => DemoDb) => demo.update(change);
-  const confirm = (key: RecordItem["item_key"]) => act((db) => confirmItem(db, id, key, nowIso()));
+  const confirm = (key: RecordItem["item_key"]) => {
+    if (!real) return act((db) => confirmItem(db, id, key, nowIso()));
+    void real.actions.patchItem(id, key, { confirmed: true }).then((result) => {
+      if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+    });
+  };
+  const setField = (key: "stool_accidents" | "urine_accidents", value: number | null) => {
+    if (!real) return act((db) => setFormField(db, id, key, value, nowIso()));
+    void real.actions.setFormFields(id, { ...record.formFields, [key]: value }).then((result) => {
+      if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+    });
+  };
 
-  const send = () => {
+  const send = async () => {
+    if (real) {
+      setConfirmOpen(false);
+      justSent.current = true;
+      const result = await real.actions.submit(id);
+      if (!result.ok) {
+        justSent.current = false;
+        setToast(`${result.ko} ${result.vi}`);
+        return;
+      }
+      router.push(`/records/${id}/sent`);
+      return;
+    }
     justSent.current = true;
     act((db) => submitRecord(db, id, nowIso()));
     setConfirmOpen(false);
@@ -224,7 +263,7 @@ export default function DraftPage() {
             <span className="done-note">남은 항목 {total - doneCount}개</span>
           </div>
         )}
-        {resident.careType === "home" && <HomeCareCard record={record} act={act} />}
+        {resident.careType === "home" && <HomeCareCard record={record} setField={setField} />}
         <ItemGroup
           title="먼저 확인할 항목"
           color="var(--color-warn)"
@@ -442,9 +481,20 @@ function ItemCard({
       )}
       {!done &&
         (item.status === "needs_check" ? (
-          <Link className="btn btn-primary btn-sm" href={editHref}>
-            <BtnLabel ko="수정하기" vi="Sửa" />
-          </Link>
+          // 보내기는 9개 항목이 모두 확인(맞아요)되거나 작성자가 고친 것이어야 한다(DB 제출 검사, 10/28).
+          // ‘확인 필요’도 [맞아요]로 확인하고 보낼 수 있고, 남은 판단은 담당자가 한다.
+          <div className="btn-row">
+            <Link className="btn btn-primary btn-sm" href={editHref}>
+              <BtnLabel ko="수정하기" vi="Sửa" />
+            </Link>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => onConfirm(item.item_key)}
+            >
+              <BtnLabel ko="맞아요" vi="Đúng" />
+            </button>
+          </div>
         ) : item.status === "not_mentioned" ? (
           <div className="btn-row">
             <Link className="btn btn-primary btn-sm" href={editHref}>
@@ -484,10 +534,10 @@ function ItemCard({
 /** 재가(별지 제12호) 칸: 방문 시작·종료, 지원별 분 합, 배변 실수 2칸(화면 v1.3 W3 재가). */
 function HomeCareCard({
   record,
-  act,
+  setField,
 }: {
   record: DemoRecord;
-  act: (change: (db: DemoDb) => DemoDb) => void;
+  setField: (key: "stool_accidents" | "urine_accidents", value: number | null) => void;
 }) {
   const visit = record.items.find((item) => item.item_key === "visit_time")?.detail;
   const range =
@@ -510,7 +560,7 @@ function HomeCareCard({
         onChange={(event) => {
           const raw = event.target.value;
           const value = raw === "" ? null : Math.max(0, Math.min(20, Math.trunc(Number(raw))));
-          act((db) => setFormField(db, record.id, key, value, nowIso()));
+          setField(key, value);
         }}
       />
     </label>

@@ -1,8 +1,9 @@
 "use client";
 
-// Mock 데이터를 브라우저(localStorage)에 두고 화면 전체가 나눠 쓴다.
-// 같은 브라우저의 다른 탭과도 맞춘다(작성자 탭에서 보내면 담당자 탭에 보임).
-// 실제 API가 붙으면 이 공급자만 Supabase·서버 호출로 바꾼다.
+// 화면 전체가 나눠 쓰는 데이터 공급자.
+// - 실제 모드(Supabase 설정이 있음): 로그인한 사람 권한(RLS)으로 읽고, 바꾸는 일은 서버 API·Supabase로 한다(real).
+// - Mock 모드(Supabase 설정이 없는 로컬 개발): 브라우저(localStorage)에 두고 같은 브라우저의 다른 탭과 맞춘다.
+// 로그인과 같은 기준(supabaseConfigured)으로 가른다.
 import {
   createContext,
   type ReactNode,
@@ -14,16 +15,35 @@ import {
   useState,
 } from "react";
 
+import { supabaseConfigured } from "@/lib/auth/session";
 import { createDemoDb, DB_STORAGE_KEY, type DemoDb, kstToday } from "@/lib/demo/store";
+import { createRealActions, type RealActions } from "@/lib/real/actions";
+import { loadRealDb, NotSignedInError } from "@/lib/real/load";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+export type RealContext = {
+  actions: RealActions;
+  role: "worker" | "reviewer";
+  userId: string;
+  isTraining: boolean;
+  /** 서버·DB에서 다시 읽는다 */
+  reload: () => Promise<void>;
+};
 
 type DemoContext = {
   db: DemoDb;
   today: string;
+  /** Mock 모드에서만 쓴다. 실제 모드에서는 real.actions를 쓴다 */
   update: (change: (db: DemoDb) => DemoDb) => void;
   reset: () => void;
+  /** 실제 모드면 값이 있다 */
+  real: RealContext | null;
 };
 
 const Ctx = createContext<DemoContext | null>(null);
+
+const AUTH_PATHS = ["/login", "/signup"];
+let loadSeq = 0;
 
 function load(today: string): DemoDb {
   try {
@@ -40,6 +60,121 @@ function load(today: string): DemoDb {
 }
 
 export function DemoProvider({ children }: { children: ReactNode }) {
+  return supabaseConfigured() ? (
+    <RealProvider>{children}</RealProvider>
+  ) : (
+    <MockProvider>{children}</MockProvider>
+  );
+}
+
+function RealProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<{
+    db: DemoDb;
+    today: string;
+    role: RealContext["role"];
+    userId: string;
+    isTraining: boolean;
+  } | null>(null);
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+
+  const reload = useCallback(async () => {
+    // 늦게 끝난 옛 읽기가 새 읽기를 덮지 않게 마지막 요청만 반영한다
+    const seq = ++loadSeq;
+    const today = kstToday();
+    try {
+      const next = await loadRealDb(supabase, today);
+      if (seq === loadSeq) setState({ today, ...next });
+    } catch (error) {
+      if (error instanceof NotSignedInError) {
+        setState(null);
+        if (!AUTH_PATHS.some((path) => window.location.pathname.startsWith(path))) {
+          window.location.replace("/login");
+        }
+        return;
+      }
+      throw error;
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      void reload();
+    });
+    // 로그인·로그아웃하면 그 사람의 데이터로 다시 읽는다
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") void reload();
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      data.subscription.unsubscribe();
+    };
+  }, [reload, supabase]);
+
+  // 정리 중(받아쓰기·Agent)인 기록이 있으면 끝날 때까지 3초마다 다시 읽는다
+  const processing = state
+    ? Object.values(state.db.records).some((record) => record.draftState === "processing")
+    : false;
+  useEffect(() => {
+    if (!processing) return;
+    const timer = window.setInterval(() => void reload(), 3000);
+    return () => window.clearInterval(timer);
+  }, [processing, reload]);
+
+  // [글로 쓰기]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다
+  const [running, setRunning] = useState<Record<string, "processing" | "failed">>({});
+  const base = useMemo(() => createRealActions(supabase, reload), [supabase, reload]);
+  const actions = useMemo<RealActions>(() => {
+    const track = async (id: string, run: () => ReturnType<RealActions["retryDraft"]>) => {
+      setRunning((prev) => ({ ...prev, [id]: "processing" }));
+      const result = await run();
+      setRunning((prev) => {
+        const next = { ...prev };
+        if (result.ok) delete next[id];
+        else next[id] = "failed";
+        return next;
+      });
+      return result;
+    };
+    return {
+      ...base,
+      writeText: (id, text) => track(id, () => base.writeText(id, text)),
+      retryDraft: (id) => track(id, () => base.retryDraft(id)),
+    };
+  }, [base]);
+  const db = useMemo(() => {
+    if (!state) return null;
+    const ids = Object.keys(running).filter((id) => state.db.records[id]);
+    if (ids.length === 0) return state.db;
+    const records = { ...state.db.records };
+    for (const id of ids) records[id] = { ...records[id], draftState: running[id] };
+    return { ...state.db, records };
+  }, [state, running]);
+  const noop = useCallback(() => {}, []);
+
+  const value = useMemo<DemoContext | null>(
+    () =>
+      state && db
+        ? {
+            db,
+            today: state.today,
+            update: noop,
+            reset: noop,
+            real: {
+              actions,
+              role: state.role,
+              userId: state.userId,
+              isTraining: state.isTraining,
+              reload,
+            },
+          }
+        : null,
+    [state, db, actions, reload, noop],
+  );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+function MockProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{ db: DemoDb; today: string } | null>(null);
 
   useEffect(() => {
@@ -83,7 +218,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => (state ? { db: state.db, today: state.today, update, reset } : null),
+    () => (state ? { db: state.db, today: state.today, update, reset, real: null } : null),
     [state, update, reset],
   );
 

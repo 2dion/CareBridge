@@ -26,6 +26,7 @@ export default function VoicePage() {
   const recorder = useRecorder();
   const [send, setSend] = useState<SendState>("idle");
   const [leaving, setLeaving] = useState(false);
+  const [sendError, setSendError] = useState<{ ko: string; vi: string } | null>(null);
 
   const record = demo?.db.records[id];
   const locked = record && record.status !== "draft" && record.status !== "returned";
@@ -33,9 +34,32 @@ export default function VoicePage() {
     if (locked) router.replace(`/records/${id}/view`);
   }, [locked, id, router]);
 
-  const upload = () => {
+  const upload = async () => {
     if (!demo) return;
     setSend("sending");
+    if (demo.real) {
+      // upload-url → Storage에 바로 올리기 → /audio(받아쓰기 뒤 Agent는 서버가 뒤에서 돌림)
+      // 녹음이 정지 직후 아직 묶이지 않았으면 잠깐 기다린다(onstop)
+      let blob = recorder.blob();
+      for (let wait = 0; !blob && wait < 20; wait++) {
+        await new Promise((resolve) => window.setTimeout(resolve, 100));
+        blob = recorder.blob();
+      }
+      if (!blob || !navigator.onLine) {
+        setSend("offline");
+        return;
+      }
+      const result = await demo.real.actions.sendVoice(id, blob);
+      if (!result.ok) {
+        setSendError(result.error === "network" ? null : { ko: result.ko, vi: result.vi });
+        // 녹음은 메모리에 남아 있어 [다시 보내기]로 같은 녹음을 보낸다(녹음임시보관 결정 2번)
+        setSend("offline");
+        return;
+      }
+      recorder.discard();
+      router.replace(`/records/${id}`);
+      return;
+    }
     // Mock: 실제로는 upload-url → Storage 올리기 → /audio. 지금은 연결 상태만 본다.
     window.setTimeout(() => {
       if (!navigator.onLine || search.get("demo") === "offline") {
@@ -152,8 +176,8 @@ export default function VoicePage() {
         </p>
         {send === "offline" && (
           <div className="reason-box" role="alert" style={{ margin: "12px 16px 0" }}>
-            <b>인터넷 연결을 확인하세요.</b>
-            <span className="vi">Hãy kiểm tra kết nối Internet.</span>
+            <b>{sendError?.ko ?? "인터넷 연결을 확인하세요."}</b>
+            <span className="vi">{sendError?.vi ?? "Hãy kiểm tra kết nối Internet."}</span>
             <p style={{ marginTop: 4, fontSize: 13 }}>
               녹음은 이 화면에 남아 있어요. 다시 녹음하지 않아도 돼요.
             </p>
