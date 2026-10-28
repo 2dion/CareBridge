@@ -234,6 +234,10 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .eq("id", auth.user.id);
       return after(dbError(error) ?? { ok: true as const });
     },
+    /** 되돌아온 기록의 사유를 작성자 모국어로 번역해 채움(W3·W4를 열 때, 결정 2026-10-28-되돌림사유번역). 다시 읽기는 부르는 쪽이 한다 */
+    async translateReturnReason(recordId: string) {
+      return callApi(`/api/records/${recordId}/return/translate`);
+    },
     /** W6 도우미. 답은 저장하지 않는다 */
     async askHelper(question: string) {
       return callApi<HelperAnswer>("/api/helper/ask", { body: { question } });

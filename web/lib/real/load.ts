@@ -35,7 +35,13 @@ const byDateDesc = (a: { careDate: string }, b: { careDate: string }) =>
 export async function loadRealDb(
   supabase: SupabaseClient,
   today: string,
-): Promise<{ db: DemoDb; role: "worker" | "reviewer"; userId: string; isTraining: boolean }> {
+): Promise<{
+  db: DemoDb;
+  role: "worker" | "reviewer";
+  userId: string;
+  isTraining: boolean;
+  nativeLang: "ko" | "vi";
+}> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new NotSignedInError();
   const { data: me, error } = await supabase
@@ -131,5 +137,6 @@ export async function loadRealDb(
     role: profile.role,
     userId: profile.id,
     isTraining: Boolean(org?.is_training),
+    nativeLang: profile.native_lang === "ko" ? "ko" : "vi",
   };
 }

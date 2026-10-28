@@ -11,6 +11,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useSyncExternalStore,
   useState,
 } from "react";
@@ -26,6 +27,7 @@ export type RealContext = {
   role: "worker" | "reviewer";
   userId: string;
   isTraining: boolean;
+  nativeLang: "ko" | "vi";
   /** 서버·DB에서 다시 읽는다 */
   reload: () => Promise<void>;
 };
@@ -74,6 +76,7 @@ function RealProvider({ children }: { children: ReactNode }) {
     role: RealContext["role"];
     userId: string;
     isTraining: boolean;
+    nativeLang: "ko" | "vi";
   } | null>(null);
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
@@ -141,6 +144,25 @@ function RealProvider({ children }: { children: ReactNode }) {
       retryDraft: (id) => track(id, () => base.retryDraft(id)),
     };
   }, [base]);
+  // 되돌아온 내 기록에 모국어 번역이 비어 있으면 서버에 한 번 번역을 부탁하고 다시 읽는다(결정 2026-10-28-되돌림사유번역).
+  // 담당자는 한국어만 저장하고, 번역은 작성자 쪽에서 채운다. 기록마다 한 번만 부른다(Mock이면 빈칸이라 반복하지 않게).
+  const translated = useRef(new Set<string>());
+  useEffect(() => {
+    if (!state || state.role !== "worker" || state.nativeLang === "ko") return;
+    const ids = Object.values(state.db.records)
+      .filter(
+        (record) =>
+          record.status === "returned" &&
+          record.returnReason &&
+          !record.returnReasonNative &&
+          !translated.current.has(record.id),
+      )
+      .map((record) => record.id);
+    if (ids.length === 0) return;
+    ids.forEach((id) => translated.current.add(id));
+    void Promise.all(ids.map((id) => base.translateReturnReason(id))).then(() => reload());
+  }, [state, base, reload]);
+
   const db = useMemo(() => {
     if (!state) return null;
     const ids = Object.keys(running).filter((id) => state.db.records[id]);
@@ -164,6 +186,7 @@ function RealProvider({ children }: { children: ReactNode }) {
               role: state.role,
               userId: state.userId,
               isTraining: state.isTraining,
+              nativeLang: state.nativeLang,
               reload,
             },
           }
