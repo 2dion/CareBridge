@@ -1,24 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { getBlockedNames } from "./blocked-names";
 import { validateDraft, ITEM_KEYS, type Draft } from "./validate-draft";
 
-// profiles.select("name").eq("org_id", …) 모양만 흉내 낸다. 이름은 시나리오의 가상 인물이다.
+vi.mock("server-only", () => ({}));
+
+// 서버 전용 RPC의 반환과 오류를 흉내 낸다. 이름은 시나리오의 가상 인물이다.
 function fakeClient(
   rows: { name: string | null }[] | null,
   error: { message: string } | null = null,
 ) {
   const calls: unknown[][] = [];
   const client = {
-    from: (table: string) => ({
-      select: (cols: string) => ({
-        eq: (col: string, value: string) => {
-          calls.push([table, cols, col, value]);
-          return Promise.resolve({ data: rows, error });
-        },
-      }),
-    }),
+    rpc: (name: string, args: unknown) => {
+      calls.push([name, args]);
+      return Promise.resolve({ data: rows, error });
+    },
   };
   return { client: client as unknown as SupabaseClient, calls };
 }
@@ -26,8 +24,13 @@ function fakeClient(
 describe("getBlockedNames", () => {
   it("같은 기관 profiles.name을 읽는다", async () => {
     const { client, calls } = fakeClient([{ name: "마이" }, { name: "박 사회복지사" }]);
-    await expect(getBlockedNames(client, "org-1")).resolves.toEqual(["마이", "박 사회복지사"]);
-    expect(calls).toEqual([["profiles", "name", "org_id", "org-1"]]);
+    await expect(getBlockedNames(client, "record-1", "worker-1")).resolves.toEqual([
+      "마이",
+      "박 사회복지사",
+    ]);
+    expect(calls).toEqual([
+      ["record_blocked_names", { p_record_id: "record-1", p_worker_id: "worker-1" }],
+    ]);
   });
 
   it("빈 이름과 중복은 뺀다", async () => {
@@ -37,17 +40,17 @@ describe("getBlockedNames", () => {
       { name: "" },
       { name: null },
     ]);
-    await expect(getBlockedNames(client, "org-1")).resolves.toEqual(["마이"]);
+    await expect(getBlockedNames(client, "record-1", "worker-1")).resolves.toEqual(["마이"]);
   });
 
   it("읽기에 실패하면 던진다 (검사를 건너뛰지 않음)", async () => {
     const { client } = fakeClient(null, { message: "boom" });
-    await expect(getBlockedNames(client, "org-1")).rejects.toThrow("boom");
+    await expect(getBlockedNames(client, "record-1", "worker-1")).rejects.toThrow("boom");
   });
 
   it("validateDraft에 넘기면 직원 이름이 든 항목이 걸린다", async () => {
     const { client } = fakeClient([{ name: "박 사회복지사" }]);
-    const blockedNames = await getBlockedNames(client, "org-1");
+    const blockedNames = await getBlockedNames(client, "record-1", "worker-1");
     const transcript = "박 사회복지사님이 오셔서 같이 보셨어요.";
     const draft: Draft = {
       transcript_ko: transcript,
@@ -58,6 +61,7 @@ describe("getBlockedNames", () => {
         status: key === "notes" ? "observed" : "not_mentioned",
         evidence: key === "notes" ? transcript : "",
         reason: "",
+        reason_native: "",
         detail: {},
       })),
       form_fields: {},

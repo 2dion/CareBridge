@@ -30,6 +30,7 @@ export type DraftItem = {
   status: ItemStatus;
   evidence: string;
   reason: string;
+  reason_native: string;
   detail: Record<string, unknown>;
 };
 
@@ -44,6 +45,7 @@ export type ValidateContext = {
   // records.transcript (받아쓴 글 원문). evidence는 이 글과 비교한다.
   transcript: string;
   careType: CareType;
+  nativeLang?: "ko" | "vi";
   // 재가 방문 시간(분). records.visit_start~visit_end로 서버가 계산한다.
   // 없으면 form_fields.total_minutes를 쓴다.
   visitMinutes?: number | null;
@@ -101,6 +103,21 @@ export const REASONS = {
   noReason: "AI가 이유를 남기지 않음",
   observedWithoutValue: "내용 없음",
 } as const;
+
+// 서버가 추가한 이유도 한국어와 번역을 함께 바꾼다. Agent가 준 번역은 그대로 보존한다.
+export const REASONS_VI: Record<string, string> = {
+  [REASONS.evidenceNotFound]: "Không tìm thấy căn cứ trong lời ghi chú",
+  [REASONS.evidenceTooShort]: "Câu làm căn cứ quá ngắn",
+  [REASONS.observedWithoutEvidence]: "Không có câu làm căn cứ",
+  [REASONS.supportMinutesExceed]: "Tổng thời gian hỗ trợ dài hơn thời gian thăm",
+  [REASONS.visitMinutesMissing]: "Không có thời gian thăm để kiểm tra tổng thời gian hỗ trợ",
+  [REASONS.realName]: "Có tên thật trong nội dung",
+  [REASONS.invalidMinutes]: "Định dạng thời gian hỗ trợ không hợp lệ",
+  [REASONS.noReason]: "AI không cung cấp lý do",
+  [REASONS.observedWithoutValue]: "Không có nội dung",
+  "형식 오류": "Định dạng không hợp lệ",
+  "자동 정리 중단": "Đã dừng tự động sắp xếp nội dung",
+};
 
 // 재가 지원별 분 칸 키 6개 (별지 제12호). 다른 키는 쓰지 않는다.
 // 근거: 문서/결정/2026-10-21-재가분칸-실명목록.md 결정 1
@@ -240,15 +257,20 @@ function parseItem(raw: unknown, index: number): ParsedItem | Problem {
     status,
     evidence: text("evidence"),
     reason: text("reason"),
+    reason_native: text("reason_native"),
     detail: isRecord(raw.detail) ? raw.detail : {},
   };
   return { item, problems };
 }
 
-const downgrade = (item: DraftItem, reason: string): DraftItem => ({
+const reasonTranslation = (reason: string, lang: "ko" | "vi" = "vi") =>
+  lang === "ko" ? reason : (REASONS_VI[reason] ?? "");
+
+const downgrade = (item: DraftItem, reason: string, lang?: "ko" | "vi"): DraftItem => ({
   ...item,
   status: "needs_check",
   reason: item.reason ? `${item.reason}; ${reason}` : reason,
+  reason_native: [item.reason_native, reasonTranslation(reason, lang)].filter(Boolean).join("; "),
 });
 
 export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateResult {
@@ -326,7 +348,7 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
   const items = ITEM_KEYS.map((key) => {
     let item = byKey.get(key) as DraftItem;
     const lower = (reason: string) => {
-      item = downgrade(item, reason);
+      item = downgrade(item, reason, ctx.nativeLang);
       downgraded.add(key);
     };
 
@@ -344,7 +366,11 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
           item_key: key,
           message: "'확인 필요'인데 이유(reason)가 비어 있습니다.",
         });
-        item = { ...item, reason: REASONS.noReason };
+        item = {
+          ...item,
+          reason: REASONS.noReason,
+          reason_native: reasonTranslation(REASONS.noReason, ctx.nativeLang),
+        };
       }
       if (!item.evidence.trim()) {
         problems.push({
@@ -472,7 +498,11 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 
 // 끝까지 맞는 초안이 없을 때(검사 1 실패, Agent 상한 도달 등) 9개 모두 '확인 필요'로 둔 초안.
 // AI 규칙 v1.1.1 '멈춤 규칙' 3번, 검사 1. 검사 1 실패 때도 원문은 보여 주므로 transcriptKo를 넘긴다.
-export function allNeedsCheckDraft(reason: string, transcriptKo = ""): Draft {
+export function allNeedsCheckDraft(
+  reason: string,
+  transcriptKo = "",
+  nativeLang?: "ko" | "vi",
+): Draft {
   return {
     transcript_ko: transcriptKo,
     items: ITEM_KEYS.map((key) => ({
@@ -482,6 +512,7 @@ export function allNeedsCheckDraft(reason: string, transcriptKo = ""): Draft {
       status: "needs_check",
       evidence: "",
       reason,
+      reason_native: reasonTranslation(reason, nativeLang),
       detail: {},
     })),
     form_fields: {},
