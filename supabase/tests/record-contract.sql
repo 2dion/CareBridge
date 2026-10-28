@@ -86,11 +86,11 @@ select pg_temp.expect_error($q$select font_size from public.list_org_staff()$q$,
 select pg_temp.expect_error($q$select * from public.record_blocked_names(null,null)$q$,'permission denied');
 select pg_temp.expect_error($q$update public.records set status='approved' where id=(select id from contract_ids)$q$,'unresolved_needs_check');
 update public.record_items set resolution='confirmed_by_reviewer' where record_id=(select id from contract_ids);
-update public.record_items set resolution='omitted' where record_id=(select id from contract_ids) and item_key='meal';
+update public.record_items set resolution='omitted', resolution_note='합성 생략 사유' where record_id=(select id from contract_ids) and item_key='meal';
 select pg_temp.check_true((select status='needs_check' and resolution='omitted' and value_ko='' and value_native='' and source='reviewer' from public.record_items where record_id=(select id from contract_ids) and item_key='meal'),'기록 안 함은 needs_check 유지·두 언어 비움·담당자 출처');
 update public.record_items set resolution=null where record_id=(select id from contract_ids) and item_key='meal';
 select pg_temp.expect_error($q$update public.records set status='approved' where id=(select id from contract_ids)$q$,'unresolved_needs_check');
-update public.record_items set resolution='omitted' where record_id=(select id from contract_ids) and item_key='meal';
+update public.record_items set resolution='omitted', resolution_note='합성 생략 사유' where record_id=(select id from contract_ids) and item_key='meal';
 update public.records set status='returned',return_reason='합성 검토 사유' where id=(select id from contract_ids);
 select set_config('request.jwt.claims','{"sub":"f2000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 update public.record_items set value_ko='생략 뒤 작성자 보완' where record_id=(select id from contract_ids) and item_key='meal';
