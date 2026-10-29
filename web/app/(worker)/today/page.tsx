@@ -1,12 +1,11 @@
 "use client";
 
-// W1(오늘): 오늘 기록이 있어야 하는 어르신 카드, 수정 필요·작성 전 기록 띠.
-// 병기(10/26): 카드 버튼·띠·카드 안내 줄은 병기, 날짜·배지·탭은 한국어만.
-// 종 버튼은 두지 않는다(10/28 알림표시 결정): 수정 필요 띠와 하는 일이 같다.
+// W1(오늘): 오늘 기록이 있어야 하는 어르신 카드. 수정 필요·작성 전 알림은 머리(짙은 초록) 안 날짜 아래(이슈 #149).
+// 병기(10/26): 카드 버튼·머리 알림은 병기, 날짜·배지·탭은 한국어만. 카드 안내 줄은 뺐다(10/29, 배지·버튼과 뜻이 겹침).
+// 종 버튼은 두지 않는다(10/28 알림표시 결정): 수정 필요 알림과 하는 일이 같다.
 import Link from "next/link";
 
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
-import type { RoleNames } from "@/lib/demo/roles";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { Loading, MobileScreen, StatusBadge } from "@/components/mobile/shell";
@@ -22,30 +21,14 @@ import {
 
 type CardAction = { ko: string; vi: string; href: string; primary: boolean };
 
-function cardGuide(
-  resident: Resident,
-  names: RoleNames,
-  record?: DemoRecord,
-): { ko: string; vi: string } {
-  if (!record || record.draftState === "empty") {
-    return resident.careType === "home"
-      ? { ko: "오늘 방문 예정", vi: "Hôm nay có lịch thăm." }
-      : { ko: "오늘 기록을 써 주세요", vi: "Hãy ghi chép cho hôm nay." };
-  }
-  switch (record.status) {
-    case "draft":
-      return { ko: "쓰던 기록이 있어요", vi: "Có bản ghi đang viết dở." };
-    case "submitted":
-      return { ko: `${names.reviewer}가 확인하고 있어요`, vi: `${names.reviewerVi} đang xem.` };
-    case "returned":
-      return {
-        ko: `${names.reviewer}가 수정을 요청했어요`,
-        vi: `${names.reviewerVi} đã yêu cầu chỉnh sửa.`,
-      };
-    case "approved":
-      return { ko: "오늘 기록을 확인할 수 있어요.", vi: "Bản ghi hôm nay đã được duyệt." };
-  }
-}
+/** 머리 알림 한 칸. 이름은 용어집 v1.0 상태 이름, 건수는 W4 탭 숫자와 같은 값 */
+type HeaderAlert = {
+  key: "returned" | "missed";
+  ko: string;
+  vi: string;
+  count: number;
+  href: string;
+};
 
 function cardAction(resident: Resident, today: string, record?: DemoRecord): CardAction {
   const start = `/start/${resident.id}?date=${today}`;
@@ -74,12 +57,31 @@ function cardAction(resident: Resident, today: string, record?: DemoRecord): Car
 
 export default function TodayPage() {
   const demo = useDemo();
+  // 교육용 기관이면 문의 상대가 '강사'(이슈 #146)
   const names = useRoleNames();
   if (!demo) return <Loading tab="today" />;
   const { db, today } = demo;
   const cards = todayCards(db, today);
   const returned = returnedRecords(db);
   const missed = listMissed(db, today);
+  // 0건인 알림은 뺀다. 둘 다 0건이면 알림 자리만 비고 머리 높이는 그대로(CSS 고정 높이)
+  const allAlerts: HeaderAlert[] = [
+    {
+      key: "returned",
+      ko: "수정 필요",
+      vi: "Cần sửa",
+      count: returned.length,
+      href: "/archive?tab=returned",
+    },
+    {
+      key: "missed",
+      ko: "작성 전",
+      vi: "Chưa ghi",
+      count: missed.length,
+      href: "/archive?tab=missed",
+    },
+  ];
+  const alerts = allAlerts.filter((alert) => alert.count > 0);
 
   return (
     <MobileScreen tab="today">
@@ -87,44 +89,30 @@ export default function TodayPage() {
         <div className="date">
           <strong>{monthDayWeek(today)}</strong>
         </div>
+        {alerts.length > 0 && (
+          <nav className="home-alerts" aria-label="할 일 알림">
+            {alerts.map((alert) => (
+              <Link key={alert.key} className={`home-alert ${alert.key}`} href={alert.href}>
+                <span className="dot" />
+                <span className="txt">
+                  <strong>{alert.ko}</strong>
+                  <span className="vi">{alert.vi}</span>
+                </span>
+                <b className="count">{alert.count}</b>
+                <Icon name="next" />
+              </Link>
+            ))}
+          </nav>
+        )}
         <Art name="robot-home-header" width={132} className="art" priority />
       </header>
       <div className="home-body">
-        {returned.length > 0 && (
-          <Link className="returned" href="/archive?tab=returned">
-            <span className="dot" />
-            <div className="txt">
-              <strong>수정 필요 기록 {returned.length}건</strong>
-              <span className="vi">Có {returned.length} bản ghi cần sửa.</span>
-            </div>
-            <Icon name="next" />
-          </Link>
-        )}
-        {missed.length > 0 && (
-          <Link className="returned missed" href="/archive?tab=missed">
-            <span className="dot" />
-            <div className="txt">
-              <strong>지난 기록 {missed.length}건을 아직 못 썼어요</strong>
-              <span className="vi">Còn {missed.length} bản ghi trước chưa viết.</span>
-            </div>
-            <Icon name="next" />
-          </Link>
-        )}
         {cards.length > 0 && (
-          <>
-            <h2 className="section-title">
-              기록 시작할 어르신 <span>{cards.length}명</span>
-            </h2>
-            <p style={{ marginTop: -8, fontSize: 14, color: "var(--color-sub)" }}>
-              카드를 눌러 기록을 시작하세요.
-              <span className="vi" style={{ display: "block", fontSize: 12 }}>
-                Nhấn vào thẻ để bắt đầu ghi chép.
-              </span>
-            </p>
-          </>
+          <h2 className="section-title">
+            기록 시작할 어르신 <span>{cards.length}명</span>
+          </h2>
         )}
         {cards.map(({ resident, record }) => {
-          const guide = cardGuide(resident, names, record);
           const action = cardAction(resident, today, record);
           const status = !record || record.draftState === "empty" ? "not_started" : record.status;
           return (
@@ -140,11 +128,6 @@ export default function TodayPage() {
                     {resident.careType === "home" ? "재가 · 방문 시간" : "시설 · 돌봄 시간"}{" "}
                     {timeRangeLabel(resident.visitTime)}
                   </span>
-                  <div className="line">
-                    <Icon name="calendar" />
-                    <span>{guide.ko}</span>
-                  </div>
-                  <span className="line-vi vi">{guide.vi}</span>
                 </div>
               </div>
               <hr />

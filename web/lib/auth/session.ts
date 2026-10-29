@@ -1,5 +1,6 @@
 // 로그인·로그아웃(화면 v1.3 A1, 로그인가입 결정). Supabase 설정이 있으면 Supabase 로그인,
 // 없으면(Mock 개발 환경) 브라우저에만 남는 시연 로그인. 비밀번호는 어디에도 저장하지 않는다.
+import { browserStorage, clearAllHelperHistory } from "@/lib/helper/history";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 import type { Role } from "./signup";
@@ -59,6 +60,8 @@ export async function signOut() {
   } catch {
     /* 무시 */
   }
+  // W6 도우미 대화는 이 브라우저에만 있으니 로그아웃 때 지운다(같은 기기를 여럿이 쓸 수 있음, 이슈 #152)
+  clearAllHelperHistory(browserStorage());
   if (supabaseConfigured()) {
     try {
       await createSupabaseBrowserClient().auth.signOut();

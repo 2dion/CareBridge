@@ -646,6 +646,14 @@ export function listMissed(db: DemoDb, today: string, days = 7): MissedRecord[] 
   return rows.sort((a, b) => (a.careDate === b.careDate ? 0 : a.careDate < b.careDate ? 1 : -1));
 }
 
+/** W4 '작성 전' 탭 순서: 오래된 돌봄 날짜가 위(10/29 멘토링, 이슈 #150). 같은 날이면 들어온 순서 그대로.
+ *  W1 건수·M1·기간 거르기는 listMissed 순서(최신이 위)를 그대로 쓴다. 원본 배열은 바꾸지 않는다. */
+export function missedOldestFirst(rows: MissedRecord[]): MissedRecord[] {
+  return [...rows].sort((a, b) =>
+    a.careDate === b.careDate ? 0 : a.careDate < b.careDate ? -1 : 1,
+  );
+}
+
 /** 기한 지난 빈 기록 범위: 8일 전~30일 전(기한지난빈기록 결정). 7일 안은 listMissed가 맡는다. */
 export const OVERDUE_FROM = 8;
 export const OVERDUE_TO = 30;
