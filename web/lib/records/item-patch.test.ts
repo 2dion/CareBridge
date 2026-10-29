@@ -24,9 +24,11 @@ function fakeDeps(record: RecordRow | null, overrides: Partial<ItemPatchDeps> = 
 
 describe("parseItemPatch", () => {
   it("바꿀 칸만 고르고 value_ko 앞뒤 공백을 지움", () => {
-    expect(parseItemPatch({ value_ko: " 점심 절반 드심 ", confirmed: true, other: 1 })).toEqual({
+    expect(
+      parseItemPatch({ value_ko: " 점심 절반 드심 ", confirmed_by_worker: true, other: 1 }),
+    ).toEqual({
       value_ko: "점심 절반 드심",
-      confirmed: true,
+      confirmed_by_worker: true,
     });
   });
 
@@ -36,7 +38,7 @@ describe("parseItemPatch", () => {
       [],
       {},
       { status: "done" },
-      { confirmed: "yes" },
+      { confirmed_by_worker: "yes" },
       { resolution: "ok" },
       { detail: [] },
     ]) {
@@ -67,7 +69,9 @@ describe("patchItem", () => {
 
   it("[맞아요]만 누르면 번역하지 않음", async () => {
     const deps = fakeDeps(draft);
-    expect((await patchItem("rec-1", "meal", { confirmed: true }, deps)).status).toBe(200);
+    expect((await patchItem("rec-1", "meal", { confirmed_by_worker: true }, deps)).status).toBe(
+      200,
+    );
     expect(deps.translate).not.toHaveBeenCalled();
   });
 
@@ -129,14 +133,14 @@ describe("patchItem", () => {
 
   it("관리자가 [맞아요]를 누르면 403 not_record_worker", async () => {
     const deps = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
-    expect((await patchItem("rec-1", "meal", { confirmed: true }, deps)).body.error).toBe(
+    expect((await patchItem("rec-1", "meal", { confirmed_by_worker: true }, deps)).body.error).toBe(
       "not_record_worker",
     );
   });
 
   it("submitted에서 작성자는 403, draft에서 다른 사람은 403", async () => {
     expect(
-      (await patchItem("rec-1", "meal", { confirmed: true }, fakeDeps(submitted))).status,
+      (await patchItem("rec-1", "meal", { confirmed_by_worker: true }, fakeDeps(submitted))).status,
     ).toBe(403);
     const other = fakeDeps(draft, { currentUser: vi.fn(async () => reviewer) });
     expect((await patchItem("rec-1", "meal", { value_ko: "x" }, other)).status).toBe(403);
@@ -144,14 +148,14 @@ describe("patchItem", () => {
 
   it("승인된 기록은 409 record_locked", async () => {
     const deps = fakeDeps({ ...draft, status: "approved" });
-    expect((await patchItem("rec-1", "meal", { confirmed: true }, deps)).body.error).toBe(
+    expect((await patchItem("rec-1", "meal", { confirmed_by_worker: true }, deps)).body.error).toBe(
       "record_locked",
     );
   });
 
   it("항목 이름이 틀리면 400 invalid_item, 입력이 틀리면 400 invalid_input", async () => {
     expect(
-      (await patchItem("rec-1", "mood", { confirmed: true }, fakeDeps(draft))).body.error,
+      (await patchItem("rec-1", "mood", { confirmed_by_worker: true }, fakeDeps(draft))).body.error,
     ).toBe("invalid_item");
     expect((await patchItem("rec-1", "meal", {}, fakeDeps(draft))).body.error).toBe(
       "invalid_input",
@@ -171,7 +175,9 @@ describe("patchItem", () => {
 
   it("로그인하지 않으면 401", async () => {
     const deps = fakeDeps(draft, { currentUser: vi.fn(async () => null) });
-    expect((await patchItem("rec-1", "meal", { confirmed: true }, deps)).status).toBe(401);
+    expect((await patchItem("rec-1", "meal", { confirmed_by_worker: true }, deps)).status).toBe(
+      401,
+    );
   });
 });
 

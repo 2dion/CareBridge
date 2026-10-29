@@ -1,5 +1,5 @@
 // 항목 하나 고치기: PATCH /api/records/:id/items/:key (W3 작성자, M2 관리자·강사).
-// 근거: 문서/설계/데이터구조-v1.6.3.md '공통 계약' PATCH 규칙, 문서/결정/2026-10-28-항목하나저장.md
+// 근거: 문서/설계/데이터구조-v1.6.4.md '공통 계약' PATCH 규칙, 문서/결정/2026-10-28-항목하나저장.md
 // 순서: ① 로그인한 사람 권한으로 저장(트리거가 확인 풀림·재확인·옛 번역 비움·이력을 맡음)
 //       ② value_ko가 바뀌었으면 서버가 다시 번역 ③ save_ai_item(translation)으로 번역만 저장.
 // DB·번역 호출은 ItemPatchDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
@@ -13,7 +13,7 @@ export type ItemPatch = Partial<{
   value_ko: string;
   status: (typeof ITEM_STATUSES)[number];
   detail: Record<string, unknown>;
-  confirmed: boolean;
+  confirmed_by_worker: boolean;
   resolution: "confirmed_by_reviewer" | "omitted" | null;
   resolution_note: string;
 }>;
@@ -85,9 +85,9 @@ export function parseItemPatch(body: unknown): ItemPatch | null {
     if (!detail || typeof detail !== "object" || Array.isArray(detail)) return null;
     patch.detail = detail as Record<string, unknown>;
   }
-  if ("confirmed" in input) {
-    if (typeof input.confirmed !== "boolean") return null;
-    patch.confirmed = input.confirmed;
+  if ("confirmed_by_worker" in input) {
+    if (typeof input.confirmed_by_worker !== "boolean") return null;
+    patch.confirmed_by_worker = input.confirmed_by_worker;
   }
   if ("resolution" in input) {
     if (!RESOLUTIONS.includes(input.resolution as never)) return null;
@@ -121,7 +121,7 @@ export async function patchItem(
   const isWorker = record.worker_id === user.id;
   if (record.status === "submitted") {
     if (user.role !== "reviewer") return fail(403, "reviewer_only");
-    if ("confirmed" in patch) return fail(403, "not_record_worker"); // [맞아요]는 작성자만
+    if ("confirmed_by_worker" in patch) return fail(403, "not_record_worker"); // [맞아요]는 작성자만
   } else {
     if (!isWorker) return fail(403, "not_record_worker");
     if ("resolution" in patch || "resolution_note" in patch) return fail(403, "reviewer_only");

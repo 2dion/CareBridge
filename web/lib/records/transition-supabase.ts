@@ -37,7 +37,7 @@ export async function createTransitionDeps(): Promise<TransitionDeps> {
     async listItems(recordId) {
       const { data, error } = await supabase
         .from("record_items")
-        .select("item_key, status, source, confirmed, resolution")
+        .select("item_key, status, source, confirmed_by_worker, resolution")
         .eq("record_id", recordId);
       if (error) throw new Error(`기록 항목 조회 실패: ${error.message}`);
       return data as ItemRow[];

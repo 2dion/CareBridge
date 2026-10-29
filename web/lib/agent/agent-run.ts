@@ -148,7 +148,7 @@ export async function runAgentForRecord(
       });
       return { content, tokens: totalTokens(response.usage) };
     },
-    async searchTerms(expression) {
+    async searchGlossary(expression) {
       const { data, error } = await userClient.rpc("search_glossary", {
         expression,
         max_results: 5,

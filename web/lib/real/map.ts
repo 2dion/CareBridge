@@ -1,5 +1,5 @@
 // 실제 Supabase에서 읽은 줄을 화면이 쓰는 모양(DemoDb)으로 바꾼다. 화면 코드는 Mock과 같은 모양을 그대로 읽는다.
-// 근거: 문서/설계/데이터구조-v1.6.3.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
+// 근거: 문서/설계/데이터구조-v1.6.4.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
 import type { ItemKey, ItemStatus, RecordStatus, Resolution } from "../demo/state";
 import type {
   DemoDb,
@@ -58,7 +58,7 @@ export type ItemRow = {
   reason: string;
   reason_native: string;
   source: "ai" | "worker" | "reviewer";
-  confirmed: boolean;
+  confirmed_by_worker: boolean;
   resolution: Resolution;
   resolution_note: string;
   detail: Record<string, unknown> | null;
@@ -141,7 +141,7 @@ export function draftStateOf(record: RecordRow, items: ItemRow[], jobs: AudioJob
   if (last && ["uploaded", "transcribing", "filling"].includes(last.status)) return "processing";
   if (last?.status === "failed") return "failed";
   const touched = items.some(
-    (item) => item.source !== "ai" || item.status !== "not_mentioned" || item.confirmed,
+    (item) => item.source !== "ai" || item.status !== "not_mentioned" || item.confirmed_by_worker,
   );
   return record.transcript.trim() || touched ? "ready" : "empty";
 }
@@ -183,7 +183,7 @@ export function mapRecord(
       evidence: item.evidence,
       reason: item.reason,
       reason_native: item.reason_native,
-      confirmed: item.confirmed,
+      confirmed_by_worker: item.confirmed_by_worker,
       source: item.source,
       resolution: item.resolution,
       ...(Object.keys(detail).length > 0 ? { detail } : {}),
@@ -287,7 +287,7 @@ export function toDemoDb(rows: RealRows, today: string): DemoDb {
   const isWorker = rows.profile.role === "worker";
   const firstWorker = rows.staff.find((person) => person.role === "worker");
   return {
-    version: 2,
+    version: 3,
     seededOn: today,
     worker: {
       name: isWorker ? rows.profile.name : (firstWorker?.name ?? ""),

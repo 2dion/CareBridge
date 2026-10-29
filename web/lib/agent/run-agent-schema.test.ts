@@ -11,8 +11,8 @@ const input: AgentInput = {
 };
 
 describe("draft 스키마 (10/28 실제 시험 뒤)", () => {
-  it("validate_draft·submit_draft의 draft는 items 9개 배열과 item_key enum을 요구함", () => {
-    for (const name of ["validate_draft", "submit_draft"]) {
+  it("validate_draft·return_draft의 draft는 items 9개 배열과 item_key enum을 요구함", () => {
+    for (const name of ["validate_draft", "return_draft"]) {
       const tool = AGENT_TOOLS.find((t) => t.name === name)!;
       const draft = (tool.input_schema.properties as { draft: typeof DRAFT_SCHEMA }).draft;
       expect(draft.properties.items.minItems).toBe(9);
@@ -39,7 +39,7 @@ describe("draft 스키마 (10/28 실제 시험 뒤)", () => {
           tokens: 10,
         })
         .mockResolvedValue({ content: [], tokens: 1 }),
-      searchTerms: vi.fn(async () => []),
+      searchGlossary: vi.fn(async () => []),
       saveDraft: vi.fn(async () => ({ downgraded: [] })),
       logStep: vi.fn(async () => {}),
       now: () => 0,

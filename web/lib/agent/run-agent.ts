@@ -1,6 +1,6 @@
 // ② 기록 검토 준비 Agent: Claude가 도구 4개를 골라 부르고, 서버가 도구를 실행한다.
 // 근거: 문서/설계/ai규칙-v1.1.1.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
-//       문서/설계/데이터구조-v1.6.3.md 'Agent 도구 입출력'
+//       문서/설계/데이터구조-v1.6.4.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
 import { getFormSpec } from "./form-spec";
@@ -17,7 +17,7 @@ import {
 export const MAX_RESPONSES = 4;
 export const AUTO_STOP_REASON = "자동 정리 중단";
 
-export type AgentTool = "get_form_spec" | "search_terms" | "validate_draft" | "submit_draft";
+export type AgentTool = "get_form_spec" | "search_glossary" | "validate_draft" | "return_draft";
 
 export type ToolUse = {
   type: "tool_use";
@@ -48,7 +48,7 @@ export type AgentDeps = {
     system: string,
     messages: AgentMessage[],
   ): Promise<{ content: ContentBlock[]; tokens: number }>;
-  searchTerms(expression: string): Promise<unknown[]>;
+  searchGlossary(expression: string): Promise<unknown[]>;
   /** 검증한 초안 저장(saveValidatedDraft). 낮춘 항목을 돌려줌 */
   saveDraft(draft: unknown): Promise<{ downgraded: string[] }>;
   logStep(step: AgentStep): Promise<void>;
@@ -143,7 +143,7 @@ export const AGENT_TOOLS = [
     },
   },
   {
-    name: "search_terms",
+    name: "search_glossary",
     description:
       "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 고정 베트남어 번역으로 찾는다. 결과가 비면 뜻을 짐작하지 말고 그 항목을 needs_check로 둔다.",
     input_schema: {
@@ -169,7 +169,7 @@ export const AGENT_TOOLS = [
     },
   },
   {
-    name: "submit_draft",
+    name: "return_draft",
     description:
       "완성한 초안을 저장하고 작업을 끝낸다. 서버가 저장 직전에 다시 검사하고, 남은 문제 항목은 needs_check로 낮춘다. 작업의 마지막에 꼭 한 번 부른다.",
     input_schema: {
@@ -195,29 +195,29 @@ export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
 
 일하는 순서:
 1. get_form_spec으로 서식 칸·선택지·작성 기준을 먼저 가져온다.
-2. 사투리, 일상 표현, 애매한 말, 교재 용어가 필요한 말은 search_terms로 찾는다.
+2. 사투리, 일상 표현, 애매한 말, 교재 용어가 필요한 말은 search_glossary로 찾는다.
    한 번에 필요한 도구를 함께 부른다. 같은 도구에 같은 입력을 다시 넣지 않는다.
 3. 초안을 만들고 validate_draft로 검사한다. 문제가 있으면 고친다.
-4. 마지막에 submit_draft를 꼭 한 번 부른다. 응답은 최대 4번이다.
+4. 마지막에 return_draft를 꼭 한 번 부른다. 응답은 최대 4번이다.
 5. 도구를 부를 때마다 why에 이 도구를 부르는 이유를 한 줄로 쓴다.
 
 규칙:
 1. 원문에 없는 내용은 쓰지 않는다. 없으면 status=not_mentioned, value_ko="".
 2. 내용을 쓴 항목은 evidence에 원문 문장을 한 글자도 바꾸지 않고 옮긴다.
-3. 양·정도가 모호하거나, 사투리를 짐작했거나, search_terms 결과가 비었거나,
+3. 양·정도가 모호하거나, 사투리를 짐작했거나, search_glossary 결과가 비었거나,
    말이 서로 맞지 않거나, 낙상·상처·호흡·의식·통증·복약 이상이 있으면
    status=needs_check이고 reason을 쓴다.
 4. 진단하지 말고 본 것만 쓴다. 호전/유지/악화는 원문에 비교가 있을 때만.
 5. value_ko는 한국어 기록체(~하심, ~드심), 교재 용어. value_native는 그 번역.
    reason을 쓰면 reason_native에 그 번역을 쓴다.
-   용어 목록에 있는 말은 search_terms가 준 고정 번역만 쓴다.
+   용어 목록에 있는 말은 search_glossary가 준 고정 번역만 쓴다.
    받아쓴 글은 한국어만, 모국어만, 둘이 섞인 말일 수 있다. 어느 경우든 value_ko는
    한국어로 쓰고, evidence는 원문 언어 그대로 옮긴다. transcript_ko는 원문 전체의 한국어 번역이다.
 6. notes는 200자 안쪽을 목표로 한다.
 7. 어르신·가족의 실명을 기록에 쓰지 않는다.
 8. 재가면 form_fields도 채운다. 시설이면 form_fields는 빈 객체.
 9. 서버 검사 결과를 이기려고 내용을 지어내지 않는다. 고칠 수 없으면 needs_check로 둔다.
-10. 도구 결과 밖의 설명 문장은 쓰지 않는다. 초안은 submit_draft의 draft로만 낸다.`;
+10. 도구 결과 밖의 설명 문장은 쓰지 않는다. 초안은 return_draft의 draft로만 낸다.`;
 }
 
 const summarize = (value: unknown) => {
@@ -262,7 +262,7 @@ export async function runAgent(input: AgentInput, deps: AgentDeps): Promise<Agen
         output = await runToolWithRetry(use, input, deps, (draft) => (lastDraft = draft));
         cache.set(cacheKey, output);
       }
-      if (use.name === "submit_draft" && !repeated) {
+      if (use.name === "return_draft" && !repeated) {
         const parsed = JSON.parse(output) as { saved?: boolean; downgraded?: string[] };
         if (parsed.saved) submitted = { downgraded: parsed.downgraded ?? [] };
       }
@@ -285,7 +285,7 @@ export async function runAgent(input: AgentInput, deps: AgentDeps): Promise<Agen
     // 상한에 닿기 전에 끝내도록 돕는다(멈춤 규칙 5)
     if (response === MAX_RESPONSES - 1 && results.length > 0) {
       const last = results[results.length - 1];
-      last.content = `${last.content}\n다음 응답에서 submit_draft를 불러야 함`;
+      last.content = `${last.content}\n다음 응답에서 return_draft를 불러야 함`;
     }
     messages.push({ role: "user", content: results });
   }
@@ -324,9 +324,9 @@ async function runTool(
       const careType = use.input.care_type === "home" ? "home" : input.careType;
       return JSON.stringify(getFormSpec(careType));
     }
-    case "search_terms": {
+    case "search_glossary": {
       const expression = typeof use.input.expression === "string" ? use.input.expression : "";
-      return JSON.stringify(expression ? await deps.searchTerms(expression) : []);
+      return JSON.stringify(expression ? await deps.searchGlossary(expression) : []);
     }
     case "validate_draft": {
       rememberDraft(use.input.draft);
@@ -337,7 +337,7 @@ async function runTool(
         ...shapeHint(result),
       });
     }
-    case "submit_draft": {
+    case "return_draft": {
       rememberDraft(use.input.draft);
       const check = validateDraft(use.input.draft, input.context);
       // 형식이 깨져 고칠 수 없으면 저장하지 않고 문제 목록을 돌려준다
