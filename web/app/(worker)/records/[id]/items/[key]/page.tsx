@@ -3,7 +3,7 @@
 // W3 · 항목 고치기·보태기(수정, 언급 없음 보충).
 // 한국어·베트남어 어느 쪽으로 써도 되고, 실제로는 서버가 이 항목만 한국어 기록체로 다시 쓰고 번역한다(화면 v1.3 W3).
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { nowIso, useDemo } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
@@ -249,7 +249,7 @@ export default function ItemEditPage() {
             <div className="review-head">
               <b>방문 시작·종료</b>
             </div>
-            <div className="minutes-grid">
+            <div className="minutes-grid times">
               <label htmlFor="visit-start">시작</label>
               <input
                 id="visit-start"
@@ -273,17 +273,19 @@ export default function ItemEditPage() {
               <b>지원별 제공시간(분)</b>
             </div>
             <div className="minutes-grid">
+              {/* label을 htmlFor로 잇는다. display: contents로 감싸면 Chrome 접근성 트리에서 이름이 빠진다(이슈 #139) */}
               {supportMinuteKeys.map(({ key: k, ko }) => (
-                <label key={k} style={{ display: "contents" }}>
-                  <span>{ko}</span>
+                <Fragment key={k}>
+                  <label htmlFor={`minutes-${k}`}>{ko}</label>
                   <input
+                    id={`minutes-${k}`}
                     type="number"
                     inputMode="numeric"
                     min={0}
                     value={minuteValues[k]}
                     onChange={(event) => setMinutes({ ...minuteValues, [k]: event.target.value })}
                   />
-                </label>
+                </Fragment>
               ))}
             </div>
             <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 6 }}>
