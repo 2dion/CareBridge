@@ -10,7 +10,7 @@ import { nowIso, useDemo } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
-import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
+import { AppBar, FrameVi, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
 import type { ItemStatus } from "@/lib/demo/state";
 import {
   canSubmitRecord,
@@ -256,21 +256,29 @@ export default function DraftPage() {
             </span>
           </div>
         )}
+        {/* 작성자가 할 일(9개 보기)과 관리자가 할 일('확인 필요' 정하기)을 다른 말로 쓴다. '확인'을 두 뜻으로 섞지 않는다(이슈 #137) */}
         {doneCount === total ? (
           <div className="done-bar card">
             <span className="check-dot solid">
               <Icon name="check" />
             </span>
-            <b>모두 확인했어요</b>
-            <span className="badge badge-green">{total}개</span>
+            <span className="stack">
+              <b>{total}개 모두 봤어요</b>
+              <FrameVi>Đã xem cả {total} mục</FrameVi>
+            </span>
             <span className="grow" />
-            <span className="done-note">확인 필요 {needsLeft}개</span>
+            {needsLeft > 0 && <span className="done-note">관리자가 정할 항목 {needsLeft}개</span>}
           </div>
         ) : (
           <div className="done-bar card">
-            <b>
-              {total}개 중 {doneCount}개 확인
-            </b>
+            <span className="stack">
+              <b>
+                {total}개 중 {doneCount}개 봤어요
+              </b>
+              <FrameVi>
+                Đã xem {doneCount}/{total} mục
+              </FrameVi>
+            </span>
             <span className="grow" />
             <span className="done-note">남은 항목 {total - doneCount}개</span>
           </div>
@@ -331,7 +339,7 @@ export default function DraftPage() {
       </div>
       {!canSend && (
         <p className="sr-only" role="status">
-          모든 항목을 확인하면 보낼 수 있어요.
+          {total}개를 모두 보면 보낼 수 있어요. Xem hết {total} mục là có thể gửi.
         </p>
       )}
       <Modal
