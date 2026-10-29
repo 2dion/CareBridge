@@ -1,6 +1,6 @@
 "use client";
 
-// M3(승인한 기록): 왼쪽 목록, 오른쪽 내용과 진행 4단계. 인쇄·PDF는 /print/[id].
+// M3(승인한 기록): 왼쪽 목록, 오른쪽 내용과 처리 이력(작성 → 전송 → [검토·수정 → 되돌림 → 재전송] → 검토·수정 → 승인). 인쇄·PDF는 /print/[id].
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -8,7 +8,8 @@ import { useState } from "react";
 import { useDemo } from "@/components/demo/demo-provider";
 import { DeskShell } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
-import { approvedRecords } from "@/lib/demo/review";
+import { approvedRecords, type HistoryStep, processHistory } from "@/lib/demo/review";
+import type { ItemKey } from "@/lib/demo/state";
 import {
   type DemoRecord,
   displayOrder,
@@ -129,33 +130,43 @@ function Approved() {
   );
 }
 
+const STEP_LABEL: Record<HistoryStep["kind"], string> = {
+  created: "작성",
+  submitted: "전송",
+  resubmitted: "재전송",
+  returned: "되돌림",
+  reviewed: "검토·수정",
+  approved: "승인",
+};
+
+const names = (keys: ItemKey[]) => keys.map((key) => itemLabel(key).ko).join(", ");
+
+/** 단계 아래 줄: 누가 · 무엇을(관리자 수정·확인 처리, 되돌림 사유, 작성자가 고친 항목) */
+function stepDetail(step: HistoryStep) {
+  if (step.kind === "returned") return step.reason ? `${step.actor} · ${step.reason}` : step.actor;
+  if (step.kind === "resubmitted") {
+    return step.edited.length ? `${step.actor} · ${names(step.edited)} 고침` : step.actor;
+  }
+  if (step.kind !== "reviewed") return step.actor;
+  const parts = [
+    step.edited.length ? `${names(step.edited)} 수정` : "",
+    ...(["confirmed_by_reviewer", "omitted"] as const).map((resolution) => {
+      const keys = step.resolved
+        .filter((entry) => entry.resolution === resolution)
+        .map((entry) => entry.item_key);
+      return keys.length
+        ? `${names(keys)} ${resolution === "omitted" ? "기록 안 함" : "확인함"}`
+        : "";
+    }),
+  ].filter(Boolean);
+  return `${step.actor} · ${parts.length ? parts.join(" · ") : "수정 없음"}`;
+}
+
 function ApprovedDetail({ record }: { record: DemoRecord }) {
   const { db } = useDemo()!;
   const resident = getResident(db, record.residentId);
-  const created = record.events.find((event) => event.type === "created");
-  const submitted = [...record.events].reverse().find((event) => event.type === "submitted");
-  const reviewEdits = record.events.filter(
-    (event) =>
-      (event.type === "edited" || event.type === "resolved") && event.actor === db.reviewer.name,
-  );
-  const lastReview = reviewEdits.at(-1);
-  const edited = record.items
-    .filter((item) => item.source === "reviewer")
-    .map((item) => itemLabel(item.item_key).ko);
-  const steps = [
-    { label: "작성", who: record.workerName ?? db.worker.name, at: created?.at },
-    {
-      label: "전송",
-      who: record.workerName ?? db.worker.name,
-      at: submitted?.at ?? record.submittedAt,
-    },
-    {
-      label: "검토·수정",
-      who: `${db.reviewer.name}${edited.length ? ` · ${edited.join(", ")} 수정` : " · 수정 없음"}`,
-      at: lastReview?.at ?? record.approvedAt,
-    },
-    { label: "승인", who: record.approvedBy, at: record.approvedAt },
-  ];
+  // 처리 이력은 record_events 순서대로: 첫 전송·되돌림(사유)·재전송·확인 처리가 모두 보인다(이슈 #124)
+  const steps = processHistory(record);
   const items = [...record.items]
     .filter((item) => item.value_ko.trim())
     .sort((a, b) => displayOrder.indexOf(a.item_key) - displayOrder.indexOf(b.item_key));
@@ -184,14 +195,14 @@ function ApprovedDetail({ record }: { record: DemoRecord }) {
           </Link>
         </div>
       </div>
-      <ol className="timeline" aria-label="진행 단계">
-        {steps.map((step) => (
-          <li key={step.label}>
+      <ol className="timeline" aria-label="처리 이력">
+        {steps.map((step, index) => (
+          <li key={`${step.kind}-${index}`}>
             <span className="dot">
               <Icon name="check" />
             </span>
-            <b>{step.label}</b>
-            <small>{step.who}</small>
+            <b>{STEP_LABEL[step.kind]}</b>
+            <small>{stepDetail(step)}</small>
             <small>{shortStamp(step.at)}</small>
           </li>
         ))}
