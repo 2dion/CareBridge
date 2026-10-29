@@ -10,6 +10,9 @@ import { Listen } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
 import type { ItemKey } from "@/lib/demo/state";
 import { displayOrder, getResident, itemLabel, kstTime, lateDays } from "@/lib/demo/store";
+import { itemBadge, withNote } from "@/lib/records/item-badge";
+
+const badgeClass = { orange: "badge-orange", green: "badge-green", gray: "badge-gray" } as const;
 
 const itemIcon: Record<ItemKey, IconName> = {
   visit_time: "calendar",
@@ -85,7 +88,10 @@ export default function RecordViewPage() {
       <div className="scroll" style={{ paddingBottom: 16 }}>
         {items.map((item) => {
           const label = itemLabel(item.item_key);
-          const empty = item.status === "not_mentioned" && !item.value_ko;
+          // '확인 필요'에 관리자가 고른 결과([확인함]/[기록 안 함])가 있으면 그 배지를 보인다(이슈 #98)
+          const badge = itemBadge(item, names);
+          const omitted = badge?.kind === "omitted";
+          const empty = !item.value_ko && (item.status === "not_mentioned" || omitted);
           return (
             <article key={item.item_key} className="view-item card">
               <span className="icon-bubble">
@@ -94,14 +100,21 @@ export default function RecordViewPage() {
               <div className="body">
                 <b>
                   {label.ko}
-                  {item.status === "needs_check" && (
-                    <span className="badge badge-orange" style={{ marginLeft: 6 }}>
-                      확인 필요
+                  {badge && (
+                    <span className={`badge ${badgeClass[badge.tone]}`} style={{ marginLeft: 6 }}>
+                      {badge.ko}
                     </span>
                   )}
                 </b>
+                {badge?.vi && (
+                  <span className="vi" style={{ display: "block" }}>
+                    {badge.vi}
+                  </span>
+                )}
                 {empty ? (
-                  <p style={{ color: "var(--color-muted)" }}>언급 없음</p>
+                  <p style={{ color: "var(--color-muted)" }}>
+                    {omitted ? withNote("기록 안 함", item.resolution_note) : "언급 없음"}
+                  </p>
                 ) : (
                   <>
                     <div className="ko-line">
