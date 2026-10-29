@@ -86,6 +86,19 @@ export type NoCareRow = {
   created_by: string;
 };
 export type StaffRow = { id: string; name: string; role: "worker" | "reviewer" };
+/** join_codes 줄(관리자만 자기 기관 것을 RLS로 읽음). 코드 값은 DB에만 있고 저장소에는 두지 않는다(로그인가입 결정 6) */
+export type JoinCodeRow = { code: string; role: "worker" | "reviewer"; active: boolean };
+export type JoinCode = { role: "worker" | "reviewer"; code: string };
+
+/** M5 설정의 가입 코드: 켜진(active) 것만, 작성자용 먼저. 관리자용은 화면에 보이지 않지만 자료는 같이 둔다(이슈 #119) */
+export function activeJoinCodes(rows: JoinCodeRow[]): JoinCode[] {
+  return rows
+    .filter((row) => row.active)
+    .map((row) => ({ role: row.role, code: row.code }))
+    .sort((a, b) =>
+      a.role === b.role ? a.code.localeCompare(b.code) : a.role === "worker" ? -1 : 1,
+    );
+}
 
 export type RealRows = {
   profile: ProfileRow;

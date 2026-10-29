@@ -20,6 +20,7 @@ import { supabaseConfigured } from "@/lib/auth/session";
 import { createDemoDb, DB_STORAGE_KEY, type DemoDb, kstToday } from "@/lib/demo/store";
 import { createRealActions, type RealActions } from "@/lib/real/actions";
 import { loadRealDb, NotSignedInError } from "@/lib/real/load";
+import type { JoinCode } from "@/lib/real/map";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export type RealContext = {
@@ -28,6 +29,8 @@ export type RealContext = {
   userId: string;
   isTraining: boolean;
   nativeLang: "ko" | "vi";
+  /** M5 설정: 내 기관의 켜진 가입 코드(관리자만 읽음, 작성자는 빈 목록) */
+  joinCodes: JoinCode[];
   /** 서버·DB에서 다시 읽는다 */
   reload: () => Promise<void>;
 };
@@ -77,6 +80,7 @@ function RealProvider({ children }: { children: ReactNode }) {
     userId: string;
     isTraining: boolean;
     nativeLang: "ko" | "vi";
+    joinCodes: JoinCode[];
   } | null>(null);
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
@@ -187,6 +191,7 @@ function RealProvider({ children }: { children: ReactNode }) {
               userId: state.userId,
               isTraining: state.isTraining,
               nativeLang: state.nativeLang,
+              joinCodes: state.joinCodes,
               reload,
             },
           }

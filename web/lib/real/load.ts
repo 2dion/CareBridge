@@ -4,10 +4,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { DemoDb, MissedRecord, OverdueDay } from "../demo/store";
 import {
+  activeJoinCodes,
   type AssignmentRow,
   type AudioJobRow,
   type EventRow,
   type ItemRow,
+  type JoinCode,
+  type JoinCodeRow,
   type NoCareRow,
   type ProfileRow,
   type RecordRow,
@@ -41,6 +44,8 @@ export async function loadRealDb(
   userId: string;
   isTraining: boolean;
   nativeLang: "ko" | "vi";
+  /** M5 설정: 내 기관의 켜진 가입 코드. 관리자만 읽고(RLS), 작성자는 빈 목록 */
+  joinCodes: JoinCode[];
 }> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new NotSignedInError();
@@ -63,33 +68,47 @@ export async function loadRealDb(
   };
   const reviewer = profile.role === "reviewer";
 
-  const [staff, residents, assignments, records, noCareDays, missedRows, overdueRows] =
-    await Promise.all([
-      reviewer ? rows<StaffRow>(supabase.rpc("list_org_staff")) : Promise.resolve([]),
-      rows<ResidentRow>(supabase.from("residents").select("id, alias, care_type")),
-      rows<AssignmentRow>(
-        supabase.from("assignments").select("resident_id, worker_id, visit_days, start_date"),
-      ),
-      rows<RecordRow>(
-        supabase
-          .from("records")
-          .select(
-            "id, resident_id, worker_id, care_date, form_type, status, transcript, transcript_ko, visit_start, visit_end, form_fields, return_reason, return_reason_native, submitted_at, approved_at, approved_by, created_at",
-          ),
-      ),
-      rows<NoCareRow>(
-        supabase.from("no_care_days").select("resident_id, care_date, reason, note, created_by"),
-      ),
-      rows<{
-        resident_id: string;
-        care_date: string;
-        kind: "missing" | "draft";
-        record_id: string | null;
-      }>(supabase.rpc("list_missed_records")),
-      reviewer
-        ? rows<{ resident_id: string; care_date: string }>(supabase.rpc("list_overdue_records"))
-        : Promise.resolve([]),
-    ]);
+  const [
+    staff,
+    residents,
+    assignments,
+    records,
+    noCareDays,
+    missedRows,
+    overdueRows,
+    joinCodeRows,
+  ] = await Promise.all([
+    reviewer ? rows<StaffRow>(supabase.rpc("list_org_staff")) : Promise.resolve([]),
+    rows<ResidentRow>(supabase.from("residents").select("id, alias, care_type")),
+    rows<AssignmentRow>(
+      supabase.from("assignments").select("resident_id, worker_id, visit_days, start_date"),
+    ),
+    rows<RecordRow>(
+      supabase
+        .from("records")
+        .select(
+          "id, resident_id, worker_id, care_date, form_type, status, transcript, transcript_ko, visit_start, visit_end, form_fields, return_reason, return_reason_native, submitted_at, approved_at, approved_by, created_at",
+        ),
+    ),
+    rows<NoCareRow>(
+      supabase.from("no_care_days").select("resident_id, care_date, reason, note, created_by"),
+    ),
+    rows<{
+      resident_id: string;
+      care_date: string;
+      kind: "missing" | "draft";
+      record_id: string | null;
+    }>(supabase.rpc("list_missed_records")),
+    reviewer
+      ? rows<{ resident_id: string; care_date: string }>(supabase.rpc("list_overdue_records"))
+      : Promise.resolve([]),
+    // 가입 코드는 기관의 join_codes에서 읽기만 한다(이슈 #119). 화면 코드에 고정값을 두지 않는다
+    reviewer
+      ? rows<JoinCodeRow>(
+          supabase.from("join_codes").select("code, role, active").eq("active", true),
+        )
+      : Promise.resolve([]),
+  ]);
 
   const ids = records.map((record) => record.id);
   const [items, events, jobs] = ids.length
@@ -138,5 +157,6 @@ export async function loadRealDb(
     userId: profile.id,
     isTraining: Boolean(org?.is_training),
     nativeLang: profile.native_lang === "ko" ? "ko" : "vi",
+    joinCodes: activeJoinCodes(joinCodeRows),
   };
 }
