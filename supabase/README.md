@@ -25,6 +25,8 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 | `migrations/20261028130000_save_ai_item.sql` | 서버 전용 `save_ai_item`: 항목 하나 재번역(value_native만)·AI 항목 보태기, 기준 글이 다르면 `stale_item` |
 | `migrations/20261028150000_return_reason_native.sql` | 되돌린 사유 번역 저장 함수 `save_return_reason_native`(service_role 전용, 사유가 바뀌었으면 `stale_reason`) |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
+| `demo-data.sql` | 시연 데이터 다시 채우기(#156): 데모 두 기관의 기록을 지우고 합성 어르신 8명·시연용 배경 기록 14건을 넣음. `data/demo/build_demo_sql.py`가 만듦 |
+| `reset-demo.sql` | 리허설 뒤 시나리오 1·2·3 어르신의 '오늘' 기록만 지움 |
 
 ## 쓰는 법
 
@@ -51,9 +53,18 @@ npx supabase db push                               # migrations/ 를 클라우�
 - **로컬**(`npx supabase db reset`): 계정이 없으면 비밀번호 `carebridge-local-only`로 만듭니다. 로컬 전용입니다.
 - **클라우드:** 저장소가 공개라 비밀번호를 파일에 두지 않습니다. 대시보드 Authentication → Add user로 위 이메일 4개를 만든 뒤(비밀번호는 팀 비공개, Auto Confirm 켜기), SQL Editor에서 `seed.sql`을 돌립니다. 계정은 건너뛰고 기관·어르신·프로필만 들어갑니다. `db push --include-seed`는 쓰지 않습니다.
 
-## 데모 되돌리기 (reset-demo.sql)
+## 시연 데이터 (demo-data.sql, reset-demo.sql)
 
-리허설 뒤 SQL Editor에서 `reset-demo.sql`을 돌리면 김○○(시나리오 1)의 기록이 모두 지워져 W1 카드가 '작성 전'으로 돌아갑니다. 승인된 기록도 지웁니다(삭제 막는 트리거를 트랜잭션 안에서만 끔). 시연 직전에 W1 카드를 한 번 확인합니다.
+| 언제 | 돌릴 것 | 결과 |
+| --- | --- | --- |
+| 시연 전날(또는 데이터가 어수선할 때) | `demo-data.sql` | 데모 요양센터·데모 교육원의 기록·기록 없음 처리를 모두 지우고, 그날 기준 날짜로 시연용 배경 기록을 다시 채움 |
+| 리허설 한 번 끝날 때마다 | `reset-demo.sql` | 김○○·이○○·최○○(시나리오 1·2·3)의 **오늘** 기록만 지움. 배경 기록은 그대로 |
+
+- 둘 다 SQL Editor에서 통째로 한 번 실행합니다. 여러 번 돌려도 같은 모양이고, 승인된 기록을 지우려고 삭제 막는 트리거를 트랜잭션 안에서만 끕니다.
+- `demo-data.sql`은 `seed.sql`과 데모 계정 4개가 먼저 있어야 합니다(없으면 `demo_accounts_missing`).
+- 채워지는 모양(검토 대기 6·수정 필요 1·임시 저장 1·승인 완료 6, 작성 전, 기한 지난 빈 기록, 기록 없음 처리)은 파일 맨 위 주석과 `data/README.md` '시연 데이터'에 있습니다.
+- 내용을 바꾸려면 `data/cases/`나 `data/demo/demo-data.head.sql`을 고치고 `python3 data/demo/build_demo_sql.py`로 다시 만듭니다. `demo-data.sql`을 직접 고치지 않습니다.
+- 시연 직전에 W1(김○○·이○○ 카드가 '작성 전')과 M1 숫자를 한 번 확인합니다.
 
 ## 서버 코드가 알아야 할 것
 
