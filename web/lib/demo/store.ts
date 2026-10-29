@@ -69,8 +69,11 @@ export type DemoRecord = {
   submittedAt: string | null;
   approvedAt: string | null;
   approvedBy: string;
-  /** 서식 칸 중 항목 밖 값(제12호 배변 실수 횟수: stool_accidents, urine_accidents). */
-  formFields?: Record<string, number | null>;
+  /**
+   * 서식 칸 중 항목 밖 값(제12호 전용). 숫자: total_minutes, stool_accidents, urine_accidents.
+   * 글자: body_trend·meal_trend·cognition_trend(improved / same / worse). 인쇄 변화상태 칸이 읽는다.
+   */
+  formFields?: Record<string, number | string | null>;
   updatedAt: string;
   events: RecordEvent[];
   /** 작성자 이름. 실제 기관은 작성자가 여럿이라 기록마다 둔다. 없으면 db.worker.name */

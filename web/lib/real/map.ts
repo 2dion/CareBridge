@@ -191,9 +191,7 @@ export function mapRecord(
       ...(reviewerEdit ? { before_ko: reviewerEdit.before?.value_ko as string } : {}),
     };
   });
-  const formFields = Object.fromEntries(
-    Object.entries(row.form_fields ?? {}).filter(([, v]) => typeof v === "number" || v === null),
-  ) as Record<string, number | null>;
+  const formFields = pickFormFields(row.form_fields);
   return {
     id: row.id,
     residentId: row.resident_id,
@@ -242,14 +240,26 @@ export type PrintData = {
   }[];
 };
 
+/**
+ * form_fields 중 화면·인쇄가 쓰는 값만 남긴다: 숫자(총시간·실수 횟수), 글자(변화상태 *_trend), null.
+ * 글자를 버리면 제12호 변화상태 칸이 비어 인쇄된다(이슈 #123).
+ */
+export function pickFormFields(
+  raw: Record<string, unknown> | null | undefined,
+): Record<string, number | string | null> {
+  return Object.fromEntries(
+    Object.entries(raw ?? {}).filter(
+      ([, v]) => typeof v === "number" || typeof v === "string" || v === null,
+    ),
+  ) as Record<string, number | string | null>;
+}
+
 /** 인쇄는 서버의 인쇄 데이터(승인한 기록만)로 칸을 채운다 */
 export function applyPrintData(record: DemoRecord, data: PrintData): DemoRecord {
   return {
     ...record,
     formType: data.form_type,
-    formFields: Object.fromEntries(
-      Object.entries(data.form_fields ?? {}).filter(([, v]) => typeof v === "number" || v === null),
-    ) as Record<string, number | null>,
+    formFields: pickFormFields(data.form_fields),
     items: record.items.map((item) => {
       const printed = data.items.find((entry) => entry.item_key === item.item_key);
       if (!printed) return item;
