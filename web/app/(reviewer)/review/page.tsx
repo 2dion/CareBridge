@@ -343,15 +343,16 @@ function ReviewQueue() {
           onSave={(reason, note) => {
             const next = markOverdueNoCare(db, { ...marking, reason, note }, today);
             if ("error" in next) return false;
+            setMarking(null);
             if (demo.real) {
-              // 담당자가 no_care_days에 바로 넣는다(8~30일 전, 범위 밖은 DB가 거절)
+              // 담당자가 no_care_days에 바로 넣는다(8~30일 전, 범위 밖은 DB가 거절).
+              // 결과가 온 뒤에 성공·실패를 알린다(이슈 #114: 실패해도 '정리했어요'가 먼저 뜨던 문제)
               void demo.real.actions
                 .addNoCare({ ...marking, reason, note })
-                .then((result) => !result.ok && toast.show(result.ko));
-            } else {
-              demo.update(() => next);
+                .then((result) => toast.show(result.ok ? "기록 없음으로 정리했어요." : result.ko));
+              return true;
             }
-            setMarking(null);
+            demo.update(() => next);
             toast.show("기록 없음으로 정리했어요.");
             return true;
           }}

@@ -38,6 +38,35 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
     vi: "Không thể thực hiện ở trạng thái này. Hãy tải lại trang.",
   },
   record_locked: { ko: "승인된 기록은 고칠 수 없어요.", vi: "Không thể sửa bản ghi đã duyệt." },
+  // 권한·날짜 거절(이슈 #114). DB 트리거·API 오류 키와 같은 글자(supabase/README.md, 공통 계약 '응답 코드와 오류 키')
+  reviewer_only: {
+    ko: "담당자(강사)만 할 수 있어요.",
+    vi: "Chỉ người phụ trách (giảng viên) mới làm được.",
+  },
+  not_record_worker: {
+    ko: "이 기록을 쓴 사람만 할 수 있어요.",
+    vi: "Chỉ người viết bản ghi này mới làm được.",
+  },
+  org_mismatch: {
+    ko: "다른 기관의 어르신이에요. 화면을 새로 고쳐 주세요.",
+    vi: "Người cao tuổi thuộc cơ sở khác. Hãy tải lại trang.",
+  },
+  care_date_out_of_range: {
+    ko: "처리할 수 있는 기간이 아닌 날짜예요. 화면을 새로 고쳐 주세요.",
+    vi: "Ngày này nằm ngoài khoảng thời gian có thể xử lý. Hãy tải lại trang.",
+  },
+  record_exists: {
+    ko: "이 날은 이미 기록이 있어요. 화면을 새로 고쳐 주세요.",
+    vi: "Ngày này đã có bản ghi. Hãy tải lại trang.",
+  },
+  no_care_day_exists: {
+    ko: "이 날은 ‘기록 없음’으로 정리된 날이에요.",
+    vi: "Ngày này đã được ghi là ‘không có bản ghi’.",
+  },
+  duplicate_entry: {
+    ko: "이미 처리된 내용이에요. 화면을 새로 고쳐 주세요.",
+    vi: "Nội dung này đã được xử lý. Hãy tải lại trang.",
+  },
   not_signed_in: { ko: "다시 로그인해 주세요.", vi: "Hãy đăng nhập lại." },
   stt_failed: {
     ko: "음성을 글자로 바꾸지 못했어요. 다시 보내거나 글로 써 주세요.",
@@ -100,8 +129,9 @@ export async function callApi<T = Record<string, unknown>>(
   return { ok: true, data: data as T };
 }
 
-const dbError = (error: { message: string } | null): ActionError | null =>
-  error ? actionError(error.message) : null;
+// DB가 돌려준 오류: 트리거는 message에 오류 키를 담고, 같은 행이 이미 있으면(unique) code 23505다
+const dbError = (error: { message: string; code?: string } | null): ActionError | null =>
+  error ? actionError(error.code === "23505" ? "duplicate_entry" : error.message) : null;
 
 /** MediaRecorder 형식(audio/webm;codecs=opus 등)을 서버가 받는 두 형식으로 맞춘다 */
 export function audioMime(type: string): "audio/webm" | "audio/mp4" | null {
@@ -146,7 +176,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .insert({ resident_id: residentId, care_date: careDate })
         .select("id")
         .single();
-      if (error || !data) return after(actionError(error?.message ?? "create_failed"));
+      if (error || !data) return after(dbError(error) ?? actionError("create_failed"));
       return after({ ok: true as const, data: { id: data.id as string } });
     },
     /** W2: 기록 전체 녹음. 서버가 받아쓴 뒤 Agent를 뒤에서 돌린다(202 filling) */
