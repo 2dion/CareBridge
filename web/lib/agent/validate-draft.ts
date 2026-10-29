@@ -70,6 +70,7 @@ export type ProblemCode =
   | "invalid_minutes"
   | "needs_check_without_reason"
   | "needs_check_without_evidence"
+  | "needs_check_without_value"
   | "observed_without_value"
   | "not_mentioned_with_evidence"
   | "form_field_not_for_facility"
@@ -412,6 +413,18 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
           "'언급 없음'인데 근거 문장이 있어 비웠습니다. 내용이 있으면 '관찰'이나 '확인 필요'로 두세요.",
       });
       item = { ...item, evidence: "" };
+    }
+
+    // '확인 필요'는 짐작한 내용 + 이유다. 내용이 비면 화면의 'AI가 정리한 내용'이 빈칸이 되므로
+    // Agent에게 알려 근거 문장을 기록체로 옮겨 채우게 한다 (이슈 #141). 상태는 그대로 둔다.
+    // 자동 정리 중단 초안(allNeedsCheckDraft)도 이 문제로 알리지만 저장은 막지 않는다.
+    if (item.status === "needs_check" && !item.value_ko.trim()) {
+      problems.push({
+        code: "needs_check_without_value",
+        item_key: key,
+        message:
+          "'확인 필요'인데 기록 내용(value_ko)이 비어 있습니다. 근거 문장을 기록체로 옮겨 짐작한 내용을 쓰고, 확인할 까닭은 reason에 두세요.",
+      });
     }
 
     // 검사 3의 내용 칸: '관찰'인데 기록 내용(value_ko)이 비었음

@@ -459,3 +459,29 @@ describe("검사 7: 식사 섭취량 값 (이슈 #133)", () => {
     expect(spec.choices.intake.map((choice) => choice.split(" ")[0])).toEqual([...INTAKE_VALUES]);
   });
 });
+
+describe("'확인 필요'인데 내용이 빈 항목 (이슈 #141)", () => {
+  it("문제(needs_check_without_value)로 알리고 상태는 그대로 둠", () => {
+    const draft = withItem(scenarioOneDraft(), "sleep", {
+      value_ko: "",
+      value_native: "",
+      status: "needs_check",
+      reason: "잠든 시간을 짐작함",
+    });
+    const result = validateDraft(draft, FACILITY);
+    expect(result.problems).toEqual([
+      expect.objectContaining({ code: "needs_check_without_value", item_key: "sleep" }),
+    ]);
+    expect(result.fixed?.items.find((i) => i.item_key === "sleep")?.status).toBe("needs_check");
+  });
+
+  it("내용이 있는 '확인 필요'는 걸리지 않음", () => {
+    expect(codes(scenarioOneDraft())).toEqual([]);
+  });
+
+  it("자동 정리 중단 초안(9개 모두 확인 필요·내용 없음)도 저장할 수 있게 fixed를 돌려줌", () => {
+    const result = validateDraft(allNeedsCheckDraft("자동 정리 중단", TRANSCRIPT), FACILITY);
+    expect(result.fixed).not.toBeNull();
+    expect(result.problems.filter((p) => p.code === "needs_check_without_value")).toHaveLength(9);
+  });
+});
