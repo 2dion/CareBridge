@@ -10,6 +10,7 @@ import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel } from "@/components/mobile/parts";
 import { MobileScreen } from "@/components/mobile/shell";
+import { TextInput } from "@/components/mobile/text-field";
 import { type SignInResult, signIn, supabaseConfigured } from "@/lib/auth/session";
 
 const errors: Record<Exclude<SignInResult, { ok: true }>["reason"], { ko: string; vi: string }> = {
@@ -66,13 +67,13 @@ export default function LoginPage() {
           <label htmlFor="email">
             이메일 <span className="vi">Email</span>
           </label>
-          <input
+          <TextInput
             id="email"
             className={`input ${error === "wrong" ? "invalid" : ""}`}
             type="email"
             autoComplete="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onValueChange={setEmail}
             required
           />
         </div>
@@ -81,13 +82,13 @@ export default function LoginPage() {
             비밀번호 <span className="vi">Mật khẩu</span>
           </label>
           <div className="pw-wrap">
-            <input
+            <TextInput
               id="password"
               className={`input ${error === "wrong" ? "invalid" : ""}`}
               type={show ? "text" : "password"}
               autoComplete="current-password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onValueChange={setPassword}
               required
             />
             <button

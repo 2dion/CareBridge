@@ -9,6 +9,7 @@ import { nowIso, useDemo } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
+import { TextArea } from "@/components/mobile/text-field";
 import { clock, useRecorder } from "@/components/mobile/use-recorder";
 import type { ItemKey } from "@/lib/demo/state";
 import {
@@ -312,11 +313,11 @@ export default function ItemEditPage() {
               {missing ? "보충할 내용" : "고칠 내용"}
             </label>
           </div>
-          <textarea
+          <TextArea
             id="item-text"
             className="input"
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onValueChange={setText}
             placeholder={`${missing ? `${label.ko} 상태를 자유롭게` : "고칠 내용을"} 적어 주세요. (한국어 또는 베트남어)`}
           />
           <div className="note-line" style={{ marginTop: 8 }}>
