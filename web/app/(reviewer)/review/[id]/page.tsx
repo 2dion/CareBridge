@@ -86,6 +86,9 @@ function ReviewRecord() {
   const [selected, setSelected] = useState<ItemKey | null>(null);
   const [returning, setReturning] = useState(false);
   const [returnError, setReturnError] = useState("");
+  // 승인은 되돌릴 수 없어 한 번 더 묻고, 승인·되돌리기 요청 중에는 버튼을 잠근다(이슈 #136)
+  const [confirmingApprove, setConfirmingApprove] = useState(false);
+  const [busy, setBusy] = useState<"approve" | "return" | null>(null);
   const [realSteps, setRealSteps] = useState<
     { tool: string; key: string; name: string; reason: string; result: string }[]
   >([]);
@@ -148,9 +151,13 @@ function ReviewRecord() {
   const fail = (result: { ko: string }) => toast.show(result.ko);
 
   const approve = () => {
+    setConfirmingApprove(false);
+    if (busy) return;
     if (real) {
       // 서버가 다시 검사한다(원칙 3). 남은 '확인 필요'가 있으면 409와 항목 목록
+      setBusy("approve");
       void real.actions.approve(record.id).then((result) => {
+        setBusy(null);
         if (!result.ok) return fail(result);
         router.push(`/approved?id=${record.id}`);
       });
@@ -198,19 +205,24 @@ function ReviewRecord() {
               <Icon name="eye" />
               미리보기
             </Link>
-            <button type="button" className="dbtn danger" onClick={() => setReturning(true)}>
+            <button
+              type="button"
+              className="dbtn danger"
+              disabled={busy !== null}
+              onClick={() => setReturning(true)}
+            >
               <Icon name="undo" />
               되돌리기
             </button>
             <button
               type="button"
               className="dbtn primary"
-              disabled={!canApproveRecord(record)}
-              onClick={approve}
+              disabled={!canApproveRecord(record) || busy !== null}
+              onClick={() => setConfirmingApprove(true)}
               title={unresolved > 0 ? "확인 필요를 모두 정해야 승인할 수 있어요" : undefined}
             >
               <Icon name="check" />
-              승인
+              {busy === "approve" ? "승인하는 중" : "승인"}
             </button>
           </div>
         )}
@@ -343,22 +355,46 @@ function ReviewRecord() {
         </div>
       </div>
 
+      <DeskModal
+        open={confirmingApprove}
+        onClose={() => setConfirmingApprove(false)}
+        label="승인할까요?"
+      >
+        <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>승인할까요?</h2>
+        <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
+          승인하면 고칠 수 없어요.
+        </p>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button type="button" className="dbtn" onClick={() => setConfirmingApprove(false)}>
+            취소
+          </button>
+          <button type="button" className="dbtn primary" onClick={approve}>
+            <Icon name="check" />
+            승인
+          </button>
+        </div>
+      </DeskModal>
       <ReturnModal
         open={returning}
         record={record}
         error={returnError}
+        busy={busy === "return"}
         onClose={() => {
+          if (busy === "return") return;
           setReturning(false);
           setReturnError("");
         }}
         onReturn={(reason) => {
+          if (busy) return;
           const next = returnRecord(db, record.id, reason, now());
           if ("error" in next) return;
           if (real) {
             // 관리자는 한국어 사유만 보낸다(결정 2026-10-28-되돌림사유한국어).
             // 실패하면 창 안에 이유를 남긴다(이슈 #114: 창이 그대로 있고 아무 반응이 없던 문제)
             setReturnError("");
+            setBusy("return");
             void real.actions.returnRecord(record.id, reason).then((result) => {
+              setBusy(null);
               if (!result.ok) return setReturnError(result.ko);
               setReturning(false);
               router.push("/review");
@@ -589,6 +625,7 @@ function ReturnModal({
   onClose,
   onReturn,
   error: serverError = "",
+  busy = false,
 }: {
   open: boolean;
   record: DemoRecord;
@@ -596,6 +633,8 @@ function ReturnModal({
   onReturn: (reason: string) => void;
   /** 서버가 거절한 이유. 있으면 창 안에 보인다 */
   error?: string;
+  /** 요청 중이면 [되돌리기]를 다시 누를 수 없다(이슈 #136) */
+  busy?: boolean;
 }) {
   const [keys, setKeys] = useState<ItemKey[]>([]);
   const [reason, setReason] = useState("");
@@ -657,12 +696,13 @@ function ReturnModal({
         관리자가 다시 확인해요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-        <button type="button" className="dbtn" onClick={onClose}>
+        <button type="button" className="dbtn" disabled={busy} onClick={onClose}>
           취소
         </button>
         <button
           type="button"
           className="dbtn danger"
+          disabled={busy}
           onClick={() => {
             if (!reason.trim()) {
               setError(true);
@@ -675,7 +715,7 @@ function ReturnModal({
           }}
         >
           <Icon name="undo" />
-          되돌리기
+          {busy ? "되돌리는 중" : "되돌리기"}
         </button>
       </div>
     </DeskModal>
