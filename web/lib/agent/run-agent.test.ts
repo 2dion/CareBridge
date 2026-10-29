@@ -145,4 +145,12 @@ describe("agentSystemPrompt", () => {
     const prompt = agentSystemPrompt("home", "vi");
     expect(prompt).toContain("확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다");
   });
+
+  it("재가 숫자 칸(방문 시각·지원별 분)은 말한 숫자를 채우고 말하지 않은 것은 비우라고 함 (이슈 #115)", () => {
+    const prompt = agentSystemPrompt("home", "vi");
+    expect(prompt).toContain("visit_time.detail.start·end");
+    expect(prompt).toContain("form_fields.total_minutes");
+    expect(prompt).toContain("support.detail.minutes");
+    expect(prompt).toContain("말하지 않은 숫자는 지어내지 않고 비운다");
+  });
 });

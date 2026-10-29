@@ -220,6 +220,11 @@ export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
 6. notes는 200자 안쪽을 목표로 한다.
 7. 어르신·가족의 실명을 기록에 쓰지 않는다.
 8. 재가면 form_fields도 채운다. 시설이면 form_fields는 빈 객체.
+   재가 숫자 칸은 말한 숫자를 빼지 않고 채운다: 방문 시작·종료 시각("2시부터 5시까지")은
+   visit_time.detail.start·end에 "HH:MM"(14:00, 17:00)으로, form_fields.total_minutes에 종료−시작(분)으로.
+   지원별 분("목욕 80분, 청소랑 빨래 60분, 말벗 60분")은 support.detail.minutes의 키 6개
+   (physical, cognitive_stimulation, daily_living_together, cognitive_management, emotional, housework)에
+   정수로 넣고, value_ko에도 말한 지원을 모두 쓴다(가사 포함). 말하지 않은 숫자는 지어내지 않고 비운다.
 9. 서버 검사 결과를 이기려고 내용을 지어내지 않는다. 고칠 수 없으면 needs_check로 둔다.
 10. 도구 결과 밖의 설명 문장은 쓰지 않는다. 초안은 return_draft의 draft로만 낸다.`;
 }

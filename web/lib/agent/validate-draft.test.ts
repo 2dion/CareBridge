@@ -8,7 +8,10 @@ import {
   INTAKE_VALUES,
   ITEM_KEYS,
   type ItemKey,
+  MINUTE_KEYS,
+  minutesBetween,
   REASONS,
+  reasonTranslation,
   stripQuestionSentences,
   sumSupportMinutes,
   validateDraft,
@@ -225,6 +228,42 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
     const draft = { ...withMinutes({ physical: 100 }), form_fields: { total_minutes: 90 } };
     const ctx: ValidateContext = { transcript: TRANSCRIPT, careType: "home" };
     expect(codes(draft, ctx)).toContain("support_minutes_exceed_visit");
+  });
+
+  // 이슈 #115: AI가 visit_time.detail.start·end만 채워도 검사 5가 돌아야 시연 시나리오 2가 동작한다
+  it("total_minutes도 없으면 visit_time 항목의 detail.start·end(HH:MM)로 계산함", () => {
+    const draft = withItem(
+      withMinutes({ physical: 80, emotional: 60, housework: 60 }),
+      "visit_time",
+      {
+        value_ko: "14:00~17:00 방문",
+        status: "observed",
+        evidence: "아침에 세수해 드리고 두 시간마다 자세 바꿨어요.",
+        detail: { start: "14:00", end: "17:00" },
+      },
+    );
+    const ctx: ValidateContext = { transcript: TRANSCRIPT, careType: "home" };
+    const result = validateDraft(draft, ctx);
+    expect(result.problems.map((p) => p.code)).toEqual(["support_minutes_exceed_visit"]);
+    expect(result.fixed?.items.find((i) => i.item_key === "support")?.reason).toContain(
+      "200분 > 180분",
+    );
+  });
+
+  it("두 시각 사이의 분: DB time 형식(HH:MM:SS)도 읽고, 틀린 형식·역순은 null", () => {
+    expect(minutesBetween("14:00", "17:00")).toBe(180);
+    expect(minutesBetween("14:00:00", "17:30:00")).toBe(210);
+    expect(minutesBetween("오후 2시", "17:00")).toBeNull();
+    expect(minutesBetween("17:00", "14:00")).toBeNull();
+    expect(minutesBetween(undefined, "17:00")).toBeNull();
+  });
+
+  it("서버가 붙인 이유의 번역은 숫자가 붙어도 찾음", () => {
+    expect(reasonTranslation(`${REASONS.supportMinutesExceed} (200분 > 180분)`)).toBe(
+      "Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)",
+    );
+    expect(reasonTranslation("모르는 이유")).toBe("");
+    expect(reasonTranslation(REASONS.realName, "ko")).toBe(REASONS.realName);
   });
 
   it("재가인데 방문 시간을 모르면 분이 적힌 제공 지원을 확인 필요로", () => {
@@ -458,6 +497,18 @@ describe("검사 7: 식사 섭취량 값 (이슈 #133)", () => {
   it("서식 기준(get_form_spec)의 섭취량 선택지는 저장 값으로 시작한다", () => {
     const spec = getFormSpec("facility");
     expect(spec.choices.intake.map((choice) => choice.split(" ")[0])).toEqual([...INTAKE_VALUES]);
+  });
+});
+
+describe("재가 서식 기준의 숫자 칸 안내 (이슈 #115)", () => {
+  it("방문 시각은 detail.start·end와 total_minutes에, 분은 detail.minutes 키 6개에 채우라고 함", () => {
+    const spec = getFormSpec("home");
+    expect(spec.items.visit_time).toContain("detail.start·detail.end");
+    expect(spec.items.visit_time).toContain("form_fields.total_minutes");
+    expect(spec.items.support).toContain("청소·빨래");
+    expect(spec.items.support).toContain("housework");
+    expect(spec.choices.minutes_keys).toEqual([...MINUTE_KEYS]);
+    expect(spec.rules.join(" ")).toContain("말하지 않은 숫자는 지어내지 않고 비운다");
   });
 });
 

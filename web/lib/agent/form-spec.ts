@@ -42,9 +42,10 @@ const HOME: FormSpec = {
   form: "별지 제12호 (재가, 2025.12.12판)",
   verified: "verified",
   items: {
-    visit_time: "일정관리 시작·종료시간, 총시간(분)",
+    visit_time:
+      "일정관리 시작·종료시간, 총시간(분). 원문에 시각이 있으면('2시부터 5시까지') detail.start·detail.end에 'HH:MM'(예: '14:00', '17:00')으로 꼭 채우고 value_ko는 '14:00~17:00 방문'처럼. form_fields.total_minutes = 종료 − 시작(분)",
     support:
-      "신체활동지원 6개 체크 + 제공시간(분), 인지활동지원 2줄(인지자극활동, 일상생활 함께하기, 각 분), 인지관리지원(분), 정서지원(분), 가사 및 일상생활지원 2개 체크 + 제공시간(분)",
+      "신체활동지원 6개 체크 + 제공시간(분), 인지활동지원 2줄(인지자극활동, 일상생활 함께하기, 각 분), 인지관리지원(분), 정서지원(분), 가사 및 일상생활지원 2개 체크 + 제공시간(분). 원문에 분이 있으면('목욕 80분', '청소랑 빨래 60분', '말벗 60분') detail.minutes의 해당 키에 정수로 꼭 넣음: 세면·목욕·화장실·이동·식사 도움·체위변경 → physical, 청소·빨래·식사 준비·장보기 → housework, 말벗·격려·정서 지원 → emotional, 인지자극 활동 → cognitive_stimulation, 일상생활 함께하기 → daily_living_together, 인지관리 → cognitive_management. value_ko에는 말한 지원을 모두 쓴다(가사 포함)",
     meal: "신체활동지원 > 식사 도움(체크), 변화상태 > 식사기능. 섭취량 칸 없음 → 특이사항",
     sleep: "특이사항",
     discomfort: "변화상태 > 신체기능, 특이사항",
@@ -54,7 +55,8 @@ const HOME: FormSpec = {
     next_check: "칸 없음 (기관 내부 메모)",
   },
   form_fields: {
-    total_minutes: "총시간(분)",
+    total_minutes:
+      "총시간(분). visit_time의 종료 − 시작을 계산해 정수로(14:00~17:00이면 180). 시각을 말하지 않았으면 빼기",
     body_trend: "신체기능 변화상태",
     meal_trend: "식사기능 변화상태",
     cognition_trend: "인지기능 변화상태",
@@ -74,7 +76,8 @@ const HOME: FormSpec = {
   },
   rules: [
     "support의 분은 detail.minutes에 위 키 6개만, 정수(분). 말하지 않은 분은 빼거나 0",
-    "지원별 제공시간 합은 방문 시간 이하",
+    "방문 시작·종료 시각과 지원별 분은 원문에 숫자가 있으면 빼지 않고 채운다. 말하지 않은 숫자는 지어내지 않고 비운다",
+    "지원별 제공시간 합은 방문 시간 이하. 넘으면 서버 검사가 support를 needs_check로 둔다",
     "호전/유지/악화는 원문에 비교가 있을 때만",
   ],
 };
