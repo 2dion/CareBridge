@@ -185,6 +185,29 @@
   padding-right: 16px;
 }
 
+/* W4 상태 칩 줄(이슈 #109): 오른쪽에 칩이 더 있으면(.more) 끝을 바탕색으로 흐리게 해 알린다. 끝까지 밀면 사라진다 */
+.m-app .filters-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.m-app .filters-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 48px;
+  background: linear-gradient(to right, transparent, var(--color-canvas));
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.m-app .filters-wrap.more::after {
+  opacity: 1;
+}
+
 .m-app button.filter {
   border: 0;
   font: inherit;

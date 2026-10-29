@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
+import { CapsLockNote, useCapsLock } from "@/components/mobile/caps-lock";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel } from "@/components/mobile/parts";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
@@ -49,6 +50,8 @@ export default function SignupPage() {
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState<SignupError | "network" | null>(null);
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
+  const caps = useCapsLock();
+  const caps2 = useCapsLock();
 
   const normalizedCode = code.toUpperCase().replace(/\s+/g, "");
   const shortPw = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
@@ -215,6 +218,7 @@ export default function SignupPage() {
               value={password}
               onValueChange={setPassword}
               autoComplete="new-password"
+              {...caps.props}
             />
             <button
               type="button"
@@ -225,6 +229,7 @@ export default function SignupPage() {
               <Icon name={show ? "eyeOff" : "eye"} />
             </button>
           </div>
+          <CapsLockNote on={caps.on} />
           {shortPw || serverError === "weak_password" ? (
             <FieldError ko="비밀번호는 8자 이상이어야 합니다." vi="Mật khẩu cần ít nhất 8 ký tự." />
           ) : (
@@ -245,8 +250,10 @@ export default function SignupPage() {
               value={password2}
               onValueChange={setPassword2}
               autoComplete="new-password"
+              {...caps2.props}
             />
           </div>
+          <CapsLockNote on={caps2.on} />
           {mismatch && <FieldError ko="두 비밀번호가 다릅니다." vi="Hai mật khẩu không khớp." />}
         </div>
         <div className="card consent">
