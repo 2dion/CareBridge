@@ -236,7 +236,7 @@ export default function DraftPage() {
       <div className="scroll" style={{ marginTop: 12, paddingBottom: 12 }}>
         {record.status === "returned" && (
           <div className="reason-box big" role="note">
-            <b>수정할 내용</b>
+            <b>수정 요청 사유</b>
             {record.returnReason}
             {record.returnReasonNative && <span className="vi">{record.returnReasonNative}</span>}
             <span style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 4 }}>
