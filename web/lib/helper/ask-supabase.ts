@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getClaudeClient } from "@/lib/ai/claude";
+import { translateQuestionKo } from "@/lib/ai/translate";
 import type { NativeLang, Role } from "@/lib/auth/signup";
 import { getAiMode, getAiModels } from "@/lib/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -58,6 +59,8 @@ export async function createHelperDeps(): Promise<HelperDeps> {
       if (error) throw new Error(`용어 검색 실패: ${error.message}`);
       return (data ?? []) as GlossaryTerm[];
     },
+    // 한글이 없는 질문은 한국어로 옮겨 검색한다(이슈 #122). Mock 모드는 null → 원문으로 검색
+    translateQuestion: translateQuestionKo,
     async askClaude(system, user) {
       if (getAiMode() === "mock") return null;
       const response = await getClaudeClient().messages.create(
