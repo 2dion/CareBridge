@@ -27,6 +27,7 @@ export async function createRecordPdf({
   alias,
   org,
   notesArea,
+  training = false,
 }: {
   template: Uint8Array;
   fontBytes: Uint8Array;
@@ -34,6 +35,8 @@ export async function createRecordPdf({
   alias: string;
   org: string;
   notesArea: NoteArea | "";
+  /** 교육용 기관의 연습 기록이면 '연습용'을 찍는다(결정 2026-10-25-강사흐름통일 4, 이슈 #125) */
+  training?: boolean;
 }) {
   const source = await PDFDocument.load(template);
   const output = await PDFDocument.create();
@@ -89,7 +92,7 @@ export async function createRecordPdf({
       });
     }
     page.drawText(
-      `합성 사례 · 공식 기록지 아님${record.status === "approved" ? "" : " · 승인 전"} · ${index + 1}/${pagesNeeded}${index > 0 ? " 이어쓰기" : ""}`,
+      `${training ? "연습용 · " : ""}합성 사례 · 공식 기록지 아님${record.status === "approved" ? "" : " · 승인 전"} · ${index + 1}/${pagesNeeded}${index > 0 ? " 이어쓰기" : ""}`,
       {
         x: 54,
         y: page.getHeight() - 32,

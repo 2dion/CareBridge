@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { supabaseConfigured } from "@/lib/auth/session";
+import { type RoleNames, roleNames } from "@/lib/demo/roles";
 import { createDemoDb, DB_STORAGE_KEY, type DemoDb, kstToday } from "@/lib/demo/store";
 import { createRealActions, type RealActions } from "@/lib/real/actions";
 import { loadRealDb, NotSignedInError } from "@/lib/real/load";
@@ -266,6 +267,12 @@ export function useDemo(): DemoContext | null {
     () => false,
   );
   return hydrated ? value : null;
+}
+
+/** 화면에 보일 역할 이름. 교육용 기관(실제 모드 is_training)이면 교육생·강사, 그 밖(Mock 포함)은 작성자·관리자(이슈 #125) */
+export function useRoleNames(): RoleNames {
+  const demo = useDemo();
+  return roleNames(Boolean(demo?.real?.isTraining));
 }
 
 export function nowIso() {

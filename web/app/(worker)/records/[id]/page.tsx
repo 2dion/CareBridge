@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { nowIso, useDemo } from "@/components/demo/demo-provider";
+import { nowIso, useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
@@ -50,6 +50,8 @@ export default function DraftPage() {
   const search = useSearchParams();
   const router = useRouter();
   const demo = useDemo();
+  // 교육용 기관이면 '강사'(이슈 #125)
+  const names = useRoleNames();
   const [step, setStep] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -290,9 +292,9 @@ export default function DraftPage() {
         />
         {needsLeft > 0 && (
           <p className="foot-note">
-            ‘확인 필요’가 남아 있어도 보낼 수 있어요. 관리자가 정해요.
+            ‘확인 필요’가 남아 있어도 보낼 수 있어요. {names.reviewer}가 정해요.
             <span className="vi">
-              Vẫn gửi được khi còn mục cần kiểm tra. Người quản lý sẽ quyết định.
+              Vẫn gửi được khi còn mục cần kiểm tra. {names.reviewerVi} sẽ quyết định.
             </span>
           </p>
         )}
@@ -314,7 +316,7 @@ export default function DraftPage() {
           disabled={!canSend}
           onClick={() => setConfirmOpen(true)}
         >
-          <BtnLabel ko="관리자에게 전송" vi="Gửi người quản lý" />
+          <BtnLabel ko={`${names.reviewer}에게 전송`} vi={`Gửi ${names.reviewerVi}`} />
         </button>
       </div>
       {!canSend && (
@@ -325,12 +327,12 @@ export default function DraftPage() {
       <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        label="관리자에게 전송할까요?"
+        label={`${names.reviewer}에게 전송할까요?`}
       >
         <span className="icon-bubble" style={{ width: 64, height: 64, borderRadius: 32 }}>
           <Icon name="send" />
         </span>
-        <h2 style={{ fontSize: 24, fontWeight: 700 }}>관리자에게 전송할까요?</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700 }}>{names.reviewer}에게 전송할까요?</h2>
         <hr style={{ width: "100%" }} />
         <p style={{ fontSize: 17 }}>전송한 뒤에는 고칠 수 없어요.</p>
         <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
@@ -394,6 +396,7 @@ function ItemCard({
   onConfirm: (key: RecordItem["item_key"]) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const names = useRoleNames();
   const label = itemLabel(item.item_key);
   const done = item.confirmed_by_worker || item.source === "worker";
   const editHref = `/records/${record.id}/items/${item.item_key}`;
@@ -436,15 +439,15 @@ function ItemCard({
         </>
       )}
       {item.before_ko && item.source === "reviewer" && (
-        <p className="before" aria-label="관리자가 고치기 전">
+        <p className="before" aria-label={`${names.reviewer}가 고치기 전`}>
           고치기 전: {item.before_ko}
         </p>
       )}
       {item.source === "reviewer" && !item.confirmed_by_worker && (
         <span style={{ fontSize: 12, color: "var(--color-warn-text)" }}>
-          관리자가 고쳤어요. 맞는지 확인해 주세요.
+          {names.reviewer}가 고쳤어요. 맞는지 확인해 주세요.
           <span className="vi" style={{ display: "block" }}>
-            Người quản lý đã sửa. Hãy kiểm tra lại.
+            {names.reviewerVi} đã sửa. Hãy kiểm tra lại.
           </span>
         </span>
       )}

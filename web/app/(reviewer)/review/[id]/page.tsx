@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
 import {
@@ -20,6 +20,7 @@ import {
   reviewOrder,
   sourceSummary,
 } from "@/lib/demo/review";
+import type { RoleNames } from "@/lib/demo/roles";
 import { countUnresolved, type ItemKey } from "@/lib/demo/state";
 import {
   canApproveRecord,
@@ -68,10 +69,10 @@ function evidenceHit(line: string, evidence: string) {
   return line.includes(key) || key.includes(line.replace(/[.?!]$/, ""));
 }
 
-function itemChip(item: RecordItem) {
+function itemChip(item: RecordItem, names: RoleNames) {
   if (item.status === "needs_check") return <span className="chip warn">확인 필요</span>;
-  if (item.source === "worker") return <span className="chip blue">작성자 수정</span>;
-  if (item.source === "reviewer") return <span className="chip blue">관리자 수정</span>;
+  if (item.source === "worker") return <span className="chip blue">{names.worker} 수정</span>;
+  if (item.source === "reviewer") return <span className="chip blue">{names.reviewer} 수정</span>;
   if (item.status === "observed") return <span className="chip green">관찰</span>;
   return <span className="chip gray">언급 없음</span>;
 }
@@ -82,6 +83,7 @@ function ReviewRecord() {
   const demo = useDemo()!;
   const { db, today } = demo;
   const toast = useToast();
+  const names = useRoleNames();
   const record = db.records[id];
   const [selected, setSelected] = useState<ItemKey | null>(null);
   const [returning, setReturning] = useState(false);
@@ -245,9 +247,10 @@ function ReviewRecord() {
 
       <section className="panel summary">
         <span>
-          작성자 수정: {summary.worker.map((key) => itemLabel(key).ko).join(", ") || "없음"} ·
-          관리자 수정: {summary.reviewer.map((key) => itemLabel(key).ko).join(", ") || "없음"} · AI
-          그대로 {summary.aiCount}개
+          {names.worker} 수정: {summary.worker.map((key) => itemLabel(key).ko).join(", ") || "없음"}{" "}
+          · {names.reviewer} 수정:{" "}
+          {summary.reviewer.map((key) => itemLabel(key).ko).join(", ") || "없음"} · AI 그대로{" "}
+          {summary.aiCount}개
         </span>
         <span className={`checks ${unresolved === 0 ? "ok" : ""}`}>
           확인 필요 {unresolved} · 처리 완료 {resolvedCount}
@@ -435,6 +438,7 @@ function ReviewItem({
   const [note, setNote] = useState("");
   const [noteError, setNoteError] = useState(false);
   const label = itemLabel(item.item_key).ko;
+  const names = useRoleNames();
   const unresolved = item.status === "needs_check" && item.resolution === null;
   const isNotes = item.item_key === "notes";
   const showMinutes = item.item_key === "support" && record.formType === "12";
@@ -450,7 +454,7 @@ function ReviewItem({
     >
       <div className="ritem-head">
         <b>{label}</b>
-        {itemChip(item)}
+        {itemChip(item, names)}
       </div>
       {item.status === "needs_check" && item.reason && item.source !== "reviewer" && (
         <p className="reason">
@@ -636,6 +640,7 @@ function ReturnModal({
   /** 요청 중이면 [되돌리기]를 다시 누를 수 없다(이슈 #136) */
   busy?: boolean;
 }) {
+  const names = useRoleNames();
   const [keys, setKeys] = useState<ItemKey[]>([]);
   const [reason, setReason] = useState("");
   const [error, setError] = useState(false);
@@ -692,8 +697,8 @@ function ReturnModal({
         </p>
       )}
       <p className="info-note">
-        되돌리면 승인 대기에서 빠지고, 작성자 오늘 화면에 주황 띠로 보여요. 작성자가 고친 항목은
-        관리자가 다시 확인해요.
+        되돌리면 승인 대기에서 빠지고, {names.worker} 오늘 화면에 주황 띠로 보여요. {names.worker}가
+        고친 항목은 {names.reviewer}가 다시 확인해요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
         <button type="button" className="dbtn" disabled={busy} onClick={onClose}>

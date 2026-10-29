@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { Listen } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
@@ -26,6 +26,7 @@ const itemIcon: Record<ItemKey, IconName> = {
 export default function RecordViewPage() {
   const { id } = useParams<{ id: string }>();
   const demo = useDemo();
+  const names = useRoleNames();
   const record = demo?.db.records[id];
   const resident = demo && record ? getResident(demo.db, record.residentId) : undefined;
   if (!demo || !record || !resident) return <Loading tab="archive" />;
@@ -62,9 +63,15 @@ export default function RecordViewPage() {
         </span>
         <div>
           <b>{approved ? "승인 완료" : "전송 완료"}</b>
-          <p>{approved ? "관리자가 검토하고 승인했어요." : "관리자 확인을 기다리고 있어요."}</p>
+          <p>
+            {approved
+              ? `${names.reviewer}가 검토하고 승인했어요.`
+              : `${names.reviewer} 확인을 기다리고 있어요.`}
+          </p>
           <span className="vi">
-            {approved ? "Người quản lý đã phê duyệt bản ghi." : "Đang chờ người quản lý xem xét."}
+            {approved
+              ? `${names.reviewerVi} đã phê duyệt bản ghi.`
+              : `Đang chờ ${names.reviewerVi} xem xét.`}
           </span>
         </div>
       </section>
@@ -110,7 +117,7 @@ export default function RecordViewPage() {
         })}
         {!approved && (
           <p className="foot-note">
-            관리자 검토가 끝나면 기록 상태가 바뀌어요.
+            {names.reviewer} 검토가 끝나면 기록 상태가 바뀌어요.
             <span className="vi">Trạng thái sẽ thay đổi sau khi được xem xét.</span>
           </p>
         )}

@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
 import { SHOW_FRAME_VI } from "@/lib/bilingual";
+import { TRAINING_BAND } from "@/lib/demo/roles";
 import { monthDay, type Resident } from "@/lib/demo/store";
 import type { RecordStatus } from "@/lib/demo/state";
 
@@ -37,6 +38,12 @@ export function MobileScreen({
     <main
       className={`m-app ${tab !== undefined ? "has-tabs" : ""} ${font !== "normal" ? `font-${font}` : ""} ${className}`}
     >
+      {/* 교육용 기관이면 모든 화면 위에 '연습용 · 합성 사례' 띠(화면 v1.3, 이슈 #125) */}
+      {demo?.real?.isTraining && (
+        <p className="training-band" role="note">
+          {TRAINING_BAND}
+        </p>
+      )}
       {children}
       {tab !== undefined && <TabBar active={tab} />}
     </main>

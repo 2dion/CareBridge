@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskShell } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
 import { approvedRecords, type HistoryStep, processHistory } from "@/lib/demo/review";
@@ -164,6 +164,7 @@ function stepDetail(step: HistoryStep) {
 
 function ApprovedDetail({ record }: { record: DemoRecord }) {
   const { db } = useDemo()!;
+  const names = useRoleNames();
   const resident = getResident(db, record.residentId);
   // 처리 이력은 record_events 순서대로: 첫 전송·되돌림(사유)·재전송·확인 처리가 모두 보인다(이슈 #124)
   const steps = processHistory(record);
@@ -214,7 +215,7 @@ function ApprovedDetail({ record }: { record: DemoRecord }) {
             <dd>
               {item.value_ko}
               {item.resolution === "confirmed_by_reviewer" && (
-                <span className="muted"> (관리자 확인함)</span>
+                <span className="muted"> ({names.reviewer} 확인함)</span>
               )}
             </dd>
           </div>

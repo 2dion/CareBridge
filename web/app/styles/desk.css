@@ -124,6 +124,18 @@
   color: var(--color-sub);
 }
 
+/* 교육용 기관의 '연습용 · 합성 사례' 띠(이슈 #125). 인쇄에는 PDF가 따로 찍는다 */
+.d-app .training-band {
+  margin: 0 0 16px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #fff3cd;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a5b00;
+  text-align: center;
+}
+
 .d-app .main {
   flex: 1;
   min-width: 0;
