@@ -105,7 +105,9 @@ export async function submitRecord(recordId: string, deps: TransitionDeps): Prom
 
   // 재가: 전송 직전에 검사 5(지원별 분 합 ≤ 방문 시간)를 다시 해 제공 지원의 '확인 필요'와 이유를 맞춘다(이슈 #116).
   // '확인 필요'가 남아도 전송할 수 있고, 관리자가 처리하기 전에는 승인되지 않는다. 검사가 실패해도 전송은 막지 않는다.
-  await deps.recheckSupport(recordId, userId).catch(() => {});
+  await deps.recheckSupport(recordId, userId).catch((error) => {
+    console.error("support recheck failed before submit", recordId, error);
+  });
 
   const updated = await deps.update(
     recordId,
