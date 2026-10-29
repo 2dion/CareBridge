@@ -1,0 +1,49 @@
+name: 기능·개선
+description: 없는 기능을 더하거나 있는 화면·동작을 바꿔요.
+title: "[기능] "
+labels: ["기능·개선"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        실명은 쓰지 않습니다. 담당 라벨과 기한 라벨을 붙여 주세요.
+        공통 계약(API·상태 값·표·권한)이나 기획안 결정표를 바꾸면 `문서/결정/`에 결정 기록을 먼저 씁니다.
+  - type: textarea
+    id: why
+    attributes:
+      label: 왜 필요한가
+      description: 누가 어떤 상황에서 불편한지
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 무엇을 바꾸나
+      description: 화면 번호, API, 표 칸 등. 모르면 '확인 필요'
+    validations:
+      required: true
+  - type: dropdown
+    id: contract
+    attributes:
+      label: 공통 계약·결정표에 영향
+      options:
+        - 없음(화면 표시만)
+        - 있음(결정 기록 필요)
+        - 모름
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 범위
+      options:
+        - MVP(10/31·11/08 안에)
+        - 추후 적용
+        - 팀장 결정 필요
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 끝난 기준
+      placeholder: "- [ ] W4 상세에서 '확인 필요' 항목이 맨 위에 보인다"

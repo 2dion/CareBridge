@@ -1,0 +1,54 @@
+name: 버그
+description: 화면·서버·DB가 문서와 다르게 동작하거나 오류가 나요.
+title: "[버그] "
+labels: ["버그"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        실명은 쓰지 않습니다(역할 이름·GitHub 아이디만). 어르신은 합성 사례 가명만 씁니다.
+        담당 라벨(BE·FE·QA·기획·데이터·팀장)과 기한 라벨(10/31 전·11/08 전)을 오른쪽에서 붙여 주세요.
+  - type: input
+    id: where
+    attributes:
+      label: 어디서
+      description: 화면 번호(W0~W6, R1~R4, A1·A2)나 API 경로, 배포 주소·로컬 중 어디인지
+      placeholder: "예: R4 어르신 관리, 배포본(care-bridge-kappa.vercel.app)"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 따라 하는 순서
+      description: 누가(작성자/담당자 계정) 무엇을 눌렀는지 번호로
+      placeholder: |
+        1. 담당자 계정으로 로그인
+        2. R4에서 [수정]
+        3. 가명을 바꾸고 [저장]
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 지금 일어나는 일
+      description: 보인 문구·오류 키, 가능하면 화면 캡처
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 동작과 근거
+      description: "어느 문서의 어느 절에 그렇게 적혀 있는지(예: 화면 v1.3 R4)"
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: 환경
+      placeholder: "예: 아이폰 사파리 / 맥 크롬, main 커밋 402ade2"
+  - type: textarea
+    id: done
+    attributes:
+      label: 끝난 기준
+      description: 무엇을 확인하면 닫을지
+      placeholder: "- [ ] 작성자 2명 담당 연결이 각각 저장된다"

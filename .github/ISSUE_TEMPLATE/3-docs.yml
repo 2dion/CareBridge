@@ -1,0 +1,30 @@
+name: 용어·문서
+description: 화면·코드·문서·피그마의 용어가 다르거나 문서가 코드와 달라요.
+title: "[문서] "
+labels: ["용어·문서"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        실명은 쓰지 않습니다. 담당 라벨과 기한 라벨을 붙여 주세요.
+        문서 기준 순서: 기획안 → 데이터 구조(공통 계약) → 화면 설계 → AI 규칙 → 기술 선택(AGENTS.md).
+  - type: textarea
+    id: where
+    attributes:
+      label: 어디가 다른가
+      description: 파일 경로와 절, 코드 파일, 피그마 화면
+      placeholder: |
+        - 문서/설계/화면-v1.3.md W4: '전송 완료'
+        - web/app/(worker)/records/page.tsx: '보냄'
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 무엇으로 맞추면 좋은가
+      description: 제안과 근거. 정하기 어려우면 비워 두고 질문 템플릿을 씁니다.
+  - type: textarea
+    id: done
+    attributes:
+      label: 끝난 기준
+      placeholder: "- [ ] 화면·문서에서 옛 이름 검색 결과 0건"
