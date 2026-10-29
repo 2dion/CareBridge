@@ -1,6 +1,6 @@
 "use client";
 
-// R5(설정): 기관 정보(읽기만), 작성자용 가입 코드 복사, AI 사용 원칙.
+// M5(설정): 기관 정보(읽기만), 작성자용 가입 코드 복사, AI 사용 원칙.
 // 가입 코드를 만들거나 끄는 것은 팀장이 DB에서 한다(로그인가입 결정). 관리자용 코드는 화면에 보이지 않는다.
 import { useDemo } from "@/components/demo/demo-provider";
 import { DeskShell, useToast } from "@/components/desk/shell";

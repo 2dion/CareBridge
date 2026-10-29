@@ -1,6 +1,6 @@
 "use client";
 
-// R2(기록 검토): 왼쪽 원문·번역, 오른쪽 항목.
+// M2(기록 검토): 왼쪽 원문·번역, 오른쪽 항목.
 // 관리자는 항목을 고치거나 ‘확인 필요’를 [확인함]/[기록 안 함]으로 정한다. 하나라도 안 정하면 승인할 수 없다(원칙 3).
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -86,7 +86,7 @@ function ReviewRecord() {
     { tool: string; key: string; name: string; reason: string; result: string }[]
   >([]);
   const realActions = demo.real?.actions;
-  // R2 'AI 작업 기록': agent_steps(관리자는 같은 기관 읽기)
+  // M2 'AI 작업 기록': agent_steps(관리자는 같은 기관 읽기)
   useEffect(() => {
     if (!realActions) return;
     let alive = true;

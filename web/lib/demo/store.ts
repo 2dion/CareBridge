@@ -113,7 +113,7 @@ export const noCareReasonLabel: Record<NoCareReason, { ko: string; vi: string }>
   other: { ko: "기타 (직접 쓰기)", vi: "Khác" },
 };
 
-/** W3·R2 표시 순서: 별지 제12호·제16호처럼 인지 변화를 복약 관찰 앞에 둔다(화면 v1.3 W3 항목 순서). */
+/** W3·M2 표시 순서: 별지 제12호·제16호처럼 인지 변화를 복약 관찰 앞에 둔다(화면 v1.3 W3 항목 순서). */
 export const displayOrder: ItemKey[] = [
   "visit_time",
   "support",
@@ -394,7 +394,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
       visitDays: null,
       visitTime: "07:00~16:00",
       caseId: "S-F05",
-      // 담당을 10일 전에 시작: 8~10일 전 빈 날이 R1 '기한 지난 빈 기록'에 보이게(기한지난빈기록 결정)
+      // 담당을 10일 전에 시작: 8~10일 전 빈 날이 M1 '기한 지난 빈 기록'에 보이게(기한지난빈기록 결정)
       startDate: addDays(today, -10),
     },
   ];

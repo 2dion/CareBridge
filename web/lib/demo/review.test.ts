@@ -32,7 +32,7 @@ function ok(value: DemoDb | { error: string }): DemoDb {
   return value;
 }
 
-describe("관리자 규칙 (R1~R4)", () => {
+describe("관리자 규칙 (M1~M5)", () => {
   it("검토 대기: 전송한 기록만, 확인 필요가 많은 순", () => {
     const db = createDemoDb(TODAY);
     const queue = reviewQueue(db);

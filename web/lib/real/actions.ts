@@ -221,7 +221,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .eq("care_date", careDate);
       return after(dbError(error) ?? { ok: true as const });
     },
-    /** R4: 담당 연결의 방문 요일·담당 시작일(관리자, RLS). 방문 시간은 DB 칸이 없어 저장하지 않는다 */
+    /** M4: 담당 연결의 방문 요일·담당 시작일(관리자, RLS). 방문 시간은 DB 칸이 없어 저장하지 않는다 */
     async updateResident(residentId: string, edit: ResidentEdit) {
       const { error } = await supabase
         .from("assignments")
@@ -258,7 +258,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
     async askHelper(question: string) {
       return callApi<HelperAnswer>("/api/helper/ask", { body: { question } });
     },
-    /** R2 'AI 작업 기록'(관리자는 같은 기관 agent_steps 읽기) */
+    /** M2 'AI 작업 기록'(관리자는 같은 기관 agent_steps 읽기) */
     async agentSteps(recordId: string) {
       const { data } = await supabase
         .from("agent_steps")

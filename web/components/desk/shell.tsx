@@ -1,6 +1,6 @@
 "use client";
 
-// 관리자 화면(R1~R4) 공통 틀: 왼쪽 메뉴, 오른쪽 본문. 관리자 화면은 한국어만(화면틀병기 결정).
+// 관리자 화면(M1~M5) 공통 틀: 왼쪽 메뉴, 오른쪽 본문. 관리자 화면은 한국어만(화면틀병기 결정).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
