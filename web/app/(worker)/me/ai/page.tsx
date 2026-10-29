@@ -1,6 +1,6 @@
 "use client";
 
-// AI 사용 원칙(피그마 M42). AGENTS.md '바꾸지 않는 원칙' 1·2를 작성자 말로 옮김.
+// W5 · AI 사용 원칙. AGENTS.md '바꾸지 않는 원칙' 1·2를 작성자 말로 옮김.
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";

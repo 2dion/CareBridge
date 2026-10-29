@@ -33,7 +33,7 @@ function ok(value: DemoDb | { error: string }): DemoDb {
 }
 
 describe("담당자 규칙 (R1~R4)", () => {
-  it("검토 대기: 보낸 기록만, 확인 필요가 많은 순", () => {
+  it("검토 대기: 전송한 기록만, 확인 필요가 많은 순", () => {
     const db = createDemoDb(TODAY);
     const queue = reviewQueue(db);
     expect(queue.length).toBeGreaterThan(0);
@@ -90,7 +90,7 @@ describe("담당자 규칙 (R1~R4)", () => {
     expect(reviewQueue(next).some((entry) => entry.id === record.id)).toBe(false);
   });
 
-  it("되돌린 뒤 다시 보낸 기록만 '다시 보냄'으로 표시한다", () => {
+  it("되돌린 뒤 다시 전송한 기록만 '다시 전송한 기록'으로 표시한다", () => {
     const db = createDemoDb(TODAY);
     const record = reviewQueue(db)[0];
     expect(wasResent(record)).toBe(false);

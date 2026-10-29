@@ -16,7 +16,7 @@ export type TabKey = "today" | "archive" | "helper" | "me";
 
 const tabs: { key: TabKey; href: string; label: string; icon: IconName }[] = [
   { key: "today", href: "/today", label: "오늘", icon: "home" },
-  { key: "archive", href: "/archive", label: "기록함", icon: "list" },
+  { key: "archive", href: "/archive", label: "기록", icon: "list" },
   { key: "helper", href: "/helper", label: "도우미", icon: "helper" },
   { key: "me", href: "/me", label: "내 정보", icon: "user" },
 ];

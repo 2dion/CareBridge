@@ -1,6 +1,6 @@
 // 되돌린 사유의 모국어 번역: POST /api/records/:id/return/translate (작성자, W3·W4).
 // 근거: 문서/결정/2026-10-28-되돌림사유번역.md, 2026-10-28-되돌림사유한국어.md 4번
-// 담당자는 한국어만 저장하고, 작성자가 되돌아온 기록을 열 때 서버가 작성자 언어로 번역해 채운다.
+// 담당자는 한국어만 저장하고, 작성자가 수정 필요 기록을 열 때 서버가 작성자 언어로 번역해 채운다.
 // 번역 저장은 service_role 전용 save_return_reason_native(사유가 그사이 바뀌면 stale_reason).
 // DB·번역 호출은 ReturnTranslationDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 

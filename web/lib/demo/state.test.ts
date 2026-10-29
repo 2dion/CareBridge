@@ -43,7 +43,7 @@ describe("S-F01 Mock FE 상태", () => {
     expect(canApprove(state)).toBe(true);
   });
 
-  it("되돌아온 기록과 승인된 기록은 추가 승인할 수 없다", () => {
+  it("수정 필요 기록과 승인된 기록은 추가 승인할 수 없다", () => {
     const state = createDemoState();
     state.status = "returned";
     expect(canApprove(state)).toBe(false);

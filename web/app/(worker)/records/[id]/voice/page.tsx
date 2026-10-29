@@ -1,7 +1,7 @@
 "use client";
 
-// W2(음성 메모, 피그마 M07~M09): 준비 → 녹음 → 정지하면 바로 보냄 → W3 ‘정리 중’.
-// 녹음은 탭 메모리에만 두고, 보내지 못하면 [다시 보내기](2026-10-27-녹음임시보관 결정).
+// W2 · 녹음: 준비 → 녹음 → 정지하면 바로 올림 → W3 ‘정리 중’.
+// 녹음은 탭 메모리에만 두고, 올리지 못하면 [다시 올리기](2026-10-27-녹음임시보관 결정).
 // 말하기·글쓰기는 기록 시작 화면에서 하나만 고른다(10/27 팀장). 여기서 글쓰기로 넘어가는 길은 마이크를 못 쓸 때만.
 // 녹음 화면 안내는 내가 말하는 곳이라 한국어만(병기 원칙 ①), 마이크 권한·오류 안내는 병기(②).
 import Link from "next/link";
@@ -52,7 +52,7 @@ export default function VoicePage() {
       const result = await demo.real.actions.sendVoice(id, blob);
       if (!result.ok) {
         setSendError(result.error === "network" ? null : { ko: result.ko, vi: result.vi });
-        // 녹음은 메모리에 남아 있어 [다시 보내기]로 같은 녹음을 보낸다(녹음임시보관 결정 2번)
+        // 녹음은 메모리에 남아 있어 [다시 올리기]로 같은 녹음을 올린다(녹음임시보관 결정 2번)
         setSend("offline");
         return;
       }
@@ -143,8 +143,8 @@ export default function VoicePage() {
     return (
       <MobileScreen>
         <AppBar
-          title={stopped ? "보내는 중" : "녹음 중"}
-          vi={stopped ? "Đang gửi" : "Đang ghi âm"}
+          title={stopped ? "올리는 중" : "녹음 중"}
+          vi={stopped ? "Đang tải lên" : "Đang ghi âm"}
           right={
             send !== "sending" && (
               <button type="button" className="text-link" onClick={() => setLeaving(true)}>
@@ -171,7 +171,7 @@ export default function VoicePage() {
         </p>
         <p className="center" style={{ marginTop: 6, fontSize: 15, color: "var(--color-sub)" }}>
           {stopped
-            ? "녹음을 보내고 있어요."
+            ? "녹음을 올리고 있어요."
             : `남은 시간 ${clock(left)} · 5분이 되면 자동으로 멈춰요.`}
         </p>
         {send === "offline" && (
@@ -198,14 +198,17 @@ export default function VoicePage() {
               disabled={send === "sending"}
             >
               <Icon name="send" />
-              <BtnLabel ko={send === "sending" ? "보내는 중" : "다시 보내기"} vi="Gửi lại" />
+              <BtnLabel
+                ko={send === "sending" ? "올리는 중" : "다시 올리기"}
+                vi={send === "sending" ? "Đang tải lên" : "Tải lên lại"}
+              />
             </button>
           )}
           <button
             type="button"
             className="btn btn-outline btn-center"
             onClick={() => {
-              // 지금 녹음을 버리고 바로 새로 녹음한다(10/27 팀장: [삭제] → [다시 시도]).
+              // 지금 녹음을 버리고 바로 새로 녹음한다(10/27 팀장: [삭제] → [다시 시도], 10/29 이름 [다시 녹음하기]).
               recorder.discard();
               setSend("idle");
               void recorder.start();
@@ -213,7 +216,7 @@ export default function VoicePage() {
             disabled={send === "sending"}
           >
             <Icon name="refresh" />
-            <BtnLabel ko="다시 시도" vi="Thử lại" />
+            <BtnLabel ko="다시 녹음하기" vi="Ghi âm lại" />
           </button>
         </div>
         <div style={{ height: 22 }} />

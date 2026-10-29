@@ -70,7 +70,7 @@ async function load(recordId: string, deps: TransitionDeps): Promise<Loaded> {
   return { ok: true, userId: user.id, role: user.role, record };
 }
 
-/** 9개 항목이 모두 confirmed 이거나 source = worker 여야 보냄. 안 된 항목 이름을 돌려줌 */
+/** 9개 항목이 모두 confirmed 이거나 source = worker 여야 전송. 안 된 항목 이름을 돌려줌 */
 export function unconfirmedItemKeys(items: ItemRow[]): string[] {
   return items
     .filter((item) => !(item.confirmed || item.source === "worker"))

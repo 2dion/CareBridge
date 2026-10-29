@@ -1,6 +1,6 @@
 "use client";
 
-// 항목 고치기·보태기(피그마 M13 수정, M14 언급 없음 보충).
+// W3 · 항목 고치기·보태기(수정, 언급 없음 보충).
 // 한국어·베트남어 어느 쪽으로 써도 되고, 실제로는 서버가 이 항목만 한국어 기록체로 다시 쓰고 번역한다(화면 v1.3 W3).
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -146,7 +146,7 @@ export default function ItemEditPage() {
         blob = recorder.blob();
       }
       if (!blob) return setNotice("녹음을 찾지 못했어요. 다시 말해 주세요.");
-      setNotice("보내는 중이에요. · Đang gửi.");
+      setNotice("올리는 중이에요. · Đang tải lên.");
       // 이 항목만 다시 쓴다(③ 항목 보태기, save_ai_item item)
       const result = await demo.real.actions.sendItemVoice(id, key, blob);
       if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);

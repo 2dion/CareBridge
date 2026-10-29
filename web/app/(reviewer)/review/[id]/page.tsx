@@ -1,6 +1,6 @@
 "use client";
 
-// R2(기록 검토, 피그마 D01·D05·D09·D10): 왼쪽 원문·번역, 오른쪽 항목.
+// R2(기록 검토): 왼쪽 원문·번역, 오른쪽 항목.
 // 담당자는 항목을 고치거나 ‘확인 필요’를 [확인함]/[기록 안 함]으로 정한다. 하나라도 안 정하면 승인할 수 없다(원칙 3).
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -173,7 +173,7 @@ function ReviewRecord() {
             {late > 0 && (
               <>
                 {" "}
-                <span className="chip blue">늦게 보냄 · {late}일 뒤</span>
+                <span className="chip blue">늦게 전송 · {late}일 뒤</span>
               </>
             )}
           </p>
@@ -211,8 +211,8 @@ function ReviewRecord() {
           {record.status === "approved"
             ? `승인한 기록이에요 (${record.approvedBy} · ${kstTime(record.approvedAt)}). `
             : record.status === "returned"
-              ? "작성자에게 되돌린 기록이에요. 작성자가 고쳐 다시 보내면 검토 대기에 보여요. "
-              : "작성자가 아직 보내지 않은 기록이에요. "}
+              ? "작성자에게 되돌린 기록이에요. 작성자가 고쳐 다시 전송하면 검토 대기에 보여요. "
+              : "작성자가 아직 전송하지 않은 기록이에요. "}
           {record.status === "approved" && (
             <Link className="text-link" href={`/approved?id=${record.id}`}>
               승인한 기록에서 보기
@@ -571,7 +571,7 @@ function ReturnModal({
     <DeskModal open={open} onClose={onClose} label="작성자에게 되돌리기">
       <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>작성자에게 되돌리기</h2>
       <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
-        작성자가 고쳐서 다시 보내요.
+        작성자가 고쳐서 다시 전송해요.
       </p>
       <p className="flabel">다시 볼 항목 (고르면 사유 앞에 붙어요)</p>
       <div className="chips" style={{ marginBottom: 14 }}>

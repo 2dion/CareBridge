@@ -1,6 +1,6 @@
 "use client";
 
-// W3(기록 초안 확인, 피그마 M10·M12·M15·M16): 정리 중 → 항목 카드 → 담당자에게 보내기.
+// W3(기록 초안 확인): 정리 중 → 항목 카드 → 담당자에게 전송.
 // 항목 내용·확인 이유·되돌림 사유와 제목·버튼은 병기, 상태 배지·항목 이름은 한국어만.
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -84,7 +84,7 @@ export default function DraftPage() {
 
   const locked = record && (record.status === "submitted" || record.status === "approved");
   const empty = record?.draftState === "empty";
-  // 방금 보낸 기록은 보냄 완료 화면으로 가고, 기록 보기로 돌리지 않는다.
+  // 방금 전송한 기록은 W3 · 전송 완료 화면으로 가고, 기록 보기로 돌리지 않는다.
   const justSent = useRef(false);
   useEffect(() => {
     if (locked && !justSent.current) router.replace(`/records/${id}/view`);
@@ -185,7 +185,7 @@ export default function DraftPage() {
   }
 
   const groups = groupItems(record.items);
-  // 실제 모드는 DB 제출 검사와 같게 9개 모두 확인 또는 작성자가 고친 것이어야 보낸다(unconfirmed_items)
+  // 실제 모드는 DB 제출 검사와 같게 9개 모두 확인 또는 작성자가 고친 것이어야 전송한다(unconfirmed_items)
   const canSend =
     canSubmitRecord(record) &&
     (!demo.real ||
@@ -236,7 +236,7 @@ export default function DraftPage() {
       <div className="scroll" style={{ marginTop: 12, paddingBottom: 12 }}>
         {record.status === "returned" && (
           <div className="reason-box big" role="note">
-            <b>담당자가 돌려보낸 이유</b>
+            <b>수정할 내용</b>
             {record.returnReason}
             {record.returnReasonNative && <span className="vi">{record.returnReasonNative}</span>}
             <span style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 4 }}>
@@ -314,7 +314,7 @@ export default function DraftPage() {
           disabled={!canSend}
           onClick={() => setConfirmOpen(true)}
         >
-          <BtnLabel ko="담당자에게 보내기" vi="Gửi người phụ trách" />
+          <BtnLabel ko="담당자에게 전송" vi="Gửi người phụ trách" />
         </button>
       </div>
       {!canSend && (
@@ -328,7 +328,7 @@ export default function DraftPage() {
         </span>
         <h2 style={{ fontSize: 24, fontWeight: 700 }}>담당자에게 보낼까요?</h2>
         <hr style={{ width: "100%" }} />
-        <p style={{ fontSize: 17 }}>보낸 뒤에는 고칠 수 없어요.</p>
+        <p style={{ fontSize: 17 }}>전송한 뒤에는 고칠 수 없어요.</p>
         <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
           Sau khi gửi, bạn không thể chỉnh sửa.
         </span>
@@ -337,7 +337,7 @@ export default function DraftPage() {
             <BtnLabel ko="취소" vi="Hủy" />
           </button>
           <button type="button" className="btn btn-primary" onClick={send}>
-            <BtnLabel ko="보내기" vi="Gửi" />
+            <BtnLabel ko="전송" vi="Gửi" />
           </button>
         </div>
       </Modal>
@@ -481,7 +481,7 @@ function ItemCard({
       )}
       {!done &&
         (item.status === "needs_check" ? (
-          // 보내기는 9개 항목이 모두 확인(맞아요)되거나 작성자가 고친 것이어야 한다(DB 제출 검사, 10/28).
+          // 전송은 9개 항목이 모두 확인(맞아요)되거나 작성자가 고친 것이어야 한다(DB 제출 검사, 10/28).
           // ‘확인 필요’도 [맞아요]로 확인하고 보낼 수 있고, 남은 판단은 담당자가 한다.
           <div className="btn-row">
             <Link className="btn btn-primary btn-sm" href={editHref}>

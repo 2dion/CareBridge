@@ -1,6 +1,6 @@
 "use client";
 
-// 기록 시작(피그마 M05~M07): 음성으로 기록 / 글로 쓰기. 임시 저장이 있으면 그 방법 카드에 표시.
+// W2(기록 시작): 음성으로 기록 / 글로 쓰기. 임시 저장이 있으면 그 방법 카드에 표시.
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 

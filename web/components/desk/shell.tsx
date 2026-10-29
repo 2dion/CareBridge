@@ -30,7 +30,7 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
       <aside className="side-nav">
         <div className="brand">
           <b>CareBridge</b>
-          <span>{demo?.db.worker.org ?? "데모 요양센터"} · 기관 담당자</span>
+          <span>{demo?.db.worker.org ?? "데모 요양센터"} · 담당자</span>
         </div>
         <nav aria-label="담당자 메뉴">
           {navItems.map((item) => (
@@ -50,7 +50,7 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
           <span className="mini-avatar">{name.slice(0, 1)}</span>
           <div>
             <b>{name}</b>
-            <small>기관 담당자</small>
+            <small>담당자</small>
           </div>
         </div>
         <button

@@ -33,7 +33,7 @@ function cardGuide(resident: Resident, record?: DemoRecord): { ko: string; vi: s
     case "submitted":
       return { ko: "담당자가 확인하고 있어요", vi: "Người phụ trách đang xem." };
     case "returned":
-      return { ko: "담당자가 돌려보냈어요", vi: "Người phụ trách đã trả lại." };
+      return { ko: "담당자가 수정해 달라고 했어요", vi: "Người phụ trách nhờ bạn sửa lại." };
     case "approved":
       return { ko: "오늘 기록을 확인할 수 있어요.", vi: "Bản ghi hôm nay đã được duyệt." };
   }
@@ -171,7 +171,7 @@ export default function TodayPage() {
           <div className="pad">
             <Link className="btn btn-primary" href="/archive">
               <span className="spacer" />
-              <span className="label">기록함 보기</span>
+              <span className="label">기록 보기</span>
               <Icon name="next" />
             </Link>
           </div>

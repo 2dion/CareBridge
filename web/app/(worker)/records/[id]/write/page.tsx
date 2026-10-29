@@ -1,6 +1,6 @@
 "use client";
 
-// 글로 쓰기(피그마 M11): 쓴 글로 초안을 만든다. 쓰는 화면이라 안내는 한국어만(병기 원칙 ①).
+// W2 · 글로 쓰기: 쓴 글로 초안을 만든다. 쓰는 화면이라 안내는 한국어만(병기 원칙 ①).
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 

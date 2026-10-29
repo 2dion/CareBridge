@@ -1,6 +1,6 @@
 "use client";
 
-// 개인정보 안내(피그마 M41). 읽고 판단하는 안내라 병기.
+// W5 · 개인정보 안내. 읽고 판단하는 안내라 병기.
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
 

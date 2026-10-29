@@ -1,6 +1,6 @@
 "use client";
 
-// W4(기록함, 피그마 M18·M19·M44·M45): 작성 전 / 임시 저장 / 전송 완료 / 수정 필요 / 승인 완료, 기간 거르기, 기록 없음 처리.
+// W4(기록): 작성 전 / 임시 저장 / 전송 완료 / 수정 필요 / 승인 완료, 기간 거르기, 기록 없음 처리.
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -93,7 +93,7 @@ export default function ArchivePage() {
   return (
     <MobileScreen tab="archive">
       <AppBar
-        title="기록함"
+        title="기록"
         vi="Danh sách bản ghi"
         right={
           <button
@@ -158,7 +158,7 @@ export default function ArchivePage() {
                 </span>
               </p>
               <p className="foot-note" style={{ margin: "0 6px 16px" }}>
-                돌봄 날짜보다 늦게 보낸 기록은 담당자 화면에 ‘늦게 보낸 기록’으로 보여요.
+                돌봄 날짜보다 늦게 전송한 기록은 담당자 화면에 ‘늦게 전송한 기록’으로 보여요.
                 <span className="vi">
                   Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho người phụ trách.
                 </span>

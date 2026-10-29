@@ -1,6 +1,6 @@
 "use client";
 
-// W6(도우미, 피그마 M35~M39): 교재 근거 질문·답. 기록을 대신 쓰거나 고치지 않는다.
+// W6(도우미): 교재 근거 질문·답. 기록을 대신 쓰거나 고치지 않는다.
 // 답변은 남이 쓴 내용이라 병기(원칙 ②), 내 질문은 그대로(①).
 import { useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";

@@ -1,6 +1,6 @@
 "use client";
 
-// W5(내 정보, 피그마 M40): 글자 크기, 사용 안내 다시 보기, AI 사용 원칙, 개인정보 안내, 로그아웃.
+// W5(내 정보): 글자 크기, 사용 안내 다시 보기, AI 사용 원칙, 개인정보 안내, 로그아웃.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

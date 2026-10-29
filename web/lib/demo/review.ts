@@ -15,7 +15,7 @@ import {
   updateRecord,
 } from "./store";
 
-/** R1: 보낸 기록, 확인 필요가 많은 순 → 받은 시각 이른 순. */
+/** R1: 전송한 기록, 확인 필요가 많은 순 → 받은 시각 이른 순. */
 export function reviewQueue(db: DemoDb): DemoRecord[] {
   return Object.values(db.records)
     .filter((record) => record.status === "submitted")
@@ -26,7 +26,7 @@ export function reviewQueue(db: DemoDb): DemoRecord[] {
     });
 }
 
-/** R1 '다시 보냄' 아이콘: 한 번이라도 되돌린 뒤 다시 보낸 기록(record_events의 returned로 계산). */
+/** R1 '다시 전송한 기록' 표시: 한 번이라도 되돌린 뒤 다시 전송한 기록(record_events의 returned로 계산). */
 export function wasResent(record: DemoRecord): boolean {
   return record.status === "submitted" && record.events.some((event) => event.type === "returned");
 }

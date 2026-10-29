@@ -1,6 +1,6 @@
 "use client";
 
-// 글자 크기(피그마 M20·M29): 3단계, 미리보기 뒤 [적용].
+// W5 · 글자 크기: 3단계, 미리보기 뒤 [적용].
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

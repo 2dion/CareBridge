@@ -1,6 +1,6 @@
 "use client";
 
-// A2(회원가입, 피그마 M33·M34): 한 화면에서 모두 채우고 [가입하기] 한 번. 가입 코드가 기관·역할을 정한다.
+// A2(회원가입): 한 화면에서 모두 채우고 [가입하기] 한 번. 가입 코드가 기관·역할을 정한다.
 // 로그인 전이라 늘 병기. MVP는 병기 모드 하나라 모국어 칸을 숨기고 vi를 보낸다(병기모드우선 결정).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -149,12 +149,12 @@ export default function SignupPage() {
           {codeError ? (
             <FieldError
               ko="가입 코드가 맞지 않습니다. 담당자에게 다시 확인하세요."
-              vi="Mã không đúng. Hãy hỏi lại người quản lý."
+              vi="Mã không đúng. Hãy hỏi lại người phụ trách."
             />
           ) : (
             <small className="hint-line">
               담당자(교육원은 강사)에게 받은 코드 ·{" "}
-              <span className="vi">Mã do người quản lý cấp</span>
+              <span className="vi">Mã do người phụ trách cấp</span>
             </small>
           )}
         </div>
@@ -259,7 +259,7 @@ export default function SignupPage() {
               <b>AI 결과는 초안이며 담당자가 승인합니다.</b>
               <b>어르신·가족 실명을 쓰지 않습니다.</b>
               <span className="vi">
-                Kết quả AI là bản nháp, người quản lý duyệt. Không dùng tên thật.
+                Kết quả AI là bản nháp, người phụ trách duyệt. Không dùng tên thật.
               </span>
             </span>
           </label>

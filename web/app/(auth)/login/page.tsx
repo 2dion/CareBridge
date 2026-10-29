@@ -1,6 +1,6 @@
 "use client";
 
-// A1(로그인, 피그마 M30~M32): 이메일·비밀번호. 로그인 전이라 한국어 아래 베트남어를 늘 보인다.
+// A1(로그인): 이메일·비밀번호. 로그인 전이라 한국어 아래 베트남어를 늘 보인다.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";

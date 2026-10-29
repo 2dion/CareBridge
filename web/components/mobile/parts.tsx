@@ -38,7 +38,7 @@ export function Listen({ text }: { text: string }) {
   );
 }
 
-/** 가운데 확인 창(피그마 M16). Esc로 닫는다. */
+/** 가운데 확인 창. Esc로 닫는다. */
 export function Modal({
   open,
   onClose,

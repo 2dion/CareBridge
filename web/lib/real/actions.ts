@@ -40,7 +40,7 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
   record_locked: { ko: "승인된 기록은 고칠 수 없어요.", vi: "Không thể sửa bản ghi đã duyệt." },
   not_signed_in: { ko: "다시 로그인해 주세요.", vi: "Hãy đăng nhập lại." },
   stt_failed: {
-    ko: "음성을 글자로 바꾸지 못했어요. 다시 보내거나 글로 써 주세요.",
+    ko: "음성을 글자로 바꾸지 못했어요. 다시 올리거나 글로 써 주세요.",
     vi: "Không chuyển được giọng nói thành văn bản. Hãy gửi lại hoặc viết trực tiếp.",
   },
   empty_transcript: {
@@ -250,7 +250,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .eq("id", auth.user.id);
       return after(dbError(error) ?? { ok: true as const });
     },
-    /** 되돌아온 기록의 사유를 작성자 모국어로 번역해 채움(W3·W4를 열 때, 결정 2026-10-28-되돌림사유번역). 다시 읽기는 부르는 쪽이 한다 */
+    /** 수정 필요 기록의 사유를 작성자 모국어로 번역해 채움(W3·W4를 열 때, 결정 2026-10-28-되돌림사유번역). 다시 읽기는 부르는 쪽이 한다 */
     async translateReturnReason(recordId: string) {
       return callApi(`/api/records/${recordId}/return/translate`);
     },

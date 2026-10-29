@@ -33,7 +33,7 @@ export type Resident = {
 };
 
 export type RecordItem = Item & {
-  /** 담당자가 고치기 전 내용(W3 되돌아온 기록 ‘고치기 전’). */
+  /** 담당자가 고치기 전 내용(W3 수정 필요 기록 ‘고치기 전’). */
   before_ko?: string;
   /** [기록 안 함] 사유. */
   resolution_note?: string;
@@ -403,7 +403,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
   const reviewer = "박 사회복지사";
   const records: DemoRecord[] = [];
 
-  // 김○○(시설, S-F01): 어제 임시 저장, 3일 전 되돌아옴, 5일 전 보냄, 그 밖은 승인·빈 날
+  // 김○○(시설, S-F01): 어제 임시 저장, 3일 전 수정 필요, 5일 전 전송 완료, 그 밖은 승인·빈 날
   records.push(filledRecord(kim, addDays(today, -1), "14:30", worker));
   records.push(
     seedApproved(
@@ -459,7 +459,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
     ),
   );
 
-  // 이○○(재가, S-H01): 방문 요일 중 가장 가까운 지난 날은 보냄(제공시간 합 200분 > 방문 180분)
+  // 이○○(재가, S-H01): 방문 요일 중 가장 가까운 지난 날은 전송 완료(제공시간 합 200분 > 방문 180분)
   const leeDays = [-1, -2, -3, -4, -5, -6, -7]
     .map((n) => addDays(today, n))
     .filter((date) => lee.visitDays?.includes(isoWeekday(date)));
@@ -823,7 +823,7 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
   };
 }
 
-/** 작성자가 고침: source=worker, confirmed=true. 되돌아온 기록이면 resolution을 비운다(되돌림재확인 결정). */
+/** 작성자가 고침: source=worker, confirmed=true. 수정 필요 기록이면 resolution을 비운다(되돌림재확인 결정). */
 export function workerEditItem(
   db: DemoDb,
   id: string,

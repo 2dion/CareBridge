@@ -1,6 +1,6 @@
 "use client";
 
-// 보낸·승인된 기록 보기(피그마 M18 sent/approved detail). 읽기만 한다.
+// W4 · 기록 보기(전송 완료·승인 완료). 읽기만 한다.
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -74,7 +74,7 @@ export default function RecordViewPage() {
         기록 내용
         <small>
           {approved ? `${kstTime(record.approvedAt)} 승인` : `${kstTime(record.submittedAt)} 전송`}
-          {late ? ` · ${late}일 늦게 보냄` : ""}
+          {late ? ` · ${late}일 늦게 전송` : ""}
         </small>
       </div>
       <div className="scroll" style={{ paddingBottom: 16 }}>
