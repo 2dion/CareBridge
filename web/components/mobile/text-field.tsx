@@ -1,6 +1,6 @@
 "use client";
 
-// 글을 넣는 칸(A1·A2·W2·W3·W6 공용). 한글 조합(IME) 중에는 바깥 값으로 칸을 덮어쓰지 않아
+// 글을 넣는 칸(A1·A2·W2·W3·W6, M1·M2·M4 공용). 한글 조합(IME) 중에는 바깥 값으로 칸을 덮어쓰지 않아
 // 한/영 변환키 등으로 조합을 끝낼 때 글자가 두 번 들어가지 않는다(이슈 #107, lib/ime.ts).
 // value·onValueChange만 다르고 나머지 속성은 input·textarea 그대로 넘긴다.
 import { type ComponentProps, useRef, useState } from "react";

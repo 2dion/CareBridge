@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
+import { TextArea, TextInput } from "@/components/mobile/text-field";
 import {
   approveRecord,
   formFieldHint,
@@ -470,7 +471,7 @@ function ReviewItem({
           <p>{item.reason}</p>
         </details>
       )}
-      <textarea
+      <TextArea
         className="field"
         aria-label={`${label} 내용`}
         rows={Math.max(1, Math.ceil(draft.length / 48))}
@@ -478,7 +479,7 @@ function ReviewItem({
         disabled={!editable || item.resolution === "omitted"}
         placeholder="언급 없음"
         maxLength={isNotes ? undefined : 500}
-        onChange={(event) => setDraft(event.target.value)}
+        onValueChange={setDraft}
         onBlur={() => {
           if (draft !== item.value_ko) onEdit(draft);
         }}
@@ -559,13 +560,13 @@ function ReviewItem({
           <label className="flabel" htmlFor={`omit-${item.item_key}`}>
             기록하지 않는 이유 (꼭 쓰기)
           </label>
-          <input
+          <TextInput
             id={`omit-${item.item_key}`}
             className={`field ${noteError ? "invalid" : ""}`}
             value={note}
             maxLength={100}
-            onChange={(event) => {
-              setNote(event.target.value);
+            onValueChange={(next) => {
+              setNote(next);
               setNoteError(false);
             }}
             placeholder="예: 원문만으로 판단할 수 없음"
@@ -669,14 +670,14 @@ function ReturnModal({
       <label className="flabel" htmlFor="return-reason">
         되돌리는 사유 (꼭 쓰기)
       </label>
-      <textarea
+      <TextArea
         id="return-reason"
         className={`field ${error ? "invalid" : ""}`}
         rows={4}
         maxLength={RETURN_LIMIT}
         value={reason}
-        onChange={(event) => {
-          setReason(event.target.value);
+        onValueChange={(next) => {
+          setReason(next);
           setError(false);
         }}
         placeholder="예: 식사량이 ‘조금’이면 얼마나인지 다시 확인해 주세요."
