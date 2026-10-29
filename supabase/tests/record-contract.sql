@@ -26,9 +26,9 @@ insert into auth.users(id) values
  ('f2000000-0000-0000-0000-000000000003'),('f2000000-0000-0000-0000-000000000004');
 insert into public.profiles(id,org_id,role,name,native_lang) values
  ('f2000000-0000-0000-0000-000000000001','f1000000-0000-0000-0000-000000000001','worker','가상 작성자 갑','vi'),
- ('f2000000-0000-0000-0000-000000000002','f1000000-0000-0000-0000-000000000001','reviewer','가상 담당자 갑','ko'),
+ ('f2000000-0000-0000-0000-000000000002','f1000000-0000-0000-0000-000000000001','reviewer','가상 관리자 갑','ko'),
  ('f2000000-0000-0000-0000-000000000003','f1000000-0000-0000-0000-000000000001','worker','가상 작성자 을','vi'),
- ('f2000000-0000-0000-0000-000000000004','f1000000-0000-0000-0000-000000000002','reviewer','가상 담당자 을','ko');
+ ('f2000000-0000-0000-0000-000000000004','f1000000-0000-0000-0000-000000000002','reviewer','가상 관리자 을','ko');
 insert into public.residents(id,org_id,alias,care_type) values
  ('f3000000-0000-0000-0000-000000000001','f1000000-0000-0000-0000-000000000001','검증○○','facility');
 insert into public.assignments(org_id,worker_id,resident_id) values
@@ -78,16 +78,16 @@ update public.records set status='submitted' where id=(select id from contract_i
 
 select set_config('request.jwt.claims','{"sub":"f2000000-0000-0000-0000-000000000004","role":"authenticated"}',true);
 select pg_temp.check_true((select count(*)=0 from public.records where id=(select id from contract_ids)),'다른 기관 기록 차단');
-select pg_temp.check_true((select count(*)=1 from public.list_org_staff()),'담당자 명단은 자기 기관만');
+select pg_temp.check_true((select count(*)=1 from public.list_org_staff()),'관리자 명단은 자기 기관만');
 select set_config('request.jwt.claims','{"sub":"f2000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
-select pg_temp.check_true((select count(*)=1 from public.profiles),'담당자도 타인의 개인 설정 직접 조회 불가');
-select pg_temp.check_true((select count(*)=3 from public.list_org_staff()),'담당자는 업무용 기관 명단 조회');
+select pg_temp.check_true((select count(*)=1 from public.profiles),'관리자도 타인의 개인 설정 직접 조회 불가');
+select pg_temp.check_true((select count(*)=3 from public.list_org_staff()),'관리자는 업무용 기관 명단 조회');
 select pg_temp.expect_error($q$select font_size from public.list_org_staff()$q$,'does not exist');
 select pg_temp.expect_error($q$select * from public.record_blocked_names(null,null)$q$,'permission denied');
 select pg_temp.expect_error($q$update public.records set status='approved' where id=(select id from contract_ids)$q$,'unresolved_needs_check');
 update public.record_items set resolution='confirmed_by_reviewer' where record_id=(select id from contract_ids);
 update public.record_items set resolution='omitted', resolution_note='합성 생략 사유' where record_id=(select id from contract_ids) and item_key='meal';
-select pg_temp.check_true((select status='needs_check' and resolution='omitted' and value_ko='' and value_native='' and source='reviewer' from public.record_items where record_id=(select id from contract_ids) and item_key='meal'),'기록 안 함은 needs_check 유지·두 언어 비움·담당자 출처');
+select pg_temp.check_true((select status='needs_check' and resolution='omitted' and value_ko='' and value_native='' and source='reviewer' from public.record_items where record_id=(select id from contract_ids) and item_key='meal'),'기록 안 함은 needs_check 유지·두 언어 비움·관리자 출처');
 update public.record_items set resolution=null where record_id=(select id from contract_ids) and item_key='meal';
 select pg_temp.expect_error($q$update public.records set status='approved' where id=(select id from contract_ids)$q$,'unresolved_needs_check');
 update public.record_items set resolution='omitted', resolution_note='합성 생략 사유' where record_id=(select id from contract_ids) and item_key='meal';
