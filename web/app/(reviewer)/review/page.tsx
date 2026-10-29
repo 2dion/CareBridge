@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
+import { TextArea } from "@/components/mobile/text-field";
 import { markOverdueNoCare, removeNoCareDay, reviewQueue, wasResent } from "@/lib/demo/review";
 import { countUnresolved } from "@/lib/demo/state";
 import {
@@ -458,14 +459,14 @@ function OverdueModal({
       <label className="flabel" htmlFor="overdue-note">
         메모 {reason === "other" ? "(꼭 쓰기)" : "(선택)"}
       </label>
-      <textarea
+      <TextArea
         id="overdue-note"
         className={`field ${error ? "invalid" : ""}`}
         rows={3}
         maxLength={100}
         value={note}
-        onChange={(event) => {
-          setNote(event.target.value);
+        onValueChange={(next) => {
+          setNote(next);
           setError(false);
         }}
         placeholder="예: 작성자에게 확인함. 이날 병원 진료로 외출."
