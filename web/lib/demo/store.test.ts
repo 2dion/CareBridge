@@ -16,6 +16,7 @@ import {
   listMissed,
   markProcessing,
   markDraftFailed,
+  missedOldestFirst,
   retryDraft,
   returnedRecords,
   submitRecord,
@@ -63,6 +64,26 @@ describe("Mock 데이터 규칙 (데이터구조 v1.6.2)", () => {
     const sunday = "2026-11-01";
     const sundayDb = createDemoDb(sunday);
     expect(todayCards(sundayDb, sunday).map((card) => card.resident.id)).not.toContain("lee");
+  });
+
+  it("W4 '작성 전' 탭: 오래된 날짜가 위, 같은 날은 순서 그대로 (이슈 #150)", () => {
+    const db = createDemoDb(TODAY);
+    const missed = listMissed(db, TODAY);
+    const sorted = missedOldestFirst(missed);
+    expect(sorted).toHaveLength(missed.length);
+    for (let i = 1; i < sorted.length; i += 1) {
+      expect(sorted[i - 1].careDate <= sorted[i].careDate).toBe(true);
+    }
+    // 같은 날은 들어온 순서 그대로(안정 정렬)
+    const sameDay = [
+      { residentId: "b", careDate: "2026-10-20", kind: "missing" as const },
+      { residentId: "a", careDate: "2026-10-20", kind: "missing" as const },
+      { residentId: "c", careDate: "2026-10-19", kind: "draft" as const },
+    ];
+    expect(missedOldestFirst(sameDay).map((row) => row.residentId)).toEqual(["c", "b", "a"]);
+    // 원본(listMissed, 최신이 위)은 그대로라 W1 건수·M1·기간 거르기 순서는 바뀌지 않는다
+    expect(sameDay.map((row) => row.residentId)).toEqual(["b", "a", "c"]);
+    expect(missed[0].careDate >= missed[missed.length - 1].careDate).toBe(true);
   });
 
   it("못 쓴 기록: 지난 7일 빈 날과 지난 임시 저장을 모두 보여 준다", () => {

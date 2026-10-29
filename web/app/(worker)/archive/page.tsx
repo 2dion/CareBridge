@@ -19,6 +19,7 @@ import {
   kstTime,
   listMissed,
   type MissedRecord,
+  missedOldestFirst,
   monthDay,
   monthDayWeek,
   type NoCareReason,
@@ -143,7 +144,8 @@ export default function ArchivePage() {
             </div>
           ) : tab === "missed" ? (
             <div className="rec-list">
-              {missed.map((row) => (
+              {/* 작성 전은 밀린 숙제라 오래된 날짜부터(이슈 #150). 다른 탭·기간 거르기는 최신이 위 */}
+              {missedOldestFirst(missed).map((row) => (
                 <MissedCard
                   key={`${row.residentId}-${row.careDate}`}
                   db={db}
