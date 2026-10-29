@@ -7,13 +7,14 @@ body:
     attributes:
       value: |
         실명은 쓰지 않습니다(역할 이름·GitHub 아이디만). 어르신은 합성 사례 가명만 씁니다.
+        비밀번호·가입 코드·API 키·실제 이메일은 쓰지 않습니다(저장소가 공개라 이슈도 누구나 봅니다).
         담당 라벨(BE·FE·QA·기획·데이터·팀장)과 기한 라벨(10/31 전·11/08 전)을 오른쪽에서 붙여 주세요.
   - type: input
     id: where
     attributes:
       label: 어디서
-      description: 화면 번호(W0~W6, R1~R4, A1·A2)나 API 경로, 배포 주소·로컬 중 어디인지
-      placeholder: "예: R4 어르신 관리, 배포본(care-bridge-kappa.vercel.app)"
+      description: 화면 번호(W0~W6, R1~R4, A1·A2)나 API 경로, 로그인한 역할(작성자·담당자·교육생·강사), 배포 주소·로컬 중 어디인지
+      placeholder: "예: R4 어르신 관리, 담당자 계정, 배포본(care-bridge-kappa.vercel.app)"
     validations:
       required: true
   - type: textarea
@@ -41,6 +42,27 @@ body:
       description: "어느 문서의 어느 절에 그렇게 적혀 있는지(예: 화면 v1.3 R4)"
     validations:
       required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 모드
+      description: 화면에 Mock 배지가 보이면 Mock입니다
+      options:
+        - 실제 연결 (Supabase)
+        - Mock
+        - 모름
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: 얼마나 자주
+      options:
+        - 항상
+        - 가끔
+        - 한 번만 봄
+    validations:
+      required: true
   - type: input
     id: env
     attributes:
@@ -52,3 +74,5 @@ body:
       label: 끝난 기준
       description: 무엇을 확인하면 닫을지
       placeholder: "- [ ] 작성자 2명 담당 연결이 각각 저장된다"
+    validations:
+      required: true
