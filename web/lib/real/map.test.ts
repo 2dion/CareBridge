@@ -198,7 +198,8 @@ describe("applyPrintData", () => {
     );
     const printed = applyPrintData(base, {
       form_type: "12",
-      form_fields: { urine_accidents: 2 },
+      // 변화상태 글자 값은 남기고(제12호 인쇄, 이슈 #123), 객체 같은 다른 값은 버린다
+      form_fields: { urine_accidents: 2, body_trend: "improved", extra: { x: 1 } },
       visit_start: "09:00:00",
       visit_end: "11:30:00",
       verified: "verified",
@@ -222,7 +223,7 @@ describe("applyPrintData", () => {
     });
     expect(printed.items[0].value_ko).toBe("절반 드심");
     expect(printed.items[1].detail).toMatchObject({ start: "09:00", end: "11:30" });
-    expect(printed.formFields).toEqual({ urine_accidents: 2 });
+    expect(printed.formFields).toEqual({ urine_accidents: 2, body_trend: "improved" });
   });
 });
 
