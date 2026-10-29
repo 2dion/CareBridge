@@ -22,6 +22,8 @@ export type ProfileRow = {
   font_size: number;
   onboarded: boolean;
   org_name: string;
+  /** 로그인한 계정의 이메일(auth.users). W5 내 정보에 보이기만 하고 저장하지 않는다(이슈 #138) */
+  email: string;
 };
 export type ResidentRow = { id: string; alias: string; care_type: "facility" | "home" };
 export type AssignmentRow = {
@@ -379,7 +381,7 @@ export function toDemoDb(rows: RealRows, today: string): DemoDb {
     seededOn: today,
     worker: {
       name: isWorker ? rows.profile.name : (firstWorker?.name ?? ""),
-      email: "",
+      email: isWorker ? rows.profile.email : "",
       org: rows.profile.org_name,
     },
     reviewer: { name: isWorker ? "" : rows.profile.name },

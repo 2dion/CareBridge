@@ -377,6 +377,7 @@ describe("toDemoDb", () => {
           font_size: 3,
           onboarded: true,
           org_name: "데모 요양센터",
+          email: "worker@example.com",
         },
         staff: [],
         residents: [],
@@ -389,7 +390,11 @@ describe("toDemoDb", () => {
       },
       "2026-10-28",
     );
-    expect(db.worker).toMatchObject({ name: "마이", org: "데모 요양센터" });
+    expect(db.worker).toMatchObject({
+      name: "마이",
+      org: "데모 요양센터",
+      email: "worker@example.com",
+    });
     expect(db.fontSize).toBe("large");
     expect(db.records["rec-1"].status).toBe("returned");
   });
