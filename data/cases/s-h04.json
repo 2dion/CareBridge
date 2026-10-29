@@ -61,8 +61,8 @@
       {
         "item_key": "support",
         "status": "needs_check",
-        "value_ko": "기저귀 교환 2회, 대변 실수 1회·소변 실수 2회 (배변 칸에 적을 값 확인 필요)",
-        "value_native": "Thay tã 2 lần, đại tiện không tự chủ 1 lần, tiểu tiện không tự chủ 2 lần (cần xác nhận số ghi vào ô)",
+        "value_ko": "기저귀 교환 2회, 대변 실수 1회·소변 실수 2회",
+        "value_native": "Thay tã 2 lần, đại tiện không tự chủ 1 lần, tiểu tiện không tự chủ 2 lần",
         "evidence": "기저귀 두 번 갈았는데 대변 실수 한 번, 소변 실수 두 번 하셨어예.",
         "reason": "제12호 배변변화 칸은 '기저귀 사용 시 교환 횟수'를 적는데, 교환 2회와 실수 3회(대변 1·소변 2)가 달라 어느 값을 적을지 정할 수 없음",
         "detail": {
@@ -77,8 +77,8 @@
       {
         "item_key": "meal",
         "status": "needs_check",
-        "value_ko": "점심 조금 드심 (양 확인 필요)",
-        "value_native": "Bữa trưa ăn một ít (cần xác nhận lượng)",
+        "value_ko": "점심 조금 드심",
+        "value_native": "Bữa trưa ăn một ít",
         "evidence": "밥은 쪼매밖에 안 잡수셨어예.",
         "reason": "사투리 '쪼매'를 '조금'으로 짐작(용어 목록에 없음). 양도 모호함",
         "detail": {}
@@ -126,8 +126,8 @@
       {
         "item_key": "notes",
         "status": "observed",
-        "value_ko": "기운이 없어 보이심. 점심 조금 드심(양 확인 필요). 기저귀 2회 교환, 대변 실수 1회·소변 실수 2회. 기저귀 닿는 부위가 조금 붉어 보임(관리자 확인 필요).",
-        "value_native": "Trông mệt mỏi. Bữa trưa ăn một ít (cần xác nhận lượng). Thay tã 2 lần, đại tiện không tự chủ 1 lần, tiểu tiện không tự chủ 2 lần. Vùng tiếp xúc với tã hơi đỏ (cần người quản lý xác nhận).",
+        "value_ko": "기운이 없어 보이심. 점심 조금 드심. 기저귀 2회 교환, 대변 실수 1회·소변 실수 2회. 기저귀 닿는 부위가 조금 붉어 보임.",
+        "value_native": "Trông mệt mỏi. Bữa trưa ăn một ít. Thay tã 2 lần, đại tiện không tự chủ 1 lần, tiểu tiện không tự chủ 2 lần. Vùng tiếp xúc với tã hơi đỏ.",
         "evidence": "오늘 할매가 영 기운이 없으시데예. 밥은 쪼매밖에 안 잡수셨어예. 기저귀 두 번 갈았는데 대변 실수 한 번, 소변 실수 두 번 하셨어예. 기저귀 닿는 데가 쪼매 빨갛데예.",
         "reason": "",
         "detail": {}

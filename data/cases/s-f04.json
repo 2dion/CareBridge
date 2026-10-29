@@ -69,13 +69,12 @@
       {
         "item_key": "meal",
         "status": "needs_check",
-        "value_ko": "아침 밥을 두 그릇 드심 (섭취량 확인 필요)",
-        "value_native": "Bữa sáng ăn hai bát cơm (cần xác nhận lượng)",
+        "value_ko": "아침 밥을 두 그릇 드심",
+        "value_native": "Bữa sáng ăn hai bát cơm",
         "evidence": "오늘 할매가 아침부터 걸신져가 밥을 두 그릇이나 자셨어예.",
         "reason": "사투리 '걸신지다'를 '많이 드시다'로 짐작(용어 목록에 없음, AI 규칙 '확인 필요' 2번 예시). 두 그릇을 섭취량 1(전량)로 둘지 확인",
         "detail": {
-          "meal_type": "일반식",
-          "intake": null
+          "meal_type": "일반식"
         }
       },
       {
@@ -118,8 +117,8 @@
       {
         "item_key": "notes",
         "status": "observed",
-        "value_ko": "아침 밥 두 그릇 드심(섭취량 확인 필요). 낮에 집에 간다며 문 앞을 여러 번 오가심. 기저귀 3회 교환. 저녁에 조금 일찍 주무심.",
-        "value_native": "Bữa sáng ăn hai bát (cần xác nhận lượng). Ban ngày đi tới đi lui trước cửa, nói muốn về nhà. Thay tã 3 lần. Buổi tối ngủ sớm hơn một chút.",
+        "value_ko": "아침 밥 두 그릇 드심. 낮에 집에 간다며 문 앞을 여러 번 오가심. 기저귀 3회 교환. 저녁에 조금 일찍 주무심.",
+        "value_native": "Bữa sáng ăn hai bát. Ban ngày đi tới đi lui trước cửa, nói muốn về nhà. Thay tã 3 lần. Buổi tối ngủ sớm hơn một chút.",
         "evidence": "오늘 할매가 아침부터 걸신져가 밥을 두 그릇이나 자셨어예. 낮에 자꾸 집에 간다꼬 문 앞을 왔다갔다 하시데예. 기저귀는 세 번 갈았심더. 저녁에 쪼매 일찍 주무셨어예.",
         "reason": "",
         "detail": {}
