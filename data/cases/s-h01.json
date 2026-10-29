@@ -127,9 +127,7 @@
         "value_native": "Hỏi ngày hôm nay hai lần",
         "evidence": "오늘이 며칠인지 두 번 물어보셨어요.",
         "reason": "비교 표현이 없어 인지기능 변화상태(호전/유지/악화)를 정할 수 없음 (AI 규칙 쓰기 원칙 2)",
-        "detail": {
-          "trend": null
-        }
+        "detail": {}
       },
       {
         "item_key": "notes",
