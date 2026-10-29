@@ -73,6 +73,7 @@ export type ProblemCode =
   | "observed_without_value"
   | "not_mentioned_with_evidence"
   | "form_field_not_for_facility"
+  | "invalid_intake"
   | "real_name";
 
 export type Problem = {
@@ -102,6 +103,7 @@ export const REASONS = {
   invalidMinutes: "제공시간 형식 오류",
   noReason: "AI가 이유를 남기지 않음",
   observedWithoutValue: "내용 없음",
+  intakeUnknown: "섭취량을 정하지 못함",
 } as const;
 
 // 서버가 추가한 이유도 한국어와 번역을 함께 바꾼다. Agent가 준 번역은 그대로 보존한다.
@@ -115,6 +117,7 @@ export const REASONS_VI: Record<string, string> = {
   [REASONS.invalidMinutes]: "Định dạng thời gian hỗ trợ không hợp lệ",
   [REASONS.noReason]: "AI không cung cấp lý do",
   [REASONS.observedWithoutValue]: "Không có nội dung",
+  [REASONS.intakeUnknown]: "Chưa xác định được lượng ăn",
   "형식 오류": "Định dạng không hợp lệ",
   "자동 정리 중단": "Đã dừng tự động sắp xếp nội dung",
 };
@@ -140,6 +143,15 @@ export const HOME_ONLY_FORM_FIELDS = [
   "stool_accidents",
   "urine_accidents",
 ] as const;
+
+// 식사 섭취량(meal.detail.intake)의 저장 값. 별지 제16호 섭취량 칸 1 / 1/2 이상 / 1/2 미만에 대응한다.
+// 서식 기준(form-spec)·인쇄(print/fields.ts)·정답 사례(data/cases)가 같은 세 값을 쓴다 (이슈 #133).
+export const INTAKE_VALUES = ["full", "half_or_more", "under_half"] as const;
+
+export type Intake = (typeof INTAKE_VALUES)[number];
+
+export const isIntake = (value: unknown): value is Intake =>
+  typeof value === "string" && (INTAKE_VALUES as readonly string[]).includes(value);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -438,6 +450,23 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
         message: `근거 문장을 원문에서 찾지 못했습니다: "${item.evidence}"`,
       });
       if (item.status !== "not_mentioned") lower(REASONS.evidenceNotFound);
+    }
+
+    // 검사 7: 식사 섭취량 값은 full / half_or_more / under_half 중 하나다 (이슈 #133).
+    // 다른 값("1/2 이상", "needs_check" 등)은 서식에 체크를 찍지 못하므로 빼고, 식사를 '확인 필요'로 둔다.
+    if (key === "meal" && item.detail.intake !== undefined && item.detail.intake !== null) {
+      if (!isIntake(item.detail.intake)) {
+        problems.push({
+          code: "invalid_intake",
+          item_key: key,
+          message: `detail.intake(${String(item.detail.intake)})가 ${INTAKE_VALUES.join(" / ")} 중 하나가 아니어서 뺐습니다. 섭취량을 정하지 못하면 intake를 넣지 않고 '확인 필요'로 두세요.`,
+        });
+        const rest = Object.fromEntries(
+          Object.entries(item.detail).filter(([field]) => field !== "intake"),
+        );
+        item = { ...item, detail: rest };
+        if (item.status !== "not_mentioned") lower(REASONS.intakeUnknown);
+      }
     }
 
     // 검사 5: 재가 제공시간 합 ≤ 방문 시간

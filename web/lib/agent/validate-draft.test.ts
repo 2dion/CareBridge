@@ -5,6 +5,7 @@ import {
   type Draft,
   type DraftItem,
   evidenceInTranscript,
+  INTAKE_VALUES,
   ITEM_KEYS,
   type ItemKey,
   REASONS,
@@ -12,6 +13,7 @@ import {
   validateDraft,
   type ValidateContext,
 } from "./validate-draft";
+import { getFormSpec } from "./form-spec";
 
 // 시나리오 1(시설 기록 한 건)의 말할 문장. 합성 사례다(문서/설계/시연-일정-v1.1.md).
 const TRANSCRIPT =
@@ -412,5 +414,48 @@ describe("이유 번역 보존", () => {
     const draft = scenarioOneDraft();
     const raw = { ...draft, items: draft.items.map((i) => ({ ...i, reason_native: 123 })) };
     expect(codes(raw)).toContain("invalid_field");
+  });
+});
+
+describe("검사 7: 식사 섭취량 값 (이슈 #133)", () => {
+  const withIntake = (intake: unknown) =>
+    withItem(scenarioOneDraft(), "meal", {
+      value_ko: "점심 죽 절반 이상 드심.",
+      status: "observed",
+      reason: "",
+      detail: { meal_type: "죽", intake },
+    });
+
+  it("full / half_or_more / under_half는 통과", () => {
+    for (const intake of INTAKE_VALUES) {
+      expect(codes(withIntake(intake))).toEqual([]);
+    }
+  });
+
+  it("'1/2 이상'처럼 뜻만 적은 값은 빼고 식사를 확인 필요로", () => {
+    const result = validateDraft(withIntake("1/2 이상"), FACILITY);
+    const meal = result.fixed?.items.find((i) => i.item_key === "meal");
+    expect(result.problems.map((p) => p.code)).toEqual(["invalid_intake"]);
+    expect(meal?.status).toBe("needs_check");
+    expect(meal?.reason).toContain(REASONS.intakeUnknown);
+    expect(meal?.reason_native).toContain("Chưa xác định được lượng ăn");
+    expect(meal?.detail).toEqual({ meal_type: "죽" });
+    expect(result.downgraded).toEqual(["meal"]);
+  });
+
+  it("상태 값(needs_check)을 섭취량에 넣은 경우도 걸림", () => {
+    const result = validateDraft(withIntake("needs_check"), FACILITY);
+    expect(result.problems.map((p) => p.code)).toEqual(["invalid_intake"]);
+    expect(result.fixed?.items.find((i) => i.item_key === "meal")?.detail.intake).toBeUndefined();
+  });
+
+  it("intake가 null이거나 없으면 검사하지 않음", () => {
+    expect(codes(withIntake(null))).toEqual([]);
+    expect(codes(withItem(scenarioOneDraft(), "meal", { detail: {} }))).toEqual([]);
+  });
+
+  it("서식 기준(get_form_spec)의 섭취량 선택지는 저장 값으로 시작한다", () => {
+    const spec = getFormSpec("facility");
+    expect(spec.choices.intake.map((choice) => choice.split(" ")[0])).toEqual([...INTAKE_VALUES]);
   });
 });

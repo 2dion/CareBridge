@@ -99,7 +99,8 @@ export const DRAFT_SCHEMA = {
           reason_native: { type: "string", description: "reason의 모국어 번역. 없으면 빈 문자열" },
           detail: {
             type: "object",
-            description: "항목별 추가 값(예: intake, checks, minutes, trend). 없으면 {}",
+            description:
+              "항목별 추가 값. 시설 meal: intake(full / half_or_more / under_half 중 하나, 정하지 못하면 넣지 않음). support: checks(목록), 재가면 minutes({ physical, cognitive_stimulation, daily_living_together, cognitive_management, emotional, housework }: 정수 분). 재가 visit_time: start·end('HH:MM'). cognition: trend. 없으면 {}",
           },
         },
         required: [

@@ -19,7 +19,7 @@ const FACILITY: FormSpec = {
     visit_time: "월/일, 맺음의 입·퇴소·외박·외출 시간",
     support:
       "신체활동지원 체크(세면 등, 목욕, 체위변경, 화장실, 이동, 산책/외출), 인지관리 및 의사소통 체크. detail.checks에 목록. 분(minutes)은 쓰지 않음",
-    meal: "신체활동지원 > 식사 종류·섭취량(1 / 1/2이상 / 1/2미만). detail.intake",
+    meal: "신체활동지원 > 식사 종류·섭취량(1 / 1/2이상 / 1/2미만). detail.intake에 choices.intake의 저장 값(full / half_or_more / under_half) 중 하나. 섭취량을 정하지 못하면 intake를 넣지 않고 status=needs_check",
     sleep: "신체활동지원 특이사항",
     discomfort: "신체활동지원 특이사항",
     medication: "요양보호사는 본 것만 신체활동지원 특이사항에. 간호 행위를 추정하지 않음",
@@ -29,9 +29,11 @@ const FACILITY: FormSpec = {
     next_check: "칸 없음 (기관 내부 메모)",
   },
   form_fields: {},
-  choices: { intake: ["1", "1/2 이상", "1/2 미만"] },
+  // 저장 값과 뜻을 함께 준다. 저장 값은 validate-draft의 INTAKE_VALUES, 인쇄 체크 위치(print/fields.ts)와 같다.
+  choices: { intake: ["full (1, 전량)", "half_or_more (1/2 이상)", "under_half (1/2 미만)"] },
   rules: [
     "form_fields는 빈 객체로 둔다",
+    "meal.detail.intake에는 full / half_or_more / under_half만 쓴다(괄호 안 뜻은 쓰지 않음). 다른 값은 서버 검사가 빼고 식사를 needs_check로 둔다",
     "화장실이용하기는 소변·대변 총 횟수(기저귀 사용 시 교환 횟수)",
   ],
 };
