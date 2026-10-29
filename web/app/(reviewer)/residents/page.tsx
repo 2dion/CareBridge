@@ -382,8 +382,10 @@ function AssignDrawer({
   const [workerIds, setWorkerIds] = useState<string[]>(selectedWorkerIds);
   const [days, setDays] = useState<number[]>(resident.visitDays ?? []);
   const [startDate, setStartDate] = useState(resident.startDate);
-  const [from, setFrom] = useState(resident.visitTime?.split("~")[0] ?? "");
-  const [to, setTo] = useState(resident.visitTime?.split("~")[1] ?? "");
+  // schedule은 표시용 글자라 "평일 14:00~17:00"처럼 요일 말이 붙어 있을 수 있다. 시각(HH:MM)만 칸에 넣는다
+  const times = resident.visitTime?.match(/d{1,2}:d{2}/g) ?? [];
+  const [from, setFrom] = useState(times[0] ?? "");
+  const [to, setTo] = useState(times[1] ?? "");
   const [error, setError] = useState<string | null>(null);
   const toggle = (day: number) =>
     setDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()));
