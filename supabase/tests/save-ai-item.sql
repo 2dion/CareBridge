@@ -26,9 +26,9 @@ insert into auth.users(id) values
  ('d2000000-0000-0000-0000-000000000003'),('d2000000-0000-0000-0000-000000000004');
 insert into public.profiles(id,org_id,role,name,native_lang) values
  ('d2000000-0000-0000-0000-000000000001','d1000000-0000-0000-0000-000000000001','worker','가상 작성자 갑','vi'),
- ('d2000000-0000-0000-0000-000000000002','d1000000-0000-0000-0000-000000000001','reviewer','가상 담당자 갑','ko'),
+ ('d2000000-0000-0000-0000-000000000002','d1000000-0000-0000-0000-000000000001','reviewer','가상 관리자 갑','ko'),
  ('d2000000-0000-0000-0000-000000000003','d1000000-0000-0000-0000-000000000001','worker','가상 작성자 을','vi'),
- ('d2000000-0000-0000-0000-000000000004','d1000000-0000-0000-0000-000000000002','reviewer','가상 담당자 을','ko');
+ ('d2000000-0000-0000-0000-000000000004','d1000000-0000-0000-0000-000000000002','reviewer','가상 관리자 을','ko');
 insert into public.residents(id,org_id,alias,care_type) values
  ('d3000000-0000-0000-0000-000000000001','d1000000-0000-0000-0000-000000000001','검증○○','facility');
 insert into public.assignments(org_id,worker_id,resident_id) values
@@ -62,19 +62,19 @@ select pg_temp.check_true((select value_ko='밤에 두 번 깸' and reason_nativ
 select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'notes','d2000000-0000-0000-0000-000000000003','','item','{"status":"observed"}')$q$,'not_record_worker');
 select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'notes','d2000000-0000-0000-0000-000000000002','','item','{"status":"observed"}')$q$,'not_record_worker');
 
--- 보내고 담당자가 고친 뒤 재번역은 담당자 이름으로 가능, 항목 보태기는 불가
+-- 전송하고 관리자가 고친 뒤 재번역은 관리자 이름으로 가능, 항목 보태기는 불가
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"d2000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 update public.record_items set confirmed=true where record_id=(select id from item_ids);
 update public.records set status='submitted' where id=(select id from item_ids);
 select set_config('request.jwt.claims','{"sub":"d2000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
-update public.record_items set value_ko='담당자가 고친 식사' where record_id=(select id from item_ids) and item_key='meal';
+update public.record_items set value_ko='관리자가 고친 식사' where record_id=(select id from item_ids) and item_key='meal';
 set local role service_role;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
-select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000002','담당자가 고친 식사','translation','{"value_native":"Bữa ăn do người duyệt sửa"}');
-select pg_temp.check_true((select value_native='Bữa ăn do người duyệt sửa' and source='reviewer' from public.record_items where record_id=(select id from item_ids) and item_key='meal'),'담당자 수정 뒤 재번역');
+select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000002','관리자가 고친 식사','translation','{"value_native":"Bữa ăn do người quản lý sửa"}');
+select pg_temp.check_true((select value_native='Bữa ăn do người quản lý sửa' and source='reviewer' from public.record_items where record_id=(select id from item_ids) and item_key='meal'),'관리자 수정 뒤 재번역');
 select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'sleep','d2000000-0000-0000-0000-000000000001','밤에 두 번 깸','item','{"status":"observed"}')$q$,'not_record_worker');
-select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000001','담당자가 고친 식사','translation','{"value_native":"x"}')$q$,'invalid_transition');
+select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000001','관리자가 고친 식사','translation','{"value_native":"x"}')$q$,'invalid_transition');
 
 -- 되돌린 뒤 항목 보태기는 resolution·사유를 비움
 set local role authenticated;
