@@ -270,10 +270,66 @@ export function minuteProblems(detail: Record<string, unknown>): string[] {
   return found;
 }
 
-function readVisitMinutes(ctx: ValidateContext, formFields: Record<string, unknown>) {
-  if (typeof ctx.visitMinutes === "number") return ctx.visitMinutes;
+// 검사 5: 재가 제공시간 합 ≤ 방문 시간. 분 칸 형식(6개 키, 0 이상 정수)도 함께 본다.
+// Agent 초안 검증(validateDraft)과 작성자가 분·방문 시간을 고친 뒤의 재검사(records/support-check.ts)가 같은 코드를 쓴다 (이슈 #116).
+// visitMinutes가 null이면 방문 시간을 모르는 것이라, 분이 적힌 경우만 '확인 필요'로 둔다.
+export function checkSupportMinutes(
+  detail: Record<string, unknown>,
+  visitMinutes: number | null,
+): { problems: Omit<Problem, "item_key">[]; reasons: string[] } {
+  const problems: Omit<Problem, "item_key">[] = [];
+  const reasons: string[] = [];
+  const minuteIssues = minuteProblems(detail);
+  if (minuteIssues.length > 0) {
+    for (const message of minuteIssues) problems.push({ code: "invalid_minutes", message });
+    reasons.push(REASONS.invalidMinutes);
+  }
+  const total = sumSupportMinutes(detail);
+  if (visitMinutes === null) {
+    if (total > 0) {
+      problems.push({
+        code: "visit_minutes_missing",
+        message:
+          "방문 시간(visit_start~visit_end, total_minutes)이 없어 제공시간 합을 확인하지 못했습니다.",
+      });
+      reasons.push(REASONS.visitMinutesMissing);
+    }
+  } else if (total > visitMinutes) {
+    problems.push({
+      code: "support_minutes_exceed_visit",
+      message: `지원별 제공시간 합(${total}분)이 방문 시간(${visitMinutes}분)보다 깁니다.`,
+    });
+    reasons.push(`${REASONS.supportMinutesExceed} (${total}분 > ${visitMinutes}분)`);
+  }
+  return { problems, reasons };
+}
+
+// "HH:MM"(DB time 칸의 "HH:MM:SS" 포함) 두 시각 사이의 분. 형식이 틀리거나 종료가 시작보다 앞서면 null.
+export function minutesBetween(start: unknown, end: unknown): number | null {
+  const parse = (value: unknown) => {
+    if (typeof value !== "string") return null;
+    const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value.trim());
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    return hours > 23 || minutes > 59 ? null : hours * 60 + minutes;
+  };
+  const from = parse(start);
+  const to = parse(end);
+  return from === null || to === null || to < from ? null : to - from;
+}
+
+// 재가 방문 시간(분): records.visit_start~visit_end(서버가 계산해 넘김) → form_fields.total_minutes
+// → visit_time 항목 detail.start·end("HH:MM") 순으로 찾는다. 모두 없으면 null.
+export function resolveVisitMinutes(
+  known: number | null | undefined,
+  formFields: Record<string, unknown>,
+  visitTimeDetail: Record<string, unknown> = {},
+): number | null {
+  if (typeof known === "number" && Number.isFinite(known)) return known;
   const total = formFields.total_minutes;
-  return typeof total === "number" && Number.isFinite(total) ? total : null;
+  if (typeof total === "number" && Number.isFinite(total)) return total;
+  return minutesBetween(visitTimeDetail.start, visitTimeDetail.end);
 }
 
 // 이름 목록에서 검사할 수 있는 것만 남긴다. 가명 표시(○)나 한 글자는 오탐이 많아 뺀다.
@@ -333,8 +389,15 @@ function parseItem(raw: unknown, index: number): ParsedItem | Problem {
   return { item, problems };
 }
 
-const reasonTranslation = (reason: string, lang: "ko" | "vi" = "vi") =>
-  lang === "ko" ? reason : (REASONS_VI[reason] ?? "");
+// 코드 이유의 번역. "지원별 제공시간 합이 방문 시간보다 김 (200분 > 180분)"처럼 숫자가 붙은 이유는
+// 앞부분으로 찾아 뒤의 숫자를 그대로 붙인다. 모르는 이유는 빈칸(번역 완료가 아님).
+export function reasonTranslation(reason: string, lang: "ko" | "vi" = "vi"): string {
+  if (lang === "ko") return reason;
+  const exact = REASONS_VI[reason];
+  if (exact !== undefined) return exact;
+  const prefix = Object.keys(REASONS_VI).find((known) => reason.startsWith(known));
+  return prefix ? `${REASONS_VI[prefix]}${reason.slice(prefix.length)}` : "";
+}
 
 const downgrade = (item: DraftItem, reason: string, lang?: "ko" | "vi"): DraftItem => ({
   ...item,
@@ -413,7 +476,10 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 
   const downgraded = new Set<ItemKey>();
   const names = usableNames(ctx.blockedNames);
-  const visitMinutes = ctx.careType === "home" ? readVisitMinutes(ctx, formFields) : null;
+  const visitMinutes =
+    ctx.careType === "home"
+      ? resolveVisitMinutes(ctx.visitMinutes, formFields, byKey.get("visit_time")?.detail ?? {})
+      : null;
 
   const items = ITEM_KEYS.map((key) => {
     let item = byKey.get(key) as DraftItem;
@@ -562,36 +628,11 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
       }
     }
 
-    // 검사 5: 재가 제공시간 합 ≤ 방문 시간
+    // 검사 5: 재가 제공시간 합 ≤ 방문 시간 (분 칸 형식 포함). 틀린 값은 합에 넣지 않고 확인 필요로 둔다.
     if (key === "support" && ctx.careType === "home") {
-      // 분 칸 형식: 6개 키, 0 이상 정수. 틀린 값은 합에 넣지 않고 확인 필요로 둔다.
-      const minuteIssues = minuteProblems(item.detail);
-      if (minuteIssues.length > 0) {
-        for (const message of minuteIssues) {
-          problems.push({ code: "invalid_minutes", item_key: key, message });
-        }
-        lower(REASONS.invalidMinutes);
-      }
-      const total = sumSupportMinutes(item.detail);
-      if (visitMinutes === null) {
-        // 방문 시간을 모르면 합을 비교할 수 없다. 분이 적힌 경우만 확인 필요로 둔다.
-        if (total > 0) {
-          problems.push({
-            code: "visit_minutes_missing",
-            item_key: key,
-            message:
-              "방문 시간(visit_start~visit_end, total_minutes)이 없어 제공시간 합을 확인하지 못했습니다.",
-          });
-          lower(REASONS.visitMinutesMissing);
-        }
-      } else if (total > visitMinutes) {
-        problems.push({
-          code: "support_minutes_exceed_visit",
-          item_key: key,
-          message: `지원별 제공시간 합(${total}분)이 방문 시간(${visitMinutes}분)보다 깁니다.`,
-        });
-        lower(`${REASONS.supportMinutesExceed} (${total}분 > ${visitMinutes}분)`);
-      }
+      const minutes = checkSupportMinutes(item.detail, visitMinutes);
+      for (const problem of minutes.problems) problems.push({ ...problem, item_key: key });
+      for (const reason of minutes.reasons) lower(reason);
     }
 
     // 검사 6: 기록(한국어·모국어)에 실명이 있는지. 근거(evidence)는 원문이라 보지 않는다.

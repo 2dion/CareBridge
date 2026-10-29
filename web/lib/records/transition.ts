@@ -33,6 +33,8 @@ export type TransitionDeps = {
     patch: Record<string, unknown>,
     columns: string,
   ): Promise<UpdateResult>;
+  /** 재가 제공 지원 재검사(검사 5). records/support-check.ts recheckSupportMinutes */
+  recheckSupport(recordId: string, actorId: string): Promise<unknown>;
 };
 
 export type ApiResult = { status: number; body: Record<string, unknown> };
@@ -100,6 +102,10 @@ export async function submitRecord(recordId: string, deps: TransitionDeps): Prom
   if (items.length !== 9 || unconfirmed.length > 0) {
     return fail(409, "unconfirmed_items", { items: unconfirmed });
   }
+
+  // 재가: 전송 직전에 검사 5(지원별 분 합 ≤ 방문 시간)를 다시 해 제공 지원의 '확인 필요'와 이유를 맞춘다(이슈 #116).
+  // '확인 필요'가 남아도 전송할 수 있고, 관리자가 처리하기 전에는 승인되지 않는다. 검사가 실패해도 전송은 막지 않는다.
+  await deps.recheckSupport(recordId, userId).catch(() => {});
 
   const updated = await deps.update(
     recordId,
