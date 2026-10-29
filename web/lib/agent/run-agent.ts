@@ -210,6 +210,9 @@ export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
    status=needs_check이고 reason을 쓴다.
 4. 진단하지 말고 본 것만 쓴다. 호전/유지/악화는 원문에 비교가 있을 때만.
 5. value_ko는 한국어 기록체(~하심, ~드심), 교재 용어. value_native는 그 번역.
+   value_ko에는 원문을 정리한 기록 내용만 쓴다. "확인 필요", "용어 확인", "불명확",
+   "~인지 확인해 주세요" 같은 확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다
+   (서버가 걸러 내고 그 항목을 needs_check로 둔다).
    reason을 쓰면 reason_native에 그 번역을 쓴다.
    용어 목록에 있는 말은 search_glossary가 준 고정 번역만 쓴다.
    받아쓴 글은 한국어만, 모국어만, 둘이 섞인 말일 수 있다. 어느 경우든 value_ko는

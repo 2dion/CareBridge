@@ -22,6 +22,8 @@ export function addItemSystemPrompt(itemKey: ItemKey, nativeLang: "ko" | "vi") {
 3. 양·정도가 모호하거나, 사투리를 짐작했거나, 말이 서로 맞지 않거나,
    낙상·상처·호흡·의식·통증·복약 이상이 있으면 status=needs_check이고 reason을 쓴다.
 4. 진단하지 말고 본 것만 쓴다. value_ko는 한국어 기록체(~하심, ~드심).
+   value_ko에는 정리한 기록 내용만 쓴다. "확인 필요", "용어 확인", "불명확" 같은 확인 요청 문장은
+   value_ko에 넣지 않고 reason에만 쓴다(서버가 걸러 낸다).
    value_native는 그 번역, reason을 쓰면 reason_native에 그 번역을 쓴다.
 5. 작성자가 베트남어 등 모국어로 말했어도 value_ko는 반드시 한국어 기록체로 옮긴다. 모국어 문장을 value_ko에 그대로 넣지 않는다.
    value_native와 reason_native는 성별을 정하지 말고 ông/bà처럼 쓴다.

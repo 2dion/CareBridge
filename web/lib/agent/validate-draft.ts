@@ -75,6 +75,7 @@ export type ProblemCode =
   | "not_mentioned_with_evidence"
   | "form_field_not_for_facility"
   | "invalid_intake"
+  | "question_in_value"
   | "real_name";
 
 export type Problem = {
@@ -105,6 +106,7 @@ export const REASONS = {
   noReason: "AI가 이유를 남기지 않음",
   observedWithoutValue: "내용 없음",
   intakeUnknown: "섭취량을 정하지 못함",
+  questionInValue: "기록 내용에 있던 확인 요청 문장을 이유로 옮김",
 } as const;
 
 // 서버가 추가한 이유도 한국어와 번역을 함께 바꾼다. Agent가 준 번역은 그대로 보존한다.
@@ -119,6 +121,7 @@ export const REASONS_VI: Record<string, string> = {
   [REASONS.noReason]: "AI không cung cấp lý do",
   [REASONS.observedWithoutValue]: "Không có nội dung",
   [REASONS.intakeUnknown]: "Chưa xác định được lượng ăn",
+  [REASONS.questionInValue]: "Câu yêu cầu xác nhận trong nội dung đã được chuyển sang lý do",
   "형식 오류": "Định dạng không hợp lệ",
   "자동 정리 중단": "Đã dừng tự động sắp xếp nội dung",
 };
@@ -178,6 +181,60 @@ export function evidenceInTranscript(evidence: string, transcript: string): bool
   const needle = normalizeForMatch(evidence);
   if (needle === "") return false;
   return normalizeForMatch(transcript).includes(needle);
+}
+
+// AI가 확인을 요청하는 말. 기록 내용(value_ko)은 공식 기록이라 이런 문장이 들어가면 안 되고, reason에만 둔다 (이슈 #117).
+// 프롬프트만 고치면 다시 섞일 수 있어 서버가 거른다.
+export const QUESTION_PHRASES = [
+  "확인 필요",
+  "확인이 필요",
+  "확인해 주세요",
+  "확인해주세요",
+  "확인 요망",
+  "확인 바람",
+  "확인 요청",
+  "확인할 것",
+  "용어 확인",
+  "불명확",
+  "불분명",
+] as const;
+
+export const hasQuestionPhrase = (text: string): boolean =>
+  QUESTION_PHRASES.some((phrase) => text.includes(phrase));
+
+// 확인 요청이 든 문장을 기록 내용에서 뺀다. 괄호 안 확인 요청("(섭취량 확인 필요)")은 괄호째 빼고,
+// 나머지는 문장(., !, ?, 줄바꿈) 단위로 뺀다. kept는 남은 기록 내용, removed는 뺀 문장이다.
+export function stripQuestionSentences(text: string): { kept: string; removed: string } {
+  const removed: string[] = [];
+  const kept: string[] = [];
+  for (const sentence of text.match(/[^.!?\n]+[.!?]*/g) ?? []) {
+    const trimmed = sentence.trim();
+    if (!trimmed) continue;
+    if (!hasQuestionPhrase(trimmed)) {
+      kept.push(trimmed);
+      continue;
+    }
+    // 괄호 안에만 확인 요청이 있으면 괄호만 빼고 문장은 남긴다
+    const parens: string[] = [];
+    const withoutParens = trimmed.replace(/[(（][^()（）]*[)）]/g, (group) => {
+      if (!hasQuestionPhrase(group)) return group;
+      parens.push(group.slice(1, -1).trim());
+      return "";
+    });
+    if (parens.length > 0 && !hasQuestionPhrase(withoutParens)) {
+      kept.push(withoutParens);
+      removed.push(...parens);
+    } else {
+      removed.push(trimmed);
+    }
+  }
+  return {
+    kept: kept
+      .join(" ")
+      .replace(/\s+([.,!?])/g, "$1")
+      .trim(),
+    removed: removed.join(" "),
+  };
 }
 
 const isMinuteKey = (key: string): boolean => (MINUTE_KEYS as readonly string[]).includes(key);
@@ -413,6 +470,29 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
           "'언급 없음'인데 근거 문장이 있어 비웠습니다. 내용이 있으면 '관찰'이나 '확인 필요'로 두세요.",
       });
       item = { ...item, evidence: "" };
+    }
+
+    // 검사 8: 기록 내용(value_ko)에 AI의 확인 요청 문장이 있으면 빼서 reason으로 옮긴다 (이슈 #117).
+    // 내용은 원문을 기록체로 정리한 것만 남고, 확인할 까닭은 reason에만 둔다. 항목은 '확인 필요'가 된다.
+    if (item.status !== "not_mentioned" && hasQuestionPhrase(item.value_ko)) {
+      const { kept, removed } = stripQuestionSentences(item.value_ko);
+      problems.push({
+        code: "question_in_value",
+        item_key: key,
+        message: `기록 내용(value_ko)에 확인 요청 문장이 있어 뺐습니다: "${removed}". 확인할 까닭은 reason에만 쓰고, value_ko에는 기록체로 정리한 내용만 쓰세요.`,
+      });
+      const wasObserved = item.status === "observed";
+      item = {
+        ...item,
+        value_ko: kept,
+        value_native: kept ? item.value_native : "",
+        status: "needs_check",
+        reason: item.reason.trim() ? item.reason : removed,
+        reason_native: item.reason_native.trim()
+          ? item.reason_native
+          : reasonTranslation(REASONS.questionInValue, ctx.nativeLang),
+      };
+      if (wasObserved) downgraded.add(key);
     }
 
     // '확인 필요'는 짐작한 내용 + 이유다. 내용이 비면 화면의 'AI가 정리한 내용'이 빈칸이 되므로

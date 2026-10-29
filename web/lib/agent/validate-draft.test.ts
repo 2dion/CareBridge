@@ -9,6 +9,7 @@ import {
   ITEM_KEYS,
   type ItemKey,
   REASONS,
+  stripQuestionSentences,
   sumSupportMinutes,
   validateDraft,
   type ValidateContext,
@@ -483,5 +484,71 @@ describe("'확인 필요'인데 내용이 빈 항목 (이슈 #141)", () => {
     const result = validateDraft(allNeedsCheckDraft("자동 정리 중단", TRANSCRIPT), FACILITY);
     expect(result.fixed).not.toBeNull();
     expect(result.problems.filter((p) => p.code === "needs_check_without_value")).toHaveLength(9);
+  });
+});
+
+describe("검사 8: 기록 내용의 확인 요청 문장 (이슈 #117)", () => {
+  // 10/29 QA가 본 실제 문장 둘 (이슈 #117 '지금 일어나는 일')
+  const MEAL = "간식으로 죽 드심. 섭취량 확인 필요(반 그릇이 1/2 이상인지 1/2 미만인지 불명확).";
+  const NOTES = "화장실 이용 1회, 배설 실수 없었음. '실수 없음' 표현의 교재 공식 용어 확인 필요.";
+
+  it("확인 요청 문장을 빼고, 이유가 비었으면 그 문장을 reason으로 옮기며 확인 필요로 낮춤", () => {
+    const draft = withItem(scenarioOneDraft(), "meal", {
+      value_ko: MEAL,
+      status: "observed",
+      reason: "",
+    });
+    const result = validateDraft(draft, FACILITY);
+    const meal = result.fixed?.items.find((i) => i.item_key === "meal");
+    expect(result.problems.map((p) => p.code)).toEqual(["question_in_value"]);
+    expect(meal?.value_ko).toBe("간식으로 죽 드심.");
+    expect(meal?.status).toBe("needs_check");
+    expect(meal?.reason).toBe("섭취량 확인 필요(반 그릇이 1/2 이상인지 1/2 미만인지 불명확).");
+    expect(meal?.reason_native).toBe(
+      "Câu yêu cầu xác nhận trong nội dung đã được chuyển sang lý do",
+    );
+    expect(result.downgraded).toEqual(["meal"]);
+  });
+
+  it("이미 '확인 필요'이고 이유가 있으면 이유는 그대로, 내용에서만 뺌", () => {
+    const draft = withItem(scenarioOneDraft(), "notes", {
+      value_ko: NOTES,
+      status: "needs_check",
+      evidence: "엉덩이 쪽이 조금 빨개요.",
+      reason: "'실수 없음'의 교재 용어를 찾지 못함",
+    });
+    const notes = validateDraft(draft, FACILITY).fixed?.items.find((i) => i.item_key === "notes");
+    expect(notes?.value_ko).toBe("화장실 이용 1회, 배설 실수 없었음.");
+    expect(notes?.reason).toBe("'실수 없음'의 교재 용어를 찾지 못함");
+  });
+
+  it("괄호 안 확인 요청은 괄호째 빼고 문장은 남김", () => {
+    expect(stripQuestionSentences("아침 밥을 두 그릇 드심 (섭취량 확인 필요).")).toEqual({
+      kept: "아침 밥을 두 그릇 드심.",
+      removed: "섭취량 확인 필요",
+    });
+  });
+
+  it("내용 전체가 확인 요청이면 내용이 비고, 내용 없음 문제도 함께 알림", () => {
+    const draft = withItem(scenarioOneDraft(), "sleep", {
+      value_ko: "수면 상태 확인 필요.",
+      value_native: "Cần kiểm tra giấc ngủ.",
+      status: "observed",
+    });
+    const result = validateDraft(draft, FACILITY);
+    const sleep = result.fixed?.items.find((i) => i.item_key === "sleep");
+    expect(result.problems.map((p) => p.code)).toEqual([
+      "question_in_value",
+      "needs_check_without_value",
+    ]);
+    expect(sleep?.value_ko).toBe("");
+    expect(sleep?.value_native).toBe("");
+  });
+
+  it("'확인'이라는 낱말만으로는 걸리지 않음 (예: 직접 확인함)", () => {
+    const draft = withItem(scenarioOneDraft(), "sleep", {
+      value_ko: "밤 10시에 주무시는 모습을 직접 확인함.",
+    });
+    expect(codes(draft)).toEqual([]);
   });
 });

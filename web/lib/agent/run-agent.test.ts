@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  agentSystemPrompt,
   AUTO_STOP_REASON,
   runAgent,
   type AgentDeps,
@@ -136,5 +137,12 @@ describe("runAgent", () => {
     const deps = fakeDeps([[use("search_glossary", { expression: "죽" })]], { searchGlossary });
     await expect(runAgent(input, deps)).rejects.toThrow("tool_failed: search_glossary");
     expect(searchGlossary).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("agentSystemPrompt", () => {
+  it("확인 요청 문장은 value_ko가 아니라 reason에만 쓰라고 함 (이슈 #117)", () => {
+    const prompt = agentSystemPrompt("home", "vi");
+    expect(prompt).toContain("확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다");
   });
 });
