@@ -462,6 +462,7 @@ describe("toDemoDb", () => {
           id: "rv",
           role: "reviewer",
           name: "박 관리자",
+          email: "reviewer@example.com",
           native_lang: "ko",
           font_size: 2,
           onboarded: true,
