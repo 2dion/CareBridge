@@ -1,4 +1,4 @@
-name: 버그
+name: 버그 신고
 description: 화면·서버·DB가 문서와 다르게 동작하거나 오류가 나요.
 title: "[버그] "
 labels: ["버그"]
