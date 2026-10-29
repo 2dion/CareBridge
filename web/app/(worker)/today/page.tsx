@@ -5,7 +5,7 @@
 // 종 버튼은 두지 않는다(10/28 알림표시 결정): 수정 필요 알림과 하는 일이 같다.
 import Link from "next/link";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { Loading, MobileScreen, StatusBadge } from "@/components/mobile/shell";
@@ -57,6 +57,8 @@ function cardAction(resident: Resident, today: string, record?: DemoRecord): Car
 
 export default function TodayPage() {
   const demo = useDemo();
+  // 교육용 기관이면 문의 상대가 '강사'(이슈 #146)
+  const names = useRoleNames();
   if (!demo) return <Loading tab="today" />;
   const { db, today } = demo;
   const cards = todayCards(db, today);
