@@ -1,0 +1,6 @@
+# 빈 이슈를 막고 템플릿 4개 중에서 고르게 한다(결정 2026-10-29-이슈운영.md).
+blank_issues_enabled: false
+contact_links:
+  - name: 이슈로 올릴지 바로 PR로 올릴지 기준
+    url: https://github.com/2dion/CareBridge/blob/main/AGENTS.md#작업-올리는-방법
+    about: 7개 기준 중 하나라도 맞으면 이슈, 모두 아니면 바로 PR입니다.

@@ -1,0 +1,30 @@
+# 목적: .github/labels.yml의 라벨을 저장소에 만들거나 색·설명을 맞춘다(결정 2026-10-29-이슈운영.md).
+# 목록에 없는 라벨은 지우지 않는다.
+name: GitHub 라벨 맞추기
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/labels.yml]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 라벨 만들기·고치기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY' > labels.tsv
+          import yaml
+          for label in yaml.safe_load(open(".github/labels.yml")):
+              print(f"{label['name']}\t{label['color']}\t{label.get('description', '')}")
+          PY
+          while IFS=$'\t' read -r name color description; do
+            gh label create "$name" --color "$color" --description "$description" --force --repo "$GITHUB_REPOSITORY"
+          done < labels.tsv

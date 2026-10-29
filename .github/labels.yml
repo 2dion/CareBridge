@@ -1,0 +1,41 @@
+# GitHub 라벨 목록(결정 2026-10-29-이슈운영.md). main에 합치면 'GitHub 라벨 맞추기' 작업이 만들거나 고친다.
+# 지우는 일은 하지 않는다. 이름을 바꾸려면 GitHub 화면에서 바꾼 뒤 여기도 고친다.
+# 담당
+- name: BE
+  color: "1d76db"
+  description: 백엔드 담당 (서버 API·DB·RLS)
+- name: FE
+  color: "0e8a16"
+  description: 프론트엔드 담당 (화면)
+- name: QA
+  color: "5319e7"
+  description: QA 담당 (테스트·재현·재시험)
+- name: 기획
+  color: "c5def5"
+  description: 기획 담당 (문구·문서·결정 기록)
+- name: 데이터
+  color: "006b75"
+  description: 데이터 담당 (용어표·교재·시드)
+- name: 팀장
+  color: "b60205"
+  description: 팀장 결정·확인이 필요
+# 종류 (템플릿이 붙임)
+- name: 버그
+  color: "d73a4a"
+  description: 문서와 다르게 동작하거나 오류
+- name: 기능·개선
+  color: "a2eeef"
+  description: 없는 기능을 더하거나 있는 동작을 바꿈
+- name: 용어·문서
+  color: "0075ca"
+  description: 용어 통일, 문서와 코드 맞추기
+- name: 질문
+  color: "d876e3"
+  description: 다른 담당이나 팀장의 답·결정이 필요
+# 기한
+- name: 10/31 전
+  color: "fbca04"
+  description: 공모전 접수(10/31) 전에 끝낼 것
+- name: 11/08 전
+  color: "fef2c0"
+  description: 파이널 제출(11/08) 전에 끝낼 것
