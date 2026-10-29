@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  timeRangeLabel,
   addDays,
   addNoCareDay,
   canApproveRecord,
@@ -233,5 +234,23 @@ describe("Mock 데이터 규칙 (데이터구조 v1.6.2)", () => {
     const existing = findRecord(db, "kim", addDays(TODAY, -1))!;
     const again = ensureRecord(db, "kim", addDays(TODAY, -1), TODAY, NOW);
     expect(again).toEqual({ db, id: existing.id });
+  });
+});
+
+describe("timeRangeLabel", () => {
+  it("시각 둘을 오전·오후 글자로 바꾼다", () => {
+    expect(timeRangeLabel("14:00~17:00")).toBe("오후 2:00 ~ 오후 5:00");
+    expect(timeRangeLabel("09:30~12:00")).toBe("오전 9:30 ~ 오후 12:00");
+  });
+  it("요일 말이 앞에 있어도 NaN 없이 시각만 바꾼다(표시용 schedule)", () => {
+    expect(timeRangeLabel("평일 14:00~17:00")).toBe("평일 오후 2:00 ~ 오후 5:00");
+    expect(timeRangeLabel("월·수·금 09:00~12:00")).toBe("월·수·금 오전 9:00 ~ 오후 12:00");
+  });
+  it("시각이 없으면 원문 그대로, 비면 빈 글자", () => {
+    expect(timeRangeLabel("매일")).toBe("매일");
+    expect(timeRangeLabel(null)).toBe("");
+  });
+  it("DB time 값(초 포함)도 받는다", () => {
+    expect(timeRangeLabel("14:00:00~17:00:00")).toBe("오후 2:00 ~ 오후 5:00");
   });
 });
