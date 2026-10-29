@@ -39,7 +39,7 @@ const tabs: { key: Tab; label: string }[] = [
 ];
 
 const empties: Record<Tab, { ko: string; vi: string }> = {
-  missed: { ko: "작성 전 기록이 없습니다.", vi: "Không có bản ghi chưa viết." },
+  missed: { ko: "작성 전 기록이 없습니다.", vi: "Không có bản ghi chưa ghi." },
   draft: { ko: "임시 저장한 기록이 없습니다.", vi: "Không có bản ghi lưu tạm." },
   submitted: { ko: "전송 완료된 기록이 없습니다.", vi: "Không có bản ghi đã gửi." },
   returned: { ko: "수정 필요 기록이 없습니다.", vi: "Không có bản ghi cần sửa." },

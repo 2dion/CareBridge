@@ -963,10 +963,11 @@
   flex-shrink: 0;
 }
 
+/* 날짜는 머리 위쪽, 그 아래·캐릭터 왼쪽 빈자리에 알림(이슈 #149). 머리 높이 184px는 알림이 없어도 같다 */
 .m-app .home-header .date {
   position: absolute;
   left: 24px;
-  top: 108px;
+  top: 22px;
   z-index: 2;
 }
 
@@ -989,46 +990,88 @@
   margin: 0;
 }
 
+/* 머리 안 알림: 날짜 아래, 캐릭터(폭 132) 왼쪽. 수정 필요가 앞, 작성 전이 뒤. 0건은 빠진다 */
+.m-app .home-alerts {
+  position: absolute;
+  left: 16px;
+  right: 140px;
+  top: 72px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.m-app .home-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px 6px 12px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--color-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.m-app .home-alert .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--color-warn);
+  flex-shrink: 0;
+}
+
+.m-app .home-alert .txt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.m-app .home-alert strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.m-app .home-alert .vi {
+  font-size: 12px;
+  color: var(--color-sub);
+}
+
+.m-app .home-alert .count {
+  min-width: 26px;
+  padding: 2px 7px;
+  border-radius: 13px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+}
+
+.m-app .home-alert > .icon {
+  width: 16px;
+  height: 16px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.m-app .home-alert.missed .dot {
+  background: #326c9c;
+}
+
+.m-app .home-alert.missed .count {
+  background: #eef5fb;
+  color: #326c9c;
+}
+
 .m-app .home-body {
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 14px 16px 0;
-}
-
-.m-app .returned {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: var(--color-warn-bg);
-}
-
-.m-app .returned .dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 6px;
-  background: var(--color-warn);
-  flex-shrink: 0;
-}
-
-.m-app .returned .txt {
-  flex: 1;
-}
-
-.m-app .returned strong {
-  display: block;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.m-app .returned span {
-  font-size: 12px;
-}
-
-.m-app .returned > .icon {
-  color: #6b7280;
 }
 
 .m-app .section-title {
@@ -1089,24 +1132,6 @@
 .m-app .resident .name {
   font-size: 17px;
   font-weight: 700;
-}
-
-.m-app .resident .line {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-info);
-}
-
-.m-app .resident .line .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.m-app .resident .line-vi {
-  font-size: 12px;
 }
 
 .m-app hr {
@@ -2658,18 +2683,6 @@ body:has(.m-app) {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-.m-app .returned.missed {
-  background: #eef5fb;
-}
-
-.m-app .returned.missed .dot {
-  background: #326c9c;
-}
-
-.m-app .returned.missed strong {
-  color: #326c9c;
 }
 
 .m-app button.method {
