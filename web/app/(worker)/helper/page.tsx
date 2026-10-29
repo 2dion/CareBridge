@@ -5,7 +5,7 @@
 import { useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
@@ -23,6 +23,8 @@ type Message =
 export default function HelperPage() {
   const demo = useDemo();
   const search = useSearchParams();
+  // 교육용 기관이면 보고 상대가 '강사'(이슈 #146)
+  const names = useRoleNames();
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [endOpen, setEndOpen] = useState(false);
@@ -102,8 +104,8 @@ export default function HelperPage() {
         }
       />
       <div className="reason-box big helper-notice" role="note">
-        <b>건강·안전 문제는 관리자에게 먼저 보고하세요.</b>
-        <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo người quản lý.</span>
+        <b>건강·안전 문제는 {names.reviewer}에게 먼저 보고하세요.</b>
+        <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo {names.reviewerVi}.</span>
       </div>
       <div className="chat" aria-live="polite">
         {messages.length === 0 ? (

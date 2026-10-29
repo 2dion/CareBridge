@@ -4,7 +4,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { useToast } from "@/components/desk/shell";
 import { formFieldHint } from "@/lib/demo/review";
 import { displayOrder, getResident, itemLabel, monthDayWeek } from "@/lib/demo/store";
@@ -19,6 +19,8 @@ export default function PrintPage() {
   const router = useRouter();
   const demo = useDemo();
   const toast = useToast();
+  // 교육용 기관이면 '(강사 선택)'(이슈 #146)
+  const names = useRoleNames();
   const [notesArea, setNotesArea] = useState<NoteArea | "">("");
   const [generated, setGenerated] = useState<GeneratedPdf | null>(null);
   const [busy, setBusy] = useState(false);
@@ -167,7 +169,7 @@ export default function PrintPage() {
             </p>
             {needsArea && (
               <label className="flabel">
-                특이사항을 넣을 영역 (관리자 선택)
+                특이사항을 넣을 영역 ({names.reviewer} 선택)
                 <select
                   className="field"
                   value={notesArea}

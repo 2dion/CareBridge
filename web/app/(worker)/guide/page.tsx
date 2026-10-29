@@ -4,10 +4,11 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art, type ArtName } from "@/components/mobile/art";
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
+import type { RoleNames } from "@/lib/demo/roles";
 
 type Step = {
   title: [string, string, string];
@@ -20,7 +21,8 @@ type Step = {
   tip?: { ko: string; vi: string; desc: string; descVi: string };
 };
 
-const steps: Step[] = [
+// 교육용 기관이면 '강사에게 전송'으로 보인다(이슈 #146)
+const buildSteps = (names: RoleNames): Step[] => [
   {
     title: ["안녕하세요,", "새싹로봇", "이에요."],
     vi: "Xin chào, tôi là robot Mầm non.",
@@ -72,8 +74,8 @@ const steps: Step[] = [
   {
     title: ["초안을 확인하고", "전송하면 끝", "이에요."],
     vi: "Kiểm tra bản nháp rồi gửi là xong.",
-    desc: ["AI가 만든 초안을 보고 필요한 부분만", "수정한 뒤 관리자에게 전송하세요."],
-    descVi: "Sửa phần cần thiết rồi gửi người quản lý.",
+    desc: ["AI가 만든 초안을 보고 필요한 부분만", `수정한 뒤 ${names.reviewer}에게 전송하세요.`],
+    descVi: `Sửa phần cần thiết rồi gửi ${names.reviewerVi}.`,
     art: "robot-done",
     artWidth: 290,
     tip: {
@@ -89,6 +91,7 @@ export default function GuidePage() {
   const router = useRouter();
   const joined = useSearchParams().get("joined");
   const demo = useDemo();
+  const steps = buildSteps(useRoleNames());
   const [index, setIndex] = useState(0);
   const step = steps[index];
   const last = index === steps.length - 1;

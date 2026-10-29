@@ -269,7 +269,11 @@ export default function DraftPage() {
               <FrameVi>Đã xem cả {total} mục</FrameVi>
             </span>
             <span className="grow" />
-            {needsLeft > 0 && <span className="done-note">관리자가 정할 항목 {needsLeft}개</span>}
+            {needsLeft > 0 && (
+              <span className="done-note">
+                {names.reviewer}가 정할 항목 {needsLeft}개
+              </span>
+            )}
           </div>
         ) : (
           <div className="done-bar card">

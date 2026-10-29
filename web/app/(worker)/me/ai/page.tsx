@@ -1,11 +1,17 @@
 "use client";
 
 // W5 · AI 사용 원칙. AGENTS.md '바꾸지 않는 원칙' 1·2를 작성자 말로 옮김.
+import { useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
+import type { RoleNames } from "@/lib/demo/roles";
 
-const steps = [
+/** 베트남어 문장 첫 글자를 대문자로 */
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+// 교육용 기관이면 교육생·강사로 보인다(이슈 #146)
+const buildSteps = (names: RoleNames) => [
   {
     ko: "AI가 초안을 정리해요",
     vi: "AI sắp xếp bản nháp.",
@@ -13,20 +19,22 @@ const steps = [
     bodyVi: "Sắp xếp theo mục. Không tự thêm điều chưa nói.",
   },
   {
-    ko: "작성자가 확인해요",
-    vi: "Người ghi chép kiểm tra.",
+    ko: `${names.worker}가 확인해요`,
+    vi: `${capital(names.workerVi)} kiểm tra.`,
     body: "틀린 것은 고치고 빠진 것은 채워요.",
     bodyVi: "Sửa chỗ sai và bổ sung chỗ thiếu.",
   },
   {
-    ko: "관리자가 승인해요",
-    vi: "Người quản lý phê duyệt.",
-    body: "관리자가 확인하고 승인해야 기록이 끝나요.",
-    bodyVi: "Bản ghi hoàn tất khi người quản lý duyệt.",
+    ko: `${names.reviewer}가 승인해요`,
+    vi: `${capital(names.reviewerVi)} phê duyệt.`,
+    body: `${names.reviewer}가 확인하고 승인해야 기록이 끝나요.`,
+    bodyVi: `Bản ghi hoàn tất khi ${names.reviewerVi} duyệt.`,
   },
 ];
 
 export default function AiPrinciplesPage() {
+  const names = useRoleNames();
+  const steps = buildSteps(names);
   return (
     <MobileScreen tab="me">
       <AppBar title="AI 사용 원칙" vi="Nguyên tắc sử dụng AI" back="/me" />
@@ -67,9 +75,9 @@ export default function AiPrinciplesPage() {
         >
           <Icon name="alert" />
           <div>
-            <b>건강·안전 문제는 관리자에게 먼저 알려 주세요.</b>
+            <b>건강·안전 문제는 {names.reviewer}에게 먼저 알려 주세요.</b>
             <span className="vi" style={{ display: "block" }}>
-              Hãy báo người quản lý trước khi có vấn đề sức khỏe hoặc an toàn.
+              Hãy báo {names.reviewerVi} trước khi có vấn đề sức khỏe hoặc an toàn.
             </span>
           </div>
         </div>

@@ -171,10 +171,10 @@ export default function TodayPage() {
           <Art name="robot-rest" width={280} />
           <div className="empty">
             <strong>오늘 담당 어르신이 없습니다.</strong>
-            <p style={{ marginTop: 6 }}>관리자에게 문의하세요.</p>
+            <p style={{ marginTop: 6 }}>{names.reviewer}에게 문의하세요.</p>
             <span className="vi">
-              Hôm nay bạn chưa có người cao tuổi được phân công chăm sóc. Vui lòng hỏi người quản
-              lý.
+              Hôm nay bạn chưa có người cao tuổi được phân công chăm sóc. Vui lòng hỏi{" "}
+              {names.reviewerVi}.
             </span>
           </div>
           <div className="pad">
