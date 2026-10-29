@@ -10,7 +10,13 @@ import { useState } from "react";
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
-import { addResident, type ResidentEdit, updateResident } from "@/lib/demo/review";
+import {
+  addResident,
+  type ResidentEdit,
+  residentEditChanged,
+  residentHasRecords,
+  updateResident,
+} from "@/lib/demo/review";
 import {
   addDays,
   monthDay,
@@ -229,19 +235,43 @@ function Residents() {
           selectedWorkerIds={workerIdsOf(editing.id)}
           workerLabel={names.worker}
           onClose={() => setEditing(null)}
+          lockCareType={residentHasRecords(db, editing.id)}
           onSave={(edit) => {
-            setEditing(null);
+            // 바뀐 게 없으면 저장하지 않고 '저장했어요'도 띄우지 않는다(이슈 #96)
+            const currentIds = db.assignments ? workerIdsOf(editing.id) : null;
+            if (!residentEditChanged(editing, currentIds, edit)) {
+              setEditing(null);
+              toast.show("바뀐 내용이 없어요.");
+              return null;
+            }
             if (demo.real) {
-              // 고른 작성자만 남기고(빠진 줄은 지우고, 새 줄은 넣고) 방문 요일·시작일·표시용 방문 시간을 저장한다
+              if (
+                edit.alias !== undefined &&
+                db.residents.some(
+                  (resident) => resident.id !== editing.id && resident.alias === edit.alias,
+                )
+              ) {
+                return "duplicate";
+              }
+              setEditing(null);
+              // residents(가명·급여 종류)는 바뀐 때만, 담당 연결은 고른 작성자만 남기고(빠진 줄 지움, 새 줄 넣음)
+              // 방문 요일·시작일·표시용 방문 시간(schedule)을 저장한다
               void demo.real.actions.updateResident(editing.id, edit).then((result) => {
-                toast.show(result.ok ? "담당 연결을 저장했어요." : result.ko);
+                toast.show(
+                  result.ok
+                    ? result.changed
+                      ? "저장했어요."
+                      : "바뀐 내용이 없어요. 화면을 새로 고쳐 주세요."
+                    : result.ko,
+                );
               });
               return null;
             }
             const next = updateResident(db, editing.id, edit);
             if ("error" in next) return next.error;
+            setEditing(null);
             demo.update(() => next);
-            toast.show("담당 연결을 저장했어요.");
+            toast.show("저장했어요.");
             return null;
           }}
         />
@@ -318,12 +348,14 @@ function WorkerPicker({
   );
 }
 
+/** M4 [수정] 서랍: 어르신 정보(가명·급여 종류, 이슈 #96)와 담당 연결(작성자·시작일·방문 요일·표시용 방문 시간) */
 function AssignDrawer({
   resident,
   today,
   workers,
   selectedWorkerIds,
   workerLabel,
+  lockCareType,
   onClose,
   onSave,
 }: {
@@ -332,11 +364,15 @@ function AssignDrawer({
   workers: StaffMember[];
   selectedWorkerIds: string[];
   workerLabel: string;
+  /** 기록이 하나라도 있으면 급여 종류(서식)를 바꿀 수 없다 */
+  lockCareType: boolean;
   onClose: () => void;
   /** 저장. 막히면 오류 키를 돌려준다 */
   onSave: (edit: ResidentEdit) => "duplicate" | "care_type_locked" | null;
 }) {
-  const home = resident.careType === "home";
+  const [initial, setInitial] = useState(resident.initial);
+  const [careType, setCareType] = useState<Resident["careType"]>(resident.careType);
+  const home = careType === "home";
   const [workerIds, setWorkerIds] = useState<string[]>(selectedWorkerIds);
   const [days, setDays] = useState<number[]>(resident.visitDays ?? []);
   const [startDate, setStartDate] = useState(resident.startDate);
@@ -349,34 +385,79 @@ function AssignDrawer({
     setWorkerIds((prev) => (prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]));
 
   const save = () => {
+    const letter = initial.trim().slice(0, 1);
+    if (!letter) return setError("성 한 글자를 써 주세요.");
     if (!startDate || startDate > today)
       return setError("담당 시작일은 오늘이나 그 전이어야 해요.");
     if (home && days.length === 0)
       return setError("재가 어르신은 방문 요일을 하나 이상 골라 주세요.");
     if ((from && !to) || (!from && to) || (from && to && from >= to))
       return setError("방문 시간은 시작이 끝보다 앞이어야 해요.");
+    // 가명 규칙은 어르신 추가와 같다(성 한 글자 + ○○ 어르신). 같은 성 구분은 이슈 #99 결정을 기다린다
+    const alias = `${letter}○○ 어르신`;
     const result = onSave({
       visitDays: home ? days : null,
-      visitTime: from && to ? `${from}~${to}` : null,
+      visitTime: home && from && to ? `${from}~${to}` : null,
       startDate,
       workerIds,
+      ...(alias !== resident.alias ? { alias } : {}),
+      ...(careType !== resident.careType ? { careType } : {}),
     });
     if (result) setError(EDIT_ERRORS[result]);
   };
 
   return (
-    <DeskModal open onClose={onClose} label="담당 연결" drawer>
+    <DeskModal open onClose={onClose} label="어르신 수정" drawer>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 22 }}>담당 연결</h2>
+          <h2 style={{ margin: 0, fontSize: 22 }}>어르신 수정</h2>
           <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>
-            {resident.alias} · {home ? "재가 (별지 제12호)" : "시설 (별지 제16호)"}
+            {resident.alias} ·{" "}
+            {resident.careType === "home" ? "재가 (별지 제12호)" : "시설 (별지 제16호)"}
           </p>
         </div>
         <button type="button" className="text-link" onClick={onClose}>
           닫기
         </button>
       </div>
+      <label className="flabel" htmlFor="edit-initial">
+        가명 · 성 (한 글자)
+      </label>
+      <input
+        id="edit-initial"
+        className="field"
+        maxLength={1}
+        value={initial}
+        onChange={(event) => {
+          setInitial(event.target.value);
+          setError(null);
+        }}
+      />
+      <p className="fhint">화면에는 ‘{initial.trim().slice(0, 1) || "○"}○○ 어르신’으로 보여요.</p>
+      <p className="flabel">급여 종류</p>
+      <div className="seg" role="group" aria-label="급여 종류">
+        <button
+          type="button"
+          className={careType === "facility" ? "on" : ""}
+          disabled={lockCareType}
+          onClick={() => setCareType("facility")}
+        >
+          시설 (별지 제16호)
+        </button>
+        <button
+          type="button"
+          className={careType === "home" ? "on" : ""}
+          disabled={lockCareType}
+          onClick={() => setCareType("home")}
+        >
+          재가 (별지 제12호)
+        </button>
+      </div>
+      <p className="fhint">
+        {lockCareType
+          ? "기록이 있는 어르신은 급여 종류(서식)를 바꿀 수 없어요."
+          : "급여 종류가 서식(별지 제16호 / 제12호)을 정해요."}
+      </p>
       <p className="flabel">담당 {workerLabel}</p>
       <WorkerPicker
         workers={workers}
