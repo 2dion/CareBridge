@@ -469,8 +469,8 @@ describe("toDemoDb", () => {
           org_name: "데모 요양센터",
         },
         staff: [
-          { id: "w1", name: "마이", role: "worker" },
-          { id: "w2", name: "린", role: "worker" },
+          { id: "w1", name: "마이", role: "worker", native_lang: "vi" },
+          { id: "w2", name: "린", role: "worker", native_lang: "ko" },
         ],
         residents: [{ id: "res-1", alias: "이○○ 어르신", care_type: "facility" }],
         assignments: [
@@ -491,6 +491,7 @@ describe("toDemoDb", () => {
       "2026-10-28",
     );
     expect(db.staff?.map((person) => person.name)).toEqual(["마이", "린"]);
+    expect(db.staff?.map((person) => person.nativeLang)).toEqual(["vi", "ko"]);
     expect(db.assignments).toEqual([
       {
         residentId: "res-1",
