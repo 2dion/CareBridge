@@ -4,13 +4,13 @@
 // 항목 내용·확인 이유·되돌림 사유와 제목·버튼은 병기, 상태 배지·항목 이름은 한국어만.
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import { nowIso, useDemo } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
-import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
+import { AppBar, FrameVi, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
 import type { ItemStatus } from "@/lib/demo/state";
 import {
   canSubmitRecord,
@@ -32,6 +32,9 @@ import {
 } from "@/lib/demo/store";
 
 const NOTES_LIMIT = 200;
+/** 재가 서식 칸 숫자: 입력이 이만큼 멈추면 저장한다 */
+const FIELD_SAVE_DELAY = 600;
+type CountField = "stool_accidents" | "urine_accidents";
 
 const statusBadge: Record<ItemStatus, { label: string; tone: string }> = {
   observed: { label: "관찰", tone: "green" },
@@ -86,6 +89,8 @@ export default function DraftPage() {
   const empty = record?.draftState === "empty";
   // 방금 전송한 기록은 W3 · 전송 완료 화면으로 가고, 기록 보기로 돌리지 않는다.
   const justSent = useRef(false);
+  // 재가 서식 칸은 입력이 멈춘 뒤 저장한다. 두 칸을 잇달아 고쳐도 먼저 보낸 값이 옛 서버 값에 덮이지 않게 보낸 값을 모아 둔다(이슈 #139)
+  const sentFields = useRef<Partial<Record<CountField, number | null>>>({});
   useEffect(() => {
     if (locked && !justSent.current) router.replace(`/records/${id}/view`);
     else if (empty && record) router.replace(`/start/${record.residentId}?date=${record.careDate}`);
@@ -203,11 +208,18 @@ export default function DraftPage() {
       if (!result.ok) setToast(`${result.ko} ${result.vi}`);
     });
   };
-  const setField = (key: "stool_accidents" | "urine_accidents", value: number | null) => {
-    if (!real) return act((db) => setFormField(db, id, key, value, nowIso()));
-    void real.actions.setFormFields(id, { ...record.formFields, [key]: value }).then((result) => {
-      if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+  const setField = async (key: CountField, value: number | null) => {
+    if (!real) {
+      act((db) => setFormField(db, id, key, value, nowIso()));
+      return true;
+    }
+    sentFields.current[key] = value;
+    const result = await real.actions.setFormFields(id, {
+      ...record.formFields,
+      ...sentFields.current,
     });
+    if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+    return result.ok;
   };
 
   const send = async () => {
@@ -244,21 +256,29 @@ export default function DraftPage() {
             </span>
           </div>
         )}
+        {/* 작성자가 할 일(9개 보기)과 관리자가 할 일('확인 필요' 정하기)을 다른 말로 쓴다. '확인'을 두 뜻으로 섞지 않는다(이슈 #137) */}
         {doneCount === total ? (
           <div className="done-bar card">
             <span className="check-dot solid">
               <Icon name="check" />
             </span>
-            <b>모두 확인했어요</b>
-            <span className="badge badge-green">{total}개</span>
+            <span className="stack">
+              <b>{total}개 모두 봤어요</b>
+              <FrameVi>Đã xem cả {total} mục</FrameVi>
+            </span>
             <span className="grow" />
-            <span className="done-note">확인 필요 {needsLeft}개</span>
+            {needsLeft > 0 && <span className="done-note">관리자가 정할 항목 {needsLeft}개</span>}
           </div>
         ) : (
           <div className="done-bar card">
-            <b>
-              {total}개 중 {doneCount}개 확인
-            </b>
+            <span className="stack">
+              <b>
+                {total}개 중 {doneCount}개 봤어요
+              </b>
+              <FrameVi>
+                Đã xem {doneCount}/{total} mục
+              </FrameVi>
+            </span>
             <span className="grow" />
             <span className="done-note">남은 항목 {total - doneCount}개</span>
           </div>
@@ -319,7 +339,7 @@ export default function DraftPage() {
       </div>
       {!canSend && (
         <p className="sr-only" role="status">
-          모든 항목을 확인하면 보낼 수 있어요.
+          {total}개를 모두 보면 보낼 수 있어요. Xem hết {total} mục là có thể gửi.
         </p>
       )}
       <Modal
@@ -535,14 +555,46 @@ function ItemCard({
   );
 }
 
+/** 실수 횟수 칸의 글자 → 0~20 또는 빈칸(null). 숫자가 아니면 빈칸 */
+function parseCount(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const n = Math.trunc(Number(raw));
+  return Number.isFinite(n) ? Math.max(0, Math.min(20, n)) : null;
+}
+
 /** 재가(별지 제12호) 칸: 방문 시작·종료, 지원별 분 합, 배변 실수 2칸(화면 v1.3 W3 재가). */
 function HomeCareCard({
   record,
   setField,
 }: {
   record: DemoRecord;
-  setField: (key: "stool_accidents" | "urine_accidents", value: number | null) => void;
+  setField: (key: CountField, value: number | null) => Promise<boolean>;
 }) {
+  // 입력 중 값은 화면 상태로 들고, 입력이 멈추거나 칸을 떠나면 저장한다.
+  // 서버 값에 바로 묶으면 저장 뒤 다시 읽을 때 넣던 값(0 포함)이 지워진다(이슈 #139)
+  const [drafts, setDrafts] = useState<Partial<Record<CountField, string>>>({});
+  const pending = useRef<Partial<Record<CountField, string>>>({});
+  const timers = useRef<Partial<Record<CountField, number>>>({});
+  const save = useRef(setField);
+  useEffect(() => {
+    save.current = setField;
+  });
+  const flush = useCallback((key: CountField) => {
+    window.clearTimeout(timers.current[key]);
+    delete timers.current[key];
+    const raw = pending.current[key];
+    if (raw === undefined) return;
+    delete pending.current[key];
+    void save.current(key, parseCount(raw));
+  }, []);
+  const edit = (key: CountField, raw: string) => {
+    setDrafts((prev) => ({ ...prev, [key]: raw }));
+    pending.current[key] = raw;
+    window.clearTimeout(timers.current[key]);
+    timers.current[key] = window.setTimeout(() => flush(key), FIELD_SAVE_DELAY);
+  };
+  // 화면을 떠나도 아직 저장하지 않은 값은 저장한다
+  useEffect(() => () => (Object.keys(pending.current) as CountField[]).forEach(flush), [flush]);
   const visit = record.items.find((item) => item.item_key === "visit_time")?.detail;
   const range =
     typeof visit?.start === "string" && typeof visit?.end === "string"
@@ -551,23 +603,22 @@ function HomeCareCard({
   const minutes = visitMinutes(record);
   const totalMinutes = supportMinutesTotal(record);
   const editable = record.status === "draft" || record.status === "returned";
-  const field = (key: "stool_accidents" | "urine_accidents", label: string) => (
-    <label key={key} style={{ display: "contents" }}>
-      <span>{label}</span>
+  // label을 htmlFor로 잇는다. display: contents로 감싸면 Chrome 접근성 트리에서 이름이 빠진다(이슈 #139)
+  const field = (key: CountField, label: string) => (
+    <Fragment key={key}>
+      <label htmlFor={`field-${key}`}>{label}</label>
       <input
+        id={`field-${key}`}
         type="number"
         inputMode="numeric"
         min={0}
         max={20}
         disabled={!editable}
-        value={record.formFields?.[key] ?? ""}
-        onChange={(event) => {
-          const raw = event.target.value;
-          const value = raw === "" ? null : Math.max(0, Math.min(20, Math.trunc(Number(raw))));
-          setField(key, value);
-        }}
+        value={drafts[key] ?? record.formFields?.[key] ?? ""}
+        onChange={(event) => edit(key, event.target.value)}
+        onBlur={() => flush(key)}
       />
-    </label>
+    </Fragment>
   );
   return (
     <section className="review card">

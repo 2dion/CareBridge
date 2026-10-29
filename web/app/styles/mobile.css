@@ -2796,6 +2796,16 @@ body:has(.m-app) {
   text-align: right;
 }
 
+/* 방문 시작·종료: 시간 칸은 88px에 "오후 01:00"이 다 안 들어가 잘린다(이슈 #139). 남는 폭을 다 준다 */
+.m-app .minutes-grid.times {
+  grid-template-columns: 4em minmax(0, 1fr);
+}
+
+.m-app .minutes-grid.times input {
+  min-width: 8.5rem;
+  text-align: left;
+}
+
 .m-app .rec-dot {
   display: inline-block;
   width: 10px;

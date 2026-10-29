@@ -65,7 +65,8 @@ export default function FontPage() {
           </button>
         ))}
       </div>
-      <div className="pad" style={{ marginTop: "auto", padding: "24px 16px" }}>
+      {/* 가장 큰 글씨에서도 [적용]이 화면 아래로 밀리지 않게 W3처럼 아래 고정 영역에 둔다(이슈 #138) */}
+      <div className="action-panel card sticky-actions">
         <button
           type="button"
           className="btn btn-primary"

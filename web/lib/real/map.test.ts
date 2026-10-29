@@ -7,6 +7,7 @@ import {
   applyPrintData,
   draftStateOf,
   type EventRow,
+  inputModeOf,
   type ItemRow,
   mapRecord,
   mapResidents,
@@ -113,6 +114,35 @@ describe("draftStateOf", () => {
   it("원문도 손댄 항목도 없으면 작성 전, 원문이 있으면 준비됨", () => {
     expect(draftStateOf(blank, [item("meal")], [])).toBe("empty");
     expect(draftStateOf(record, [item("meal")], [])).toBe("ready");
+  });
+});
+
+// 이슈 #135: 글로 쓴 기록을 음성으로 보면 ‘정리 중’에 “음성을 글자로” 단계가 나오고 쓴 글이 다시 채워지지 않는다
+describe("inputModeOf", () => {
+  const recordJob = {
+    record_id: "rec-1",
+    target: "record" as const,
+    status: "done" as const,
+    created_at: "1",
+  };
+  it("기록 전체 녹음 작업이 있으면 음성", () => {
+    expect(inputModeOf(record, [recordJob])).toBe("voice");
+  });
+
+  it("녹음 작업 없이 원문만 있으면 글(항목 보태기 녹음은 세지 않음)", () => {
+    expect(inputModeOf(record, [])).toBe("text");
+    expect(inputModeOf(record, [{ ...recordJob, target: "item" }])).toBe("text");
+    expect(inputModeOf(record, [{ ...recordJob, record_id: "rec-2" }])).toBe("text");
+  });
+
+  it("둘 다 없으면 null", () => {
+    expect(inputModeOf({ ...record, transcript: "" }, [])).toBeNull();
+  });
+
+  it("mapRecord도 같은 값을 쓴다", () => {
+    const text = mapRecord(record, { items: [], events: [], jobs: [] }, () => "");
+    const voice = mapRecord(record, { items: [], events: [], jobs: [recordJob] }, () => "");
+    expect([text.inputMode, voice.inputMode]).toEqual(["text", "voice"]);
   });
 });
 
@@ -347,6 +377,7 @@ describe("toDemoDb", () => {
           font_size: 3,
           onboarded: true,
           org_name: "데모 요양센터",
+          email: "worker@example.com",
         },
         staff: [],
         residents: [],
@@ -359,7 +390,11 @@ describe("toDemoDb", () => {
       },
       "2026-10-28",
     );
-    expect(db.worker).toMatchObject({ name: "마이", org: "데모 요양센터" });
+    expect(db.worker).toMatchObject({
+      name: "마이",
+      org: "데모 요양센터",
+      email: "worker@example.com",
+    });
     expect(db.fontSize).toBe("large");
     expect(db.records["rec-1"].status).toBe("returned");
   });
