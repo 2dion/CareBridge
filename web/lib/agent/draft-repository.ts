@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { careTypeOf } from "@/lib/records/form-type";
+
 import { getBlockedNames } from "./blocked-names";
 import { ITEM_KEYS, validateDraft, type DraftItem, type ValidateContext } from "./validate-draft";
 
@@ -51,7 +53,7 @@ export async function saveValidatedDraft(
   const context: ValidateContext = {
     nativeLang: profile.native_lang === "ko" ? "ko" : "vi",
     transcript: record.transcript,
-    careType: record.form_type === "12" ? "home" : "facility",
+    careType: careTypeOf(record.form_type),
     blockedNames: await getBlockedNames(serverClient, recordId, auth.user.id),
   };
   if (record.visit_start && record.visit_end) {
@@ -100,13 +102,25 @@ export async function saveAddedItem(
   return saveAiItem(serverClient, recordId, item_key, actorId, expectedValueKo, "item", fields);
 }
 
+// 재가 제공 지원 재검사(검사 5) 결과: status·reason·reason_native만 바꾼다. 출처·[맞아요]·내용은 그대로.
+// 근거: 문서/결정/2026-10-29-초안검사보강.md (이슈 #116)
+export async function saveItemCheck(
+  serverClient: SupabaseClient,
+  recordId: string,
+  actorId: string,
+  expectedValueKo: string,
+  check: { status: DraftItem["status"]; reason: string; reason_native: string },
+) {
+  return saveAiItem(serverClient, recordId, "support", actorId, expectedValueKo, "check", check);
+}
+
 async function saveAiItem(
   serverClient: SupabaseClient,
   recordId: string,
   itemKey: DraftItem["item_key"],
   actorId: string,
   expectedValueKo: string,
-  mode: "translation" | "item",
+  mode: "translation" | "item" | "check",
   item: Record<string, unknown>,
 ) {
   const { data, error } = await serverClient.rpc("save_ai_item", {

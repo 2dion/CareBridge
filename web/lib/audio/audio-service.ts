@@ -34,7 +34,7 @@ type WorkerRecord = {
   org_id: string;
   worker_id: string;
   status: string;
-  form_type: string;
+  form_type: string | number; // DB는 smallint(16 / 12)
   transcript: string;
   visit_start: string | null;
   visit_end: string | null;

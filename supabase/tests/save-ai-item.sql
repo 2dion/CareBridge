@@ -56,6 +56,15 @@ select pg_temp.expect_error($q$select * from public.save_ai_item((select id from
 select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'sleep','d2000000-0000-0000-0000-000000000001','','translation','{"value_native":"x"}')$q$,'invalid_item');
 select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000001','작성자가 쓴 식사','other','{}')$q$,'invalid_mode');
 
+-- 재검사(check): 상태·이유만 바뀌고 내용·출처·[맞아요]는 그대로 (결정 2026-10-29-초안검사보강, 이슈 #116)
+select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000001','작성자가 쓴 식사','check','{"status":"needs_check","reason":"지원별 제공시간 합이 방문 시간보다 김 (200분 > 180분)","reason_native":"Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)","value_ko":"무시됨","source":"ai","confirmed_by_worker":true}');
+select pg_temp.check_true((select status='needs_check' and reason like '지원별 제공시간 합%' and reason_native like 'Tổng thời gian%' and value_ko='작성자가 쓴 식사' and value_native='Bữa ăn do người viết ghi' and source='worker' and not confirmed_by_worker from public.record_items where record_id=(select id from item_ids) and item_key='meal'),'재검사는 상태·이유만 저장');
+select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000001','작성자가 쓴 식사','check','{"status":"observed","reason":"","reason_native":""}');
+select pg_temp.check_true((select status='observed' and reason='' and reason_native='' from public.record_items where record_id=(select id from item_ids) and item_key='meal'),'합이 맞으면 관찰로 되돌림');
+select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000001','작성자가 쓴 식사','check','{"status":"done","reason":""}')$q$,'invalid_item');
+select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000002','작성자가 쓴 식사','check','{"status":"observed","reason":""}')$q$,'not_record_worker');
+select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'meal','d2000000-0000-0000-0000-000000000001','옛 글','check','{"status":"observed","reason":""}')$q$,'stale_item');
+
 -- 항목 보태기: 작성자만, 출처 worker, [맞아요] 다시
 select * from public.save_ai_item((select id from item_ids),'sleep','d2000000-0000-0000-0000-000000000001','','item','{"value_ko":"밤에 두 번 깸","value_native":"Thức dậy hai lần","status":"needs_check","evidence":"밤에 두 번","reason":"시간 확인 필요","reason_native":"Cần kiểm tra giờ","detail":{}}');
 select pg_temp.check_true((select value_ko='밤에 두 번 깸' and reason_native='Cần kiểm tra giờ' and evidence='밤에 두 번' and source='worker' and not confirmed_by_worker from public.record_items where record_id=(select id from item_ids) and item_key='sleep'),'항목 보태기 저장');

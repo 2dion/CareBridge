@@ -24,6 +24,8 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 | `migrations/20261028120000_resolution_note.sql` | [기록 안 함] 사유 칸 `resolution_note`(관리자만, omitted일 때만, 이력에 남음) |
 | `migrations/20261028130000_save_ai_item.sql` | 서버 전용 `save_ai_item`: 항목 하나 재번역(value_native만)·AI 항목 보태기, 기준 글이 다르면 `stale_item` |
 | `migrations/20261028150000_return_reason_native.sql` | 되돌린 사유 번역 저장 함수 `save_return_reason_native`(service_role 전용, 사유가 바뀌었으면 `stale_reason`) |
+| `migrations/20261029130000_english_names.sql` | 영어 이름 세 개: `confirmed` → `confirmed_by_worker`, Agent 도구 `search_glossary`·`return_draft`, 칸 이름을 쓰는 함수 다시 만들기 |
+| `migrations/20261029160000_save_ai_item_check.sql` | `save_ai_item` mode `check`: 재가 제공 지원 재검사(검사 5) 결과로 status·reason·reason_native만 바꿈(작성자, draft·returned) |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 | `demo-data.sql` | 시연 데이터 다시 채우기(#156): 데모 두 기관의 기록을 지우고 합성 어르신 8명·시연용 배경 기록 14건을 넣음. `data/demo/build_demo_sql.py`가 만듦 |
 | `reset-demo.sql` | 리허설 뒤 시나리오 1·2·3 어르신의 '오늘' 기록만 지움 |
@@ -109,3 +111,4 @@ npx supabase db push                               # migrations/ 를 클라우�
 - 사용자 요청으로 추가 수동 검증을 중단했습니다. supabase/tests/record-contract.sql은 마지막 ROLLBACK으로 합성 픽스처를 제거하는 회귀 SQL입니다.
 - [기록 안 함] 사유는 `record_items.resolution_note`입니다. omitted일 때만 있고 비면 `note_required`, 작성자가 쓰면 `reviewer_only`입니다. resolution이 바뀌면 DB가 비웁니다. 회귀 SQL은 `supabase/tests/resolution-note.sql`입니다(결정 `2026-10-28-기록안함사유`).
 - 항목 하나 저장은 service_role 전용 `save_ai_item(record_id, item_key, actor_id, expected_value_ko, mode, item)`입니다. mode `translation`은 PATCH와 같은 사람(draft·returned 작성자, submitted 관리자)의 value_native만, `item`은 작성자의 음성 보태기 항목 전체(source = worker, confirmed_by_worker = false)를 저장합니다. 서버 코드는 `saveItemTranslation`·`saveAddedItem`(`web/lib/agent/draft-repository.ts`), 회귀 SQL은 `supabase/tests/save-ai-item.sql`입니다(결정 `2026-10-28-항목하나저장`).
+- (10/29) `save_ai_item` mode `check`는 재가 제공 지원 재검사(검사 5: 지원별 분 합 ≤ 방문 시간) 결과로 `status`·`reason`·`reason_native`만 바꿉니다. 작성자 본인이 draft·returned일 때만 되고, 내용·출처·`confirmed_by_worker`는 그대로입니다. 작성자가 W3에서 분·방문 시점을 고친 PATCH 뒤와 `/submit` 직전에 서버가 부릅니다(`web/lib/records/support-check.ts`, `saveItemCheck`). 결정 `2026-10-29-초안검사보강`.

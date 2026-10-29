@@ -18,6 +18,7 @@ function fakeDeps(record: RecordRow | null, overrides: Partial<ItemPatchDeps> = 
     translate: vi.fn(async () => "Ăn một nửa bữa trưa"),
     saveTranslation: vi.fn(async () => ({ ok: true as const })),
     readItem: vi.fn(async () => ({ item_key: "meal", value_ko: "점심 절반 드심" })),
+    recheckSupport: vi.fn(async () => null),
     ...overrides,
   };
 }
@@ -73,6 +74,43 @@ describe("patchItem", () => {
       200,
     );
     expect(deps.translate).not.toHaveBeenCalled();
+  });
+
+  // 이슈 #116: 작성자가 분이나 방문 시점을 고치면 저장 뒤 검사 5를 다시 한다
+  it("작성자가 지원별 분을 고치면 저장 뒤 제공 지원을 다시 검사함", async () => {
+    const deps = fakeDeps(draft);
+    const minutes = { physical: 80, emotional: 60, housework: 60 };
+    const r = await patchItem("rec-1", "support", { detail: { minutes } }, deps);
+    expect(r.status).toBe(200);
+    expect(deps.recheckSupport).toHaveBeenCalledWith("rec-1", "worker-1");
+    const [updateOrder] = vi.mocked(deps.update).mock.invocationCallOrder;
+    const [recheckOrder] = vi.mocked(deps.recheckSupport).mock.invocationCallOrder;
+    expect(recheckOrder).toBeGreaterThan(updateOrder);
+  });
+
+  it("작성자가 방문 시점을 고쳐도 제공 지원을 다시 검사함", async () => {
+    const deps = fakeDeps(draft);
+    await patchItem("rec-1", "visit_time", { detail: { start: "14:00", end: "17:00" } }, deps);
+    expect(deps.recheckSupport).toHaveBeenCalledWith("rec-1", "worker-1");
+  });
+
+  it("다른 항목을 고치거나 관리자가 고치면 다시 검사하지 않음", async () => {
+    const worker = fakeDeps(draft);
+    await patchItem("rec-1", "meal", { value_ko: "점심 절반 드심" }, worker);
+    expect(worker.recheckSupport).not.toHaveBeenCalled();
+    const manager = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
+    await patchItem("rec-1", "support", { detail: { minutes: { physical: 30 } } }, manager);
+    expect(manager.recheckSupport).not.toHaveBeenCalled();
+  });
+
+  it("재검사가 실패해도 고친 내용은 저장된 채 200", async () => {
+    const deps = fakeDeps(draft, {
+      recheckSupport: vi.fn(async () => {
+        throw new Error("stale_item");
+      }),
+    });
+    const r = await patchItem("rec-1", "support", { detail: { minutes: { physical: 30 } } }, deps);
+    expect(r.status).toBe(200);
   });
 
   it("작성자 언어가 한국어면 번역하지 않음", async () => {

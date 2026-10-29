@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  AGENT_TOOLS,
+  agentSystemPrompt,
   AUTO_STOP_REASON,
   runAgent,
   type AgentDeps,
@@ -136,5 +138,37 @@ describe("runAgent", () => {
     const deps = fakeDeps([[use("search_glossary", { expression: "죽" })]], { searchGlossary });
     await expect(runAgent(input, deps)).rejects.toThrow("tool_failed: search_glossary");
     expect(searchGlossary).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("agentSystemPrompt", () => {
+  it("확인 요청 문장은 value_ko가 아니라 reason에만 쓰라고 함 (이슈 #117)", () => {
+    const prompt = agentSystemPrompt("home", "vi");
+    expect(prompt).toContain("확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다");
+  });
+
+  it("재가 숫자 칸(방문 시각·지원별 분)은 말한 숫자를 채우고 말하지 않은 것은 비우라고 함 (이슈 #115)", () => {
+    const prompt = agentSystemPrompt("home", "vi");
+    expect(prompt).toContain("visit_time.detail.start·end");
+    expect(prompt).toContain("form_fields.total_minutes");
+    expect(prompt).toContain("support.detail.minutes");
+    expect(prompt).toContain("말하지 않은 숫자는 지어내지 않고 비운다");
+  });
+
+  // 이슈 #121: 용어 검색이 비어도 일상 표현은 기록체로, 특이사항 지어내기 금지, 번역은 성별 중립
+  it("용어 검색 결과가 비어도 뜻이 분명한 일상 표현은 observed로 두라고 함", () => {
+    const prompt = agentSystemPrompt("home", "vi");
+    expect(prompt).toContain('"용어 검색 결과 없음"만으로 needs_check로 두지 않는다');
+    expect(prompt).not.toContain("search_glossary 결과가 비었거나");
+    const tool = AGENT_TOOLS.find((t) => t.name === "search_glossary");
+    expect(tool?.description).toContain("결과가 비어도 뜻이 분명한 일상 표현은");
+    expect(tool?.description).not.toContain("그 항목을 needs_check로 둔다");
+  });
+
+  it("특이사항·다음 확인사항을 지어내지 말고, 번역에 성별을 정하지 말라고 함", () => {
+    const prompt = agentSystemPrompt("facility", "vi");
+    expect(prompt).toContain("notes(특이사항)와 next_check(다음 확인사항)도 같다");
+    expect(prompt).toContain("성별을 정하지 않는다");
+    expect(prompt).toContain("ông/bà");
   });
 });

@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getClaudeClient } from "@/lib/ai/claude";
 import { getAiMode, getAiModels } from "@/lib/config";
+import { careTypeOf } from "@/lib/records/form-type";
 
 import { getBlockedNames } from "./blocked-names";
 import { readRecordItems, saveValidatedDraft } from "./draft-repository";
@@ -36,7 +37,7 @@ const minutes = (time: string) => {
 };
 
 type RecordForContext = {
-  form_type: string;
+  form_type: string | number; // DB는 smallint(16 / 12)
   visit_start: string | null;
   visit_end: string | null;
 };
@@ -56,7 +57,7 @@ export async function buildValidateContext(
     .single();
   const context: ValidateContext = {
     transcript,
-    careType: record.form_type === "12" ? "home" : "facility",
+    careType: careTypeOf(record.form_type),
     nativeLang: profile?.native_lang === "ko" ? "ko" : "vi",
     blockedNames: await getBlockedNames(serverClient, record.id, workerId),
   };

@@ -7,6 +7,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import type { ItemPatchDeps } from "./item-patch";
+import { recheckSupportMinutes } from "./support-check";
+import { createSupportCheckDeps } from "./support-check-supabase";
 import type { RecordRow } from "./transition";
 import { readCurrentUser } from "./transition-supabase";
 
@@ -71,5 +73,7 @@ export async function createItemPatchDeps(): Promise<ItemPatchDeps> {
       const items = await readRecordItems(supabase, recordId);
       return items.find((item) => item.item_key === key) ?? null;
     },
+    recheckSupport: (recordId, actorId) =>
+      recheckSupportMinutes(recordId, actorId, createSupportCheckDeps(supabase, server)),
   };
 }

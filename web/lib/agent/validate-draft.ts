@@ -70,9 +70,12 @@ export type ProblemCode =
   | "invalid_minutes"
   | "needs_check_without_reason"
   | "needs_check_without_evidence"
+  | "needs_check_without_value"
   | "observed_without_value"
   | "not_mentioned_with_evidence"
   | "form_field_not_for_facility"
+  | "invalid_intake"
+  | "question_in_value"
   | "real_name";
 
 export type Problem = {
@@ -102,6 +105,8 @@ export const REASONS = {
   invalidMinutes: "제공시간 형식 오류",
   noReason: "AI가 이유를 남기지 않음",
   observedWithoutValue: "내용 없음",
+  intakeUnknown: "섭취량을 정하지 못함",
+  questionInValue: "기록 내용에 있던 확인 요청 문장을 이유로 옮김",
 } as const;
 
 // 서버가 추가한 이유도 한국어와 번역을 함께 바꾼다. Agent가 준 번역은 그대로 보존한다.
@@ -115,6 +120,8 @@ export const REASONS_VI: Record<string, string> = {
   [REASONS.invalidMinutes]: "Định dạng thời gian hỗ trợ không hợp lệ",
   [REASONS.noReason]: "AI không cung cấp lý do",
   [REASONS.observedWithoutValue]: "Không có nội dung",
+  [REASONS.intakeUnknown]: "Chưa xác định được lượng ăn",
+  [REASONS.questionInValue]: "Câu yêu cầu xác nhận trong nội dung đã được chuyển sang lý do",
   "형식 오류": "Định dạng không hợp lệ",
   "자동 정리 중단": "Đã dừng tự động sắp xếp nội dung",
 };
@@ -141,6 +148,15 @@ export const HOME_ONLY_FORM_FIELDS = [
   "urine_accidents",
 ] as const;
 
+// 식사 섭취량(meal.detail.intake)의 저장 값. 별지 제16호 섭취량 칸 1 / 1/2 이상 / 1/2 미만에 대응한다.
+// 서식 기준(form-spec)·인쇄(print/fields.ts)·정답 사례(data/cases)가 같은 세 값을 쓴다 (이슈 #133).
+export const INTAKE_VALUES = ["full", "half_or_more", "under_half"] as const;
+
+export type Intake = (typeof INTAKE_VALUES)[number];
+
+export const isIntake = (value: unknown): value is Intake =>
+  typeof value === "string" && (INTAKE_VALUES as readonly string[]).includes(value);
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -165,6 +181,60 @@ export function evidenceInTranscript(evidence: string, transcript: string): bool
   const needle = normalizeForMatch(evidence);
   if (needle === "") return false;
   return normalizeForMatch(transcript).includes(needle);
+}
+
+// AI가 확인을 요청하는 말. 기록 내용(value_ko)은 공식 기록이라 이런 문장이 들어가면 안 되고, reason에만 둔다 (이슈 #117).
+// 프롬프트만 고치면 다시 섞일 수 있어 서버가 거른다.
+export const QUESTION_PHRASES = [
+  "확인 필요",
+  "확인이 필요",
+  "확인해 주세요",
+  "확인해주세요",
+  "확인 요망",
+  "확인 바람",
+  "확인 요청",
+  "확인할 것",
+  "용어 확인",
+  "불명확",
+  "불분명",
+] as const;
+
+export const hasQuestionPhrase = (text: string): boolean =>
+  QUESTION_PHRASES.some((phrase) => text.includes(phrase));
+
+// 확인 요청이 든 문장을 기록 내용에서 뺀다. 괄호 안 확인 요청("(섭취량 확인 필요)")은 괄호째 빼고,
+// 나머지는 문장(., !, ?, 줄바꿈) 단위로 뺀다. kept는 남은 기록 내용, removed는 뺀 문장이다.
+export function stripQuestionSentences(text: string): { kept: string; removed: string } {
+  const removed: string[] = [];
+  const kept: string[] = [];
+  for (const sentence of text.match(/[^.!?\n]+[.!?]*/g) ?? []) {
+    const trimmed = sentence.trim();
+    if (!trimmed) continue;
+    if (!hasQuestionPhrase(trimmed)) {
+      kept.push(trimmed);
+      continue;
+    }
+    // 괄호 안에만 확인 요청이 있으면 괄호만 빼고 문장은 남긴다
+    const parens: string[] = [];
+    const withoutParens = trimmed.replace(/[(（][^()（）]*[)）]/g, (group) => {
+      if (!hasQuestionPhrase(group)) return group;
+      parens.push(group.slice(1, -1).trim());
+      return "";
+    });
+    if (parens.length > 0 && !hasQuestionPhrase(withoutParens)) {
+      kept.push(withoutParens);
+      removed.push(...parens);
+    } else {
+      removed.push(trimmed);
+    }
+  }
+  return {
+    kept: kept
+      .join(" ")
+      .replace(/\s+([.,!?])/g, "$1")
+      .trim(),
+    removed: removed.join(" "),
+  };
 }
 
 const isMinuteKey = (key: string): boolean => (MINUTE_KEYS as readonly string[]).includes(key);
@@ -200,10 +270,66 @@ export function minuteProblems(detail: Record<string, unknown>): string[] {
   return found;
 }
 
-function readVisitMinutes(ctx: ValidateContext, formFields: Record<string, unknown>) {
-  if (typeof ctx.visitMinutes === "number") return ctx.visitMinutes;
+// 검사 5: 재가 제공시간 합 ≤ 방문 시간. 분 칸 형식(6개 키, 0 이상 정수)도 함께 본다.
+// Agent 초안 검증(validateDraft)과 작성자가 분·방문 시간을 고친 뒤의 재검사(records/support-check.ts)가 같은 코드를 쓴다 (이슈 #116).
+// visitMinutes가 null이면 방문 시간을 모르는 것이라, 분이 적힌 경우만 '확인 필요'로 둔다.
+export function checkSupportMinutes(
+  detail: Record<string, unknown>,
+  visitMinutes: number | null,
+): { problems: Omit<Problem, "item_key">[]; reasons: string[] } {
+  const problems: Omit<Problem, "item_key">[] = [];
+  const reasons: string[] = [];
+  const minuteIssues = minuteProblems(detail);
+  if (minuteIssues.length > 0) {
+    for (const message of minuteIssues) problems.push({ code: "invalid_minutes", message });
+    reasons.push(REASONS.invalidMinutes);
+  }
+  const total = sumSupportMinutes(detail);
+  if (visitMinutes === null) {
+    if (total > 0) {
+      problems.push({
+        code: "visit_minutes_missing",
+        message:
+          "방문 시간(visit_start~visit_end, total_minutes)이 없어 제공시간 합을 확인하지 못했습니다.",
+      });
+      reasons.push(REASONS.visitMinutesMissing);
+    }
+  } else if (total > visitMinutes) {
+    problems.push({
+      code: "support_minutes_exceed_visit",
+      message: `지원별 제공시간 합(${total}분)이 방문 시간(${visitMinutes}분)보다 깁니다.`,
+    });
+    reasons.push(`${REASONS.supportMinutesExceed} (${total}분 > ${visitMinutes}분)`);
+  }
+  return { problems, reasons };
+}
+
+// "HH:MM"(DB time 칸의 "HH:MM:SS" 포함) 두 시각 사이의 분. 형식이 틀리거나 종료가 시작보다 앞서면 null.
+export function minutesBetween(start: unknown, end: unknown): number | null {
+  const parse = (value: unknown) => {
+    if (typeof value !== "string") return null;
+    const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value.trim());
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    return hours > 23 || minutes > 59 ? null : hours * 60 + minutes;
+  };
+  const from = parse(start);
+  const to = parse(end);
+  return from === null || to === null || to < from ? null : to - from;
+}
+
+// 재가 방문 시간(분): records.visit_start~visit_end(서버가 계산해 넘김) → form_fields.total_minutes
+// → visit_time 항목 detail.start·end("HH:MM") 순으로 찾는다. 모두 없으면 null.
+export function resolveVisitMinutes(
+  known: number | null | undefined,
+  formFields: Record<string, unknown>,
+  visitTimeDetail: Record<string, unknown> = {},
+): number | null {
+  if (typeof known === "number" && Number.isFinite(known)) return known;
   const total = formFields.total_minutes;
-  return typeof total === "number" && Number.isFinite(total) ? total : null;
+  if (typeof total === "number" && Number.isFinite(total)) return total;
+  return minutesBetween(visitTimeDetail.start, visitTimeDetail.end);
 }
 
 // 이름 목록에서 검사할 수 있는 것만 남긴다. 가명 표시(○)나 한 글자는 오탐이 많아 뺀다.
@@ -263,8 +389,15 @@ function parseItem(raw: unknown, index: number): ParsedItem | Problem {
   return { item, problems };
 }
 
-const reasonTranslation = (reason: string, lang: "ko" | "vi" = "vi") =>
-  lang === "ko" ? reason : (REASONS_VI[reason] ?? "");
+// 코드 이유의 번역. "지원별 제공시간 합이 방문 시간보다 김 (200분 > 180분)"처럼 숫자가 붙은 이유는
+// 앞부분으로 찾아 뒤의 숫자를 그대로 붙인다. 모르는 이유는 빈칸(번역 완료가 아님).
+export function reasonTranslation(reason: string, lang: "ko" | "vi" = "vi"): string {
+  if (lang === "ko") return reason;
+  const exact = REASONS_VI[reason];
+  if (exact !== undefined) return exact;
+  const prefix = Object.keys(REASONS_VI).find((known) => reason.startsWith(known));
+  return prefix ? `${REASONS_VI[prefix]}${reason.slice(prefix.length)}` : "";
+}
 
 const downgrade = (item: DraftItem, reason: string, lang?: "ko" | "vi"): DraftItem => ({
   ...item,
@@ -343,7 +476,10 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 
   const downgraded = new Set<ItemKey>();
   const names = usableNames(ctx.blockedNames);
-  const visitMinutes = ctx.careType === "home" ? readVisitMinutes(ctx, formFields) : null;
+  const visitMinutes =
+    ctx.careType === "home"
+      ? resolveVisitMinutes(ctx.visitMinutes, formFields, byKey.get("visit_time")?.detail ?? {})
+      : null;
 
   const items = ITEM_KEYS.map((key) => {
     let item = byKey.get(key) as DraftItem;
@@ -402,6 +538,41 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
       item = { ...item, evidence: "" };
     }
 
+    // 검사 8: 기록 내용(value_ko)에 AI의 확인 요청 문장이 있으면 빼서 reason으로 옮긴다 (이슈 #117).
+    // 내용은 원문을 기록체로 정리한 것만 남고, 확인할 까닭은 reason에만 둔다. 항목은 '확인 필요'가 된다.
+    if (item.status !== "not_mentioned" && hasQuestionPhrase(item.value_ko)) {
+      const { kept, removed } = stripQuestionSentences(item.value_ko);
+      problems.push({
+        code: "question_in_value",
+        item_key: key,
+        message: `기록 내용(value_ko)에 확인 요청 문장이 있어 뺐습니다: "${removed}". 확인할 까닭은 reason에만 쓰고, value_ko에는 기록체로 정리한 내용만 쓰세요.`,
+      });
+      const wasObserved = item.status === "observed";
+      item = {
+        ...item,
+        value_ko: kept,
+        value_native: kept ? item.value_native : "",
+        status: "needs_check",
+        reason: item.reason.trim() ? item.reason : removed,
+        reason_native: item.reason_native.trim()
+          ? item.reason_native
+          : reasonTranslation(REASONS.questionInValue, ctx.nativeLang),
+      };
+      if (wasObserved) downgraded.add(key);
+    }
+
+    // '확인 필요'는 짐작한 내용 + 이유다. 내용이 비면 화면의 'AI가 정리한 내용'이 빈칸이 되므로
+    // Agent에게 알려 근거 문장을 기록체로 옮겨 채우게 한다 (이슈 #141). 상태는 그대로 둔다.
+    // 자동 정리 중단 초안(allNeedsCheckDraft)도 이 문제로 알리지만 저장은 막지 않는다.
+    if (item.status === "needs_check" && !item.value_ko.trim()) {
+      problems.push({
+        code: "needs_check_without_value",
+        item_key: key,
+        message:
+          "'확인 필요'인데 기록 내용(value_ko)이 비어 있습니다. 근거 문장을 기록체로 옮겨 짐작한 내용을 쓰고, 확인할 까닭은 reason에 두세요.",
+      });
+    }
+
     // 검사 3의 내용 칸: '관찰'인데 기록 내용(value_ko)이 비었음
     if (item.status === "observed" && !item.value_ko.trim()) {
       problems.push({
@@ -440,36 +611,28 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
       if (item.status !== "not_mentioned") lower(REASONS.evidenceNotFound);
     }
 
-    // 검사 5: 재가 제공시간 합 ≤ 방문 시간
-    if (key === "support" && ctx.careType === "home") {
-      // 분 칸 형식: 6개 키, 0 이상 정수. 틀린 값은 합에 넣지 않고 확인 필요로 둔다.
-      const minuteIssues = minuteProblems(item.detail);
-      if (minuteIssues.length > 0) {
-        for (const message of minuteIssues) {
-          problems.push({ code: "invalid_minutes", item_key: key, message });
-        }
-        lower(REASONS.invalidMinutes);
-      }
-      const total = sumSupportMinutes(item.detail);
-      if (visitMinutes === null) {
-        // 방문 시간을 모르면 합을 비교할 수 없다. 분이 적힌 경우만 확인 필요로 둔다.
-        if (total > 0) {
-          problems.push({
-            code: "visit_minutes_missing",
-            item_key: key,
-            message:
-              "방문 시간(visit_start~visit_end, total_minutes)이 없어 제공시간 합을 확인하지 못했습니다.",
-          });
-          lower(REASONS.visitMinutesMissing);
-        }
-      } else if (total > visitMinutes) {
+    // 검사 7: 식사 섭취량 값은 full / half_or_more / under_half 중 하나다 (이슈 #133).
+    // 다른 값("1/2 이상", "needs_check" 등)은 서식에 체크를 찍지 못하므로 빼고, 식사를 '확인 필요'로 둔다.
+    if (key === "meal" && item.detail.intake !== undefined && item.detail.intake !== null) {
+      if (!isIntake(item.detail.intake)) {
         problems.push({
-          code: "support_minutes_exceed_visit",
+          code: "invalid_intake",
           item_key: key,
-          message: `지원별 제공시간 합(${total}분)이 방문 시간(${visitMinutes}분)보다 깁니다.`,
+          message: `detail.intake(${String(item.detail.intake)})가 ${INTAKE_VALUES.join(" / ")} 중 하나가 아니어서 뺐습니다. 섭취량을 정하지 못하면 intake를 넣지 않고 '확인 필요'로 두세요.`,
         });
-        lower(`${REASONS.supportMinutesExceed} (${total}분 > ${visitMinutes}분)`);
+        const rest = Object.fromEntries(
+          Object.entries(item.detail).filter(([field]) => field !== "intake"),
+        );
+        item = { ...item, detail: rest };
+        if (item.status !== "not_mentioned") lower(REASONS.intakeUnknown);
       }
+    }
+
+    // 검사 5: 재가 제공시간 합 ≤ 방문 시간 (분 칸 형식 포함). 틀린 값은 합에 넣지 않고 확인 필요로 둔다.
+    if (key === "support" && ctx.careType === "home") {
+      const minutes = checkSupportMinutes(item.detail, visitMinutes);
+      for (const problem of minutes.problems) problems.push({ ...problem, item_key: key });
+      for (const reason of minutes.reasons) lower(reason);
     }
 
     // 검사 6: 기록(한국어·모국어)에 실명이 있는지. 근거(evidence)는 원문이라 보지 않는다.
