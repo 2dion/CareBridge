@@ -72,8 +72,8 @@ const steps: Step[] = [
   {
     title: ["초안을 확인하고", "전송하면 끝", "이에요."],
     vi: "Kiểm tra bản nháp rồi gửi là xong.",
-    desc: ["AI가 만든 초안을 보고 필요한 부분만", "수정한 뒤 담당자에게 전송하세요."],
-    descVi: "Sửa phần cần thiết rồi gửi người phụ trách.",
+    desc: ["AI가 만든 초안을 보고 필요한 부분만", "수정한 뒤 관리자에게 전송하세요."],
+    descVi: "Sửa phần cần thiết rồi gửi người quản lý.",
     art: "robot-done",
     artWidth: 290,
     tip: {

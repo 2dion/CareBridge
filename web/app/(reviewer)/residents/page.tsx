@@ -188,7 +188,7 @@ function Residents() {
           onSave={(edit) => {
             setEditing(null);
             if (demo.real) {
-              // assignments의 방문 요일·담당 시작일(담당자, RLS)
+              // assignments의 방문 요일·담당 시작일(관리자, RLS)
               void demo.real.actions.updateResident(editing.id, edit).then((result) => {
                 toast.show(result.ok ? "담당 연결을 저장했어요." : result.ko);
               });
@@ -207,7 +207,7 @@ function Residents() {
           const next = addResident(db, input);
           if ("error" in next) return next.error;
           if (demo.real) {
-            // residents에 바로 넣는다(담당자, 같은 기관). 가명만(원칙 9)
+            // residents에 바로 넣는다(관리자, 같은 기관). 가명만(원칙 9)
             void demo.real.actions
               .addResident(`${input.initial.trim().slice(0, 1)}○○ 어르신`, input.careType)
               .then((result) => !result.ok && toast.show(result.ko));

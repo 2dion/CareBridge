@@ -15,8 +15,8 @@ import { type SignInResult, signIn, supabaseConfigured } from "@/lib/auth/sessio
 const errors: Record<Exclude<SignInResult, { ok: true }>["reason"], { ko: string; vi: string }> = {
   wrong: { ko: "이메일 또는 비밀번호가 맞지 않습니다.", vi: "Email hoặc mật khẩu không đúng." },
   no_profile: {
-    ko: "계정 준비가 끝나지 않았습니다. 담당자에게 문의하세요.",
-    vi: "Tài khoản chưa sẵn sàng. Hãy hỏi người phụ trách.",
+    ko: "계정 준비가 끝나지 않았습니다. 관리자에게 문의하세요.",
+    vi: "Tài khoản chưa sẵn sàng. Hãy hỏi người quản lý.",
   },
   network: { ko: "인터넷 연결을 확인하세요.", vi: "Hãy kiểm tra kết nối Internet." },
 };
@@ -133,16 +133,16 @@ export default function LoginPage() {
         </div>
         {forgot && (
           <p className="gray-box" role="status">
-            담당자에게 비밀번호를 다시 정해 달라고 요청하세요.
+            관리자에게 비밀번호를 다시 정해 달라고 요청하세요.
             <span className="vi" style={{ display: "block" }}>
-              Hãy nhờ người phụ trách đặt lại mật khẩu.
+              Hãy nhờ người quản lý đặt lại mật khẩu.
             </span>
           </p>
         )}
         {!supabaseConfigured() && (
           <p className="foot-note" style={{ margin: 0 }}>
             시연(Mock): 아무 이메일과 8자 이상 비밀번호로 들어가요. ‘reviewer’로 시작하는 이메일은
-            담당자예요.
+            관리자예요.
           </p>
         )}
       </form>

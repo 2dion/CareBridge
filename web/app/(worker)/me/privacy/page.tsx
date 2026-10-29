@@ -30,8 +30,8 @@ const sections: { icon: IconName; ko: string; vi: string; body: string; bodyVi: 
     icon: "headset",
     ko: "문의",
     vi: "Liên hệ",
-    body: "궁금한 점은 담당자에게 물어보세요.",
-    bodyVi: "Hãy hỏi người phụ trách nếu có thắc mắc.",
+    body: "궁금한 점은 관리자에게 물어보세요.",
+    bodyVi: "Hãy hỏi người quản lý nếu có thắc mắc.",
   },
 ];
 

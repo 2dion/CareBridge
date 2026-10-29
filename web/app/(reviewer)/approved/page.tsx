@@ -203,7 +203,7 @@ function ApprovedDetail({ record }: { record: DemoRecord }) {
             <dd>
               {item.value_ko}
               {item.resolution === "confirmed_by_reviewer" && (
-                <span className="muted"> (담당자 확인함)</span>
+                <span className="muted"> (관리자 확인함)</span>
               )}
             </dd>
           </div>

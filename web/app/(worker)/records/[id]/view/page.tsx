@@ -62,11 +62,9 @@ export default function RecordViewPage() {
         </span>
         <div>
           <b>{approved ? "승인 완료" : "전송 완료"}</b>
-          <p>{approved ? "담당자가 검토하고 승인했어요." : "담당자 확인을 기다리고 있어요."}</p>
+          <p>{approved ? "관리자가 검토하고 승인했어요." : "관리자 확인을 기다리고 있어요."}</p>
           <span className="vi">
-            {approved
-              ? "Người phụ trách đã phê duyệt bản ghi."
-              : "Đang chờ người phụ trách xem xét."}
+            {approved ? "Người quản lý đã phê duyệt bản ghi." : "Đang chờ người quản lý xem xét."}
           </span>
         </div>
       </section>
@@ -112,7 +110,7 @@ export default function RecordViewPage() {
         })}
         {!approved && (
           <p className="foot-note">
-            담당자 검토가 끝나면 기록 상태가 바뀌어요.
+            관리자 검토가 끝나면 기록 상태가 바뀌어요.
             <span className="vi">Trạng thái sẽ thay đổi sau khi được xem xét.</span>
           </p>
         )}

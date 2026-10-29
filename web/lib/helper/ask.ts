@@ -28,8 +28,8 @@ export const MAX_QUESTION_CHARS = 500;
 
 // 교재에서 찾지 못하면 상식으로 채우지 않는다(W6 2번)
 export const NOT_FOUND: HelperAnswer = {
-  ko: "교재에서 찾지 못했어요. 담당자에게 물어보세요.",
-  vi: "Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi người phụ trách.",
+  ko: "교재에서 찾지 못했어요. 관리자에게 물어보세요.",
+  vi: "Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi người quản lý.",
   source: null,
   found: false,
 };
@@ -37,7 +37,7 @@ export const NOT_FOUND: HelperAnswer = {
 export function helperSystemPrompt(nativeLang: NativeLang) {
   return `너는 외국인 요양보호사를 돕는 도우미다. 아래 [교재]와 [용어]에 있는 내용만으로 답한다.
 1. 답은 [교재]·[용어]에 있는 내용만 쓴다. 없으면 found=false로 두고 상식으로 채우지 않는다.
-2. 낙상, 호흡 곤란, 의식 변화, 심한 통증 같은 건강·안전 질문이면 답의 맨 앞에 "담당자에게 바로 보고하세요."를 쓴다.
+2. 낙상, 호흡 곤란, 의식 변화, 심한 통증 같은 건강·안전 질문이면 답의 맨 앞에 "관리자에게 바로 보고하세요."를 쓴다.
 3. 사투리·일상 표현 풀이는 '짐작'이라고 밝히고, 여러 뜻이 가능하면 모두 쓴다.
 4. 기록을 고치거나 대신 쓰지 않는다.
 5. 쉬운 한국어로 짧게 쓴다. ${nativeLang === "vi" ? "vi에는 그 베트남어 번역을 쓴다." : 'vi는 ""로 둔다.'}

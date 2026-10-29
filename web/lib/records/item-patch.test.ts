@@ -104,13 +104,13 @@ describe("patchItem", () => {
     expect(deps.saveTranslation).not.toHaveBeenCalled();
   });
 
-  it("담당자는 submitted에서 고치고 [기록 안 함]을 고름", async () => {
+  it("관리자는 submitted에서 고치고 [기록 안 함]을 고름", async () => {
     const deps = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
     const body = { resolution: "omitted", resolution_note: "원문에 없음" };
     expect((await patchItem("rec-1", "meal", body, deps)).status).toBe(200);
   });
 
-  it("담당자가 고친 value_ko도 다시 번역", async () => {
+  it("관리자가 고친 value_ko도 다시 번역", async () => {
     const deps = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
     await patchItem("rec-1", "meal", { value_ko: "점심 절반 드심" }, deps);
     expect(deps.saveTranslation).toHaveBeenCalledWith(
@@ -127,7 +127,7 @@ describe("patchItem", () => {
     expect(r).toEqual({ status: 403, body: { error: "reviewer_only" } });
   });
 
-  it("담당자가 [맞아요]를 누르면 403 not_record_worker", async () => {
+  it("관리자가 [맞아요]를 누르면 403 not_record_worker", async () => {
     const deps = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
     expect((await patchItem("rec-1", "meal", { confirmed: true }, deps)).body.error).toBe(
       "not_record_worker",
@@ -196,7 +196,7 @@ describe("value_ko 한국어 검사 (이슈 #118)", () => {
     expect(deps.update).not.toHaveBeenCalled();
   });
 
-  it("담당자가 고칠 때도 같음", async () => {
+  it("관리자가 고칠 때도 같음", async () => {
     const deps = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
     const r = await patchItem("rec-1", "meal", { value_ko: "Ăn hết." }, deps);
     expect(r.status).toBe(400);

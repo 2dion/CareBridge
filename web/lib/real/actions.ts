@@ -20,8 +20,8 @@ export type ActionError = {
 
 const MESSAGES: Record<string, { ko: string; vi: string }> = {
   ai_not_configured: {
-    ko: "AI 기능이 아직 켜지지 않았어요. 담당자에게 알려 주세요.",
-    vi: "Tính năng AI chưa được bật. Hãy báo người phụ trách.",
+    ko: "AI 기능이 아직 켜지지 않았어요. 관리자에게 알려 주세요.",
+    vi: "Tính năng AI chưa được bật. Hãy báo người quản lý.",
   },
   unconfirmed_items: {
     ko: "아직 확인하지 않은 항목이 있어요.",
@@ -221,7 +221,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .eq("care_date", careDate);
       return after(dbError(error) ?? { ok: true as const });
     },
-    /** R4: 담당 연결의 방문 요일·담당 시작일(담당자, RLS). 방문 시간은 DB 칸이 없어 저장하지 않는다 */
+    /** R4: 담당 연결의 방문 요일·담당 시작일(관리자, RLS). 방문 시간은 DB 칸이 없어 저장하지 않는다 */
     async updateResident(residentId: string, edit: ResidentEdit) {
       const { error } = await supabase
         .from("assignments")
@@ -258,7 +258,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
     async askHelper(question: string) {
       return callApi<HelperAnswer>("/api/helper/ask", { body: { question } });
     },
-    /** R2 'AI 작업 기록'(담당자는 같은 기관 agent_steps 읽기) */
+    /** R2 'AI 작업 기록'(관리자는 같은 기관 agent_steps 읽기) */
     async agentSteps(recordId: string) {
       const { data } = await supabase
         .from("agent_steps")

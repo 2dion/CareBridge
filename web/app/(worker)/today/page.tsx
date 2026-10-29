@@ -31,9 +31,9 @@ function cardGuide(resident: Resident, record?: DemoRecord): { ko: string; vi: s
     case "draft":
       return { ko: "쓰던 기록이 있어요", vi: "Có bản ghi đang viết dở." };
     case "submitted":
-      return { ko: "담당자가 확인하고 있어요", vi: "Người phụ trách đang xem." };
+      return { ko: "관리자가 확인하고 있어요", vi: "Người quản lý đang xem." };
     case "returned":
-      return { ko: "담당자가 수정해 달라고 했어요", vi: "Người phụ trách nhờ bạn sửa lại." };
+      return { ko: "관리자가 수정해 달라고 했어요", vi: "Người quản lý nhờ bạn sửa lại." };
     case "approved":
       return { ko: "오늘 기록을 확인할 수 있어요.", vi: "Bản ghi hôm nay đã được duyệt." };
   }
@@ -162,10 +162,10 @@ export default function TodayPage() {
           <Art name="robot-rest" width={280} />
           <div className="empty">
             <strong>오늘 담당 어르신이 없습니다.</strong>
-            <p style={{ marginTop: 6 }}>담당자에게 문의하세요.</p>
+            <p style={{ marginTop: 6 }}>관리자에게 문의하세요.</p>
             <span className="vi">
-              Hôm nay bạn chưa có người cao tuổi được phân công chăm sóc. Vui lòng hỏi nhân viên phụ
-              trách.
+              Hôm nay bạn chưa có người cao tuổi được phân công chăm sóc. Vui lòng hỏi người quản
+              lý.
             </span>
           </div>
           <div className="pad">

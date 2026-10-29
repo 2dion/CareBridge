@@ -2,7 +2,7 @@
 
 // R1(검토 대기): 확인 필요가 많은 기록부터. 위에 지난 7일 작성 전 기록·기록 없음 처리.
 // 되돌린 뒤 다시 전송한 기록은 어르신 이름 옆에 ↻ 아이콘(10/28 알림표시 결정).
-// 그 아래 8~30일 전 빈 날은 ‘기한 지난 빈 기록’ 상자, 담당자가 기록 없음으로 정리(기한지난빈기록 결정).
+// 그 아래 8~30일 전 빈 날은 ‘기한 지난 빈 기록’ 상자, 관리자가 기록 없음으로 정리(기한지난빈기록 결정).
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -344,7 +344,7 @@ function ReviewQueue() {
             const next = markOverdueNoCare(db, { ...marking, reason, note }, today);
             if ("error" in next) return false;
             if (demo.real) {
-              // 담당자가 no_care_days에 바로 넣는다(8~30일 전, 범위 밖은 DB가 거절)
+              // 관리자가 no_care_days에 바로 넣는다(8~30일 전, 범위 밖은 DB가 거절)
               void demo.real.actions
                 .addNoCare({ ...marking, reason, note })
                 .then((result) => !result.ok && toast.show(result.ko));
@@ -421,7 +421,7 @@ function OverdueModal({
         </p>
       )}
       <p className="info-note">
-        정리한 사람은 담당자 이름으로 남고, 잘못 정리했으면 지울 수 있어요.
+        정리한 사람은 관리자 이름으로 남고, 잘못 정리했으면 지울 수 있어요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
         <button type="button" className="dbtn" onClick={onClose}>

@@ -1,6 +1,6 @@
 "use client";
 
-// W3(기록 초안 확인): 정리 중 → 항목 카드 → 담당자에게 전송.
+// W3(기록 초안 확인): 정리 중 → 항목 카드 → 관리자에게 전송.
 // 항목 내용·확인 이유·되돌림 사유와 제목·버튼은 병기, 상태 배지·항목 이름은 한국어만.
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -290,9 +290,9 @@ export default function DraftPage() {
         />
         {needsLeft > 0 && (
           <p className="foot-note">
-            ‘확인 필요’가 남아 있어도 보낼 수 있어요. 담당자가 정해요.
+            ‘확인 필요’가 남아 있어도 보낼 수 있어요. 관리자가 정해요.
             <span className="vi">
-              Vẫn gửi được khi còn mục cần kiểm tra. Người phụ trách sẽ quyết định.
+              Vẫn gửi được khi còn mục cần kiểm tra. Người quản lý sẽ quyết định.
             </span>
           </p>
         )}
@@ -314,7 +314,7 @@ export default function DraftPage() {
           disabled={!canSend}
           onClick={() => setConfirmOpen(true)}
         >
-          <BtnLabel ko="담당자에게 전송" vi="Gửi người phụ trách" />
+          <BtnLabel ko="관리자에게 전송" vi="Gửi người quản lý" />
         </button>
       </div>
       {!canSend && (
@@ -322,11 +322,15 @@ export default function DraftPage() {
           모든 항목을 확인하면 보낼 수 있어요.
         </p>
       )}
-      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} label="담당자에게 보낼까요?">
+      <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        label="관리자에게 전송할까요?"
+      >
         <span className="icon-bubble" style={{ width: 64, height: 64, borderRadius: 32 }}>
           <Icon name="send" />
         </span>
-        <h2 style={{ fontSize: 24, fontWeight: 700 }}>담당자에게 보낼까요?</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700 }}>관리자에게 전송할까요?</h2>
         <hr style={{ width: "100%" }} />
         <p style={{ fontSize: 17 }}>전송한 뒤에는 고칠 수 없어요.</p>
         <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
@@ -432,15 +436,15 @@ function ItemCard({
         </>
       )}
       {item.before_ko && item.source === "reviewer" && (
-        <p className="before" aria-label="담당자가 고치기 전">
+        <p className="before" aria-label="관리자가 고치기 전">
           고치기 전: {item.before_ko}
         </p>
       )}
       {item.source === "reviewer" && !item.confirmed && (
         <span style={{ fontSize: 12, color: "var(--color-warn-text)" }}>
-          담당자가 고쳤어요. 맞는지 확인해 주세요.
+          관리자가 고쳤어요. 맞는지 확인해 주세요.
           <span className="vi" style={{ display: "block" }}>
-            Người phụ trách đã sửa. Hãy kiểm tra lại.
+            Người quản lý đã sửa. Hãy kiểm tra lại.
           </span>
         </span>
       )}
@@ -482,7 +486,7 @@ function ItemCard({
       {!done &&
         (item.status === "needs_check" ? (
           // 전송은 9개 항목이 모두 확인(맞아요)되거나 작성자가 고친 것이어야 한다(DB 제출 검사, 10/28).
-          // ‘확인 필요’도 [맞아요]로 확인하고 보낼 수 있고, 남은 판단은 담당자가 한다.
+          // ‘확인 필요’도 [맞아요]로 확인하고 보낼 수 있고, 남은 판단은 관리자가 한다.
           <div className="btn-row">
             <Link className="btn btn-primary btn-sm" href={editHref}>
               <BtnLabel ko="수정하기" vi="Sửa" />

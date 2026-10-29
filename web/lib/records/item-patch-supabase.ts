@@ -47,7 +47,7 @@ export async function createItemPatchDeps(): Promise<ItemPatchDeps> {
       return { ok: true };
     },
     // 번역은 작성자 모국어로 한다. 작성자는 자기 profiles를 읽고,
-    // 담당자는 작성자 profiles를 읽지 못하므로(기록계약보강) 서버가 그 한 칸만 읽는다.
+    // 관리자는 작성자 profiles를 읽지 못하므로(기록계약보강) 서버가 그 한 칸만 읽는다.
     async translationLang(record, user) {
       const client = record.worker_id === user.id ? supabase : server;
       const { data } = await client

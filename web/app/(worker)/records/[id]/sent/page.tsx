@@ -36,10 +36,10 @@ export default function SentPage() {
           {resident.alias} · {monthDay(record.careDate)}
         </b>
         <p style={{ marginTop: 8, fontSize: 15, color: "var(--color-sub)" }}>
-          확인한 기록을 담당자에게 전송했어요. 담당자가 승인하면 끝나요.
+          확인한 기록을 관리자에게 전송했어요. 관리자가 승인하면 끝나요.
         </p>
         <span className="vi" style={{ fontSize: 14 }}>
-          Đã gửi bản ghi cho người phụ trách. Khi được duyệt là xong.
+          Đã gửi bản ghi cho người quản lý. Khi được duyệt là xong.
         </span>
         {late !== null && late > 0 && (
           <p style={{ marginTop: 8, fontSize: 13, color: "var(--color-warn-text)" }}>

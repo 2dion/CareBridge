@@ -1,6 +1,6 @@
 "use client";
 
-// 담당자 화면(R1~R4) 공통 틀: 왼쪽 메뉴, 오른쪽 본문. 담당자 화면은 한국어만(화면틀병기 결정).
+// 관리자 화면(R1~R4) 공통 틀: 왼쪽 메뉴, 오른쪽 본문. 관리자 화면은 한국어만(화면틀병기 결정).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
@@ -30,9 +30,9 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
       <aside className="side-nav">
         <div className="brand">
           <b>CareBridge</b>
-          <span>{demo?.db.worker.org ?? "데모 요양센터"} · 담당자</span>
+          <span>{demo?.db.worker.org ?? "데모 요양센터"} · 관리자</span>
         </div>
-        <nav aria-label="담당자 메뉴">
+        <nav aria-label="관리자 메뉴">
           {navItems.map((item) => (
             <Link
               key={item.key}
@@ -50,7 +50,7 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
           <span className="mini-avatar">{name.slice(0, 1)}</span>
           <div>
             <b>{name}</b>
-            <small>담당자</small>
+            <small>관리자</small>
           </div>
         </div>
         <button

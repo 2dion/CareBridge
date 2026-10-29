@@ -19,7 +19,7 @@ describe("법정 원문 기록 PDF", () => {
     expect(lines.every((line) => [...line].length <= 4)).toBe(true);
   });
 
-  it("제16호 자유 특이사항 영역은 담당자가 고르며, 복약 관찰을 간호 행위로 체크하지 않는다", () => {
+  it("제16호 자유 특이사항 영역은 관리자가 고르며, 복약 관찰을 간호 행위로 체크하지 않는다", () => {
     const record = Object.values(db.records).find(
       (entry) => entry.formType === "16" && entry.status === "approved",
     )!;

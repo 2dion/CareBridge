@@ -1,4 +1,4 @@
-// 담당자 화면(R1~R4) Mock 규칙. 승인 조건·되돌림·덮어쓰기 금지는 코드가 맡는다(AGENTS.md 원칙 3·5).
+// 관리자 화면(R1~R4) Mock 규칙. 승인 조건·되돌림·덮어쓰기 금지는 코드가 맡는다(AGENTS.md 원칙 3·5).
 // 실제로는 PATCH /api/records/:id/items/:key, POST /approve, POST /return(데이터구조 v1.6.2 공통 계약).
 import { countUnresolved, demoAgentSteps, type ItemKey } from "./state";
 import {
@@ -62,7 +62,7 @@ function reviewable(record: DemoRecord) {
   return record.status === "submitted";
 }
 
-/** 담당자 직접 수정: source=reviewer, 고치기 전 내용을 남김. 작성자 확인은 풀린다(되돌아오면 다시 [맞아요]). */
+/** 관리자 직접 수정: source=reviewer, 고치기 전 내용을 남김. 작성자 확인은 풀린다(되돌아오면 다시 [맞아요]). */
 export function reviewerEditItem(
   db: DemoDb,
   id: string,
@@ -198,7 +198,7 @@ export function returnRecord(
   );
 }
 
-/** R1 기한 지난 빈 기록 → [기록 없음으로 정리]. 담당자만, 8~30일 전 날짜만(기한지난빈기록 결정). */
+/** R1 기한 지난 빈 기록 → [기록 없음으로 정리]. 관리자만, 8~30일 전 날짜만(기한지난빈기록 결정). */
 export function markOverdueNoCare(
   db: DemoDb,
   day: Omit<NoCareDay, "createdBy">,

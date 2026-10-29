@@ -1,4 +1,4 @@
-// 작성자·담당자 화면이 함께 쓰는 Mock 데이터(브라우저 저장).
+// 작성자·관리자 화면이 함께 쓰는 Mock 데이터(브라우저 저장).
 // 실제 API·Supabase가 붙기 전까지 화면이 같은 규칙(데이터구조 v1.6.2 공통 계약)으로 움직이게 한다.
 // 상태 변화·승인 조건·못 쓴 기록 계산은 여기 코드가 맡고, AI에게 맡기지 않는다(AGENTS.md 원칙 5).
 import f01 from "./s-f01.json";
@@ -33,7 +33,7 @@ export type Resident = {
 };
 
 export type RecordItem = Item & {
-  /** 담당자가 고치기 전 내용(W3 수정 필요 기록 ‘고치기 전’). */
+  /** 관리자가 고치기 전 내용(W3 수정 필요 기록 ‘고치기 전’). */
   before_ko?: string;
   /** [기록 안 함] 사유. */
   resolution_note?: string;
@@ -710,7 +710,7 @@ export function fillMockDraft(db: DemoDb, id: string, now: string): DemoDb {
       draftState: "ready",
       transcript: record.transcript || transcript,
       transcriptKo: record.transcript ? record.transcriptKo : transcriptKo,
-      // 작성자·담당자가 쓴 항목(source가 ai가 아님)은 AI가 덮어쓰지 않는다(AGENTS.md 원칙 4).
+      // 작성자·관리자가 쓴 항목(source가 ai가 아님)은 AI가 덮어쓰지 않는다(AGENTS.md 원칙 4).
       items: caseItems(resident.caseId).map(
         (item) =>
           record.items.find((old) => old.item_key === item.item_key && old.source !== "ai") ?? item,

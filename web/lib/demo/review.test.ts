@@ -32,7 +32,7 @@ function ok(value: DemoDb | { error: string }): DemoDb {
   return value;
 }
 
-describe("담당자 규칙 (R1~R4)", () => {
+describe("관리자 규칙 (R1~R4)", () => {
   it("검토 대기: 전송한 기록만, 확인 필요가 많은 순", () => {
     const db = createDemoDb(TODAY);
     const queue = reviewQueue(db);
@@ -71,7 +71,7 @@ describe("담당자 규칙 (R1~R4)", () => {
     expect(countUnresolved(db.records[record.id].items)).toBe(countUnresolved(record.items));
   });
 
-  it("담당자가 고치면 source=reviewer, 고치기 전 내용을 남긴다", () => {
+  it("관리자가 고치면 source=reviewer, 고치기 전 내용을 남긴다", () => {
     const db = createDemoDb(TODAY);
     const record = reviewQueue(db)[0];
     const next = reviewerEditItem(db, record.id, "meal", "점심 절반 드심.", NOW);
@@ -101,7 +101,7 @@ describe("담당자 규칙 (R1~R4)", () => {
     expect(wasResent(resent.records[record.id])).toBe(true);
   });
 
-  it("기한 지난 빈 기록: 8~30일 전 빈 날만, 담당자가 기록 없음으로 정리하면 빠진다", () => {
+  it("기한 지난 빈 기록: 8~30일 전 빈 날만, 관리자가 기록 없음으로 정리하면 빠진다", () => {
     const db = createDemoDb(TODAY);
     const overdue = listOverdue(db, TODAY);
     expect(overdue.map((row) => row.careDate)).toEqual([

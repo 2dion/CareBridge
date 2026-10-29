@@ -132,7 +132,7 @@ describe("Mock 데이터 규칙 (데이터구조 v1.6.2)", () => {
     db = submitRecord(db, made.id, NOW);
     expect(db.records[made.id].status).toBe("submitted");
     expect(lateDays(db.records[made.id])).toBe(0);
-    // 담당자가 ‘확인 필요’를 정하지 않으면 승인할 수 없다.
+    // 관리자가 ‘확인 필요’를 정하지 않으면 승인할 수 없다.
     expect(canApproveRecord(db.records[made.id])).toBe(false);
   });
 

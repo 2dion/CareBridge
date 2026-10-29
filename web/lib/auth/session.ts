@@ -16,7 +16,7 @@ export function supabaseConfigured() {
   );
 }
 
-/** Mock 로그인: 이메일이 reviewer로 시작하면 담당자, 그 밖은 작성자. 비밀번호는 8자 이상만 본다. */
+/** Mock 로그인: 이메일이 reviewer로 시작하면 관리자, 그 밖은 작성자. 비밀번호는 8자 이상만 본다. */
 export function mockRole(email: string): Role {
   return email.trim().toLowerCase().startsWith("reviewer") ? "reviewer" : "worker";
 }

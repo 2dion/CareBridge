@@ -152,15 +152,15 @@ export default function ArchivePage() {
                 />
               ))}
               <p className="foot-note" style={{ margin: "4px 6px 0" }}>
-                기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 담당자에게 알려 주세요.
+                기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 관리자에게 알려 주세요.
                 <span className="vi">
-                  Sau 7 ngày sẽ không thể viết. Khi đó hãy báo người phụ trách.
+                  Sau 7 ngày sẽ không thể viết. Khi đó hãy báo người quản lý.
                 </span>
               </p>
               <p className="foot-note" style={{ margin: "0 6px 16px" }}>
-                돌봄 날짜보다 늦게 전송한 기록은 담당자 화면에 ‘늦게 전송한 기록’으로 보여요.
+                돌봄 날짜보다 늦게 전송한 기록은 관리자 화면에 ‘늦게 전송한 기록’으로 보여요.
                 <span className="vi">
-                  Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho người phụ trách.
+                  Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho người quản lý.
                 </span>
               </p>
             </div>
@@ -411,7 +411,7 @@ function NoCareSheet({
           ? "기타 사유를 적어 주세요."
           : next.error === "has_record"
             ? "이미 기록이 있는 날이에요."
-            : "7일이 지나 처리할 수 없어요. 담당자에게 알려 주세요.",
+            : "7일이 지나 처리할 수 없어요. 관리자에게 알려 주세요.",
       );
       return;
     }

@@ -18,7 +18,7 @@ describe("S-F01 Mock FE 상태", () => {
     expect(canSubmit(state.items)).toBe(false);
   });
 
-  it("식사 보완 후에도 피부 상태는 담당자 확인이 필요하다", () => {
+  it("식사 보완 후에도 피부 상태는 관리자 확인이 필요하다", () => {
     const state = applyMealAddition(createDemoState());
     expect(countUnresolved(state.items)).toBe(1);
     expect(state.items.find((item) => item.item_key === "meal")?.value_ko).toContain("1/2 미만");

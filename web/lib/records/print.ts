@@ -40,7 +40,7 @@ export type PrintDeps = {
   listItems(recordId: string): Promise<PrintItem[]>;
 };
 
-// GET /api/records/:id/print — 담당자·강사, approved 기록만
+// GET /api/records/:id/print — 관리자·강사, approved 기록만
 export async function printRecord(recordId: string, deps: PrintDeps): Promise<ApiResult> {
   const user = await deps.currentUser();
   if (!user) return { status: 401, body: { error: "not_signed_in" } };

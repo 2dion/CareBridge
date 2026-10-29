@@ -101,8 +101,8 @@ export default function HelperPage() {
         }
       />
       <div className="reason-box big helper-notice" role="note">
-        <b>건강·안전 문제는 담당자에게 먼저 보고하세요.</b>
-        <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo người phụ trách.</span>
+        <b>건강·안전 문제는 관리자에게 먼저 보고하세요.</b>
+        <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo người quản lý.</span>
       </div>
       <div className="chat" aria-live="polite">
         {messages.length === 0 ? (

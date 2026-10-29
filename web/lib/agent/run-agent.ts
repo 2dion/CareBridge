@@ -187,7 +187,7 @@ export const AGENT_TOOLS = [
 export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
   return `너는 요양기관의 돌봄 기록 초안을 준비하는 Agent다.
 외국인 요양보호사가 돌봄을 마친 뒤 말한 메모를 받아쓴 글을 보고,
-9개 항목 초안을 만든다. 너의 결과는 초안이며, 작성자가 확인하고 담당자가 승인한다.
+9개 항목 초안을 만든다. 너의 결과는 초안이며, 작성자가 확인하고 관리자가 승인한다.
 
 [어르신] 급여 종류: ${careType === "home" ? "재가" : "시설"}
 [작성자 모국어] ${nativeLang}

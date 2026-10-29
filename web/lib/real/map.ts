@@ -104,7 +104,7 @@ export const FONT_VALUE: Record<FontSize, number> = { small: 1, normal: 2, large
 
 const hhmm = (time: string | null) => (time ? time.slice(0, 5) : null);
 
-/** 담당 연결이 여럿이면(담당자 화면) 가장 이른 시작일과 방문 요일 합집합을 쓴다 */
+/** 담당 연결이 여럿이면(관리자 화면) 가장 이른 시작일과 방문 요일 합집합을 쓴다 */
 export function mapResidents(
   residents: ResidentRow[],
   assignments: AssignmentRow[],
@@ -282,7 +282,7 @@ export function mapNoCare(rows: NoCareRow[], nameOf: (id: string | null) => stri
 export function toDemoDb(rows: RealRows, today: string): DemoDb {
   const names = new Map(rows.staff.map((person) => [person.id, person.name]));
   names.set(rows.profile.id, rows.profile.name);
-  const fallback = rows.profile.role === "worker" ? "담당자" : "작성자";
+  const fallback = rows.profile.role === "worker" ? "관리자" : "작성자";
   const nameOf = (id: string | null) => (id ? (names.get(id) ?? fallback) : "");
   const isWorker = rows.profile.role === "worker";
   const firstWorker = rows.staff.find((person) => person.role === "worker");

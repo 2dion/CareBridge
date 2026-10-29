@@ -110,7 +110,7 @@ export async function submitRecord(recordId: string, deps: TransitionDeps): Prom
   return updated.ok ? { status: 200, body: updated.row } : fromUpdateError(updated.error);
 }
 
-// POST /api/records/:id/approve — 같은 기관 담당자(교육용 기관은 강사), submitted → approved
+// POST /api/records/:id/approve — 같은 기관 관리자(교육용 기관은 강사), submitted → approved
 export async function approveRecord(recordId: string, deps: TransitionDeps): Promise<ApiResult> {
   const loaded = await load(recordId, deps);
   if (!loaded.ok) return loaded.result;
@@ -144,9 +144,9 @@ export function parseReturnReason(body: unknown): string | null {
   return reason.trim();
 }
 
-// POST /api/records/:id/return — 같은 기관 담당자, submitted → returned.
+// POST /api/records/:id/return — 같은 기관 관리자, submitted → returned.
 // reason은 '[식사, 복약 관찰] 사유'처럼 항목 이름을 포함한 한국어 문자열 전체다.
-// 담당자는 한국어로만 보내고, 모국어 번역은 작성자 화면 쪽에서 한다(결정 2026-10-28-되돌림사유한국어).
+// 관리자는 한국어로만 보내고, 모국어 번역은 작성자 화면 쪽에서 한다(결정 2026-10-28-되돌림사유한국어).
 // 지난 되돌림의 번역이 남지 않게 return_reason_native는 비운다.
 export async function returnRecord(
   recordId: string,
