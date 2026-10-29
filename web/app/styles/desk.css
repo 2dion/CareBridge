@@ -542,6 +542,22 @@
   height: 16px;
 }
 
+/* 관리자가 고친 항목의 옛 AI 판단: 접어 두고 흐리게(이슈 #134) */
+.d-app details.reason.old {
+  display: block;
+  color: var(--color-muted);
+}
+
+.d-app details.reason.old summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.d-app details.reason.old p {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
 .d-app textarea.field,
 .d-app input.field {
   width: 100%;

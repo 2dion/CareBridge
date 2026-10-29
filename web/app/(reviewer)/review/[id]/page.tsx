@@ -138,6 +138,8 @@ function ReviewRecord() {
     (item) => item.status === "needs_check" && item.resolution !== null,
   ).length;
   const selectedItem = record.items.find((item) => item.item_key === selected);
+  // 관리자가 고친 항목은 옛 근거 문장을 '지금 근거'처럼 노랗게 칠하지 않는다(이슈 #134)
+  const highlight = selectedItem && selectedItem.source !== "reviewer" ? selectedItem : null;
   const native = record.transcript !== record.transcriptKo;
   const real = demo.real;
   const steps = real
@@ -248,7 +250,7 @@ function ReviewRecord() {
           {sentences(record.transcript).map((line, index) => (
             <p
               key={`o-${index}`}
-              className={`line ${selectedItem && evidenceHit(line, selectedItem.evidence) ? "hl" : ""}`}
+              className={`line ${highlight && evidenceHit(line, highlight.evidence) ? "hl" : ""}`}
             >
               {line}
             </p>
@@ -259,7 +261,7 @@ function ReviewRecord() {
             sentences(record.transcriptKo).map((line, index) => (
               <p
                 key={`k-${index}`}
-                className={`line ${selectedItem && evidenceHit(line, selectedItem.evidence) ? "hl" : ""}`}
+                className={`line ${highlight && evidenceHit(line, highlight.evidence) ? "hl" : ""}`}
               >
                 {line}
               </p>
@@ -271,9 +273,11 @@ function ReviewRecord() {
           )}
           <p className="hint-note">
             <Icon name="info" />
-            {selectedItem
-              ? `노란 줄 = 오른쪽에서 고른 항목(${itemLabel(selectedItem.item_key).ko})의 근거 문장`
-              : "오른쪽 항목을 누르면 근거 문장을 노랗게 보여 줘요"}
+            {selectedItem && !highlight
+              ? `${itemLabel(selectedItem.item_key).ko}은(는) 관리자가 고친 항목이라 고치기 전 근거를 칠하지 않아요`
+              : selectedItem
+                ? `노란 줄 = 오른쪽에서 고른 항목(${itemLabel(selectedItem.item_key).ko})의 근거 문장`
+                : "오른쪽 항목을 누르면 근거 문장을 노랗게 보여 줘요"}
           </p>
         </section>
 
@@ -412,11 +416,19 @@ function ReviewItem({
         <b>{label}</b>
         {itemChip(item)}
       </div>
-      {item.status === "needs_check" && item.reason && (
+      {item.status === "needs_check" && item.reason && item.source !== "reviewer" && (
         <p className="reason">
           <Icon name="alert" />
           {item.reason}
         </p>
+      )}
+      {/* 관리자가 고친 항목의 이유·근거는 고친 문장과 맞지 않을 수 있어 '지금 이유'처럼 보이지 않는다(이슈 #134).
+          서버 PATCH는 value_ko만 바꾸고 reason·evidence는 그대로 둔다 */}
+      {item.status === "needs_check" && item.reason && item.source === "reviewer" && (
+        <details className="reason old" onClick={(event) => event.stopPropagation()}>
+          <summary>고치기 전 AI 판단</summary>
+          <p>{item.reason}</p>
+        </details>
       )}
       <textarea
         className="field"
