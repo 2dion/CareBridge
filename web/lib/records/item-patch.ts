@@ -59,6 +59,14 @@ const DB_ERRORS: Record<string, number> = {
 
 const RESOLUTIONS = [null, "confirmed_by_reviewer", "omitted"] as const;
 
+/**
+ * 한국어가 아닌 글인지. 글자(문자)는 있는데 한글 음절이 하나도 없으면 true.
+ * 숫자·기호만 있는 값("14:00~17:00")은 막지 않는다.
+ */
+export function isNotKorean(text: string) {
+  return /\p{L}/u.test(text) && !/[\uAC00-\uD7A3]/.test(text);
+}
+
 /** 바꿀 칸만 골라 형식을 검사한다. 하나도 없거나 형식이 틀리면 null */
 export function parseItemPatch(body: unknown): ItemPatch | null {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
@@ -118,6 +126,9 @@ export async function patchItem(
     if (!isWorker) return fail(403, "not_record_worker");
     if ("resolution" in patch || "resolution_note" in patch) return fail(403, "reviewer_only");
   }
+
+  // value_ko는 공식 기록(한국어)이다. 글자는 있는데 한글이 하나도 없는 글은 받지 않는다(이슈 #118)
+  if (patch.value_ko && isNotKorean(patch.value_ko)) return fail(400, "value_ko_not_korean");
 
   const before = await deps.currentValueKo(recordId, itemKey);
   if (before === null) return fail(400, "invalid_item");

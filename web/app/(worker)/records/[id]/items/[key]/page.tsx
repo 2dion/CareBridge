@@ -43,6 +43,7 @@ export default function ItemEditPage() {
   const [minutes, setMinutes] = useState<Record<string, string> | null>(null);
   const [times, setTimes] = useState<{ start: string; end: string } | null>(null);
   const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
   const status = demo?.db.records[id]?.status;
   const locked = status === "submitted" || status === "approved";
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function ItemEditPage() {
   const showMinutes = home && key === "support";
   const showTimes = home && key === "visit_time";
   const changedDetail = minutes !== null || times !== null;
-  const canApply = text.trim().length > 0 || changedDetail;
+  const canApply = !busy && (text.trim().length > 0 || changedDetail);
 
   const apply = () => {
     if (!canApply) return;
@@ -100,8 +101,30 @@ export default function ItemEditPage() {
         const rest = Object.fromEntries(
           Object.entries(detail ?? {}).filter(([k]) => k !== "start" && k !== "end"),
         );
+        // 글로 쓴 고칠 내용은 음성 보태기와 같이 AI가 그 항목만 다시 정리·번역한다(이슈 #118).
+        // 한국어·베트남어 어느 쪽으로 써도 공식 기록 칸은 한국어 기록체가 된다.
+        if (text.trim()) {
+          setBusy(true);
+          setNotice("정리하고 번역하는 중이에요. · Đang sắp xếp và dịch.");
+          const rewritten = await real.actions.rewriteItemText(id, key, text.trim());
+          if (!rewritten.ok) {
+            setBusy(false);
+            return setNotice(`${rewritten.ko} ${rewritten.vi}`);
+          }
+          // 지원별 분을 같이 고쳤으면 AI 결과 뒤에 덮어써서 직접 넣은 분이 남게 한다
+          if (showMinutes && minutes) {
+            const saved = await real.actions.patchItem(id, key, { detail: rest });
+            if (!saved.ok) {
+              setBusy(false);
+              return setNotice(`${saved.ko} ${saved.vi}`);
+            }
+          }
+          router.push(back);
+          return;
+        }
+        // 시간·분만 고쳤으면 value_ko는 바뀐 때만 보낸다(그대로인 값을 다시 보내지 않음)
         const result = await real.actions.patchItem(id, key, {
-          value_ko: value,
+          ...(value !== item.value_ko ? { value_ko: value } : {}),
           ...(detail ? { detail: rest } : {}),
           confirmed: true,
         });
