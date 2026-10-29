@@ -7,6 +7,8 @@ import {
   markOverdueNoCare,
   processHistory,
   removeNoCareDay,
+  residentEditChanged,
+  residentHasRecords,
   resolveItem,
   returnRecord,
   reviewerEditItem,
@@ -267,11 +269,42 @@ describe("관리자 규칙 (M1~M5)", () => {
     const added = next.residents.at(-1)!;
     expect(added.alias).toBe("정○○ 어르신");
     expect(listMissed(next, TODAY).some((row) => row.residentId === added.id)).toBe(false);
-    next = updateResident(next, added.id, {
-      visitDays: [1, 3],
-      visitTime: "10:00~13:00",
-      startDate: "2026-10-20",
-    });
+    next = ok(
+      updateResident(next, added.id, {
+        visitDays: [1, 3],
+        visitTime: "10:00~13:00",
+        startDate: "2026-10-20",
+      }),
+    );
     expect(listMissed(next, TODAY).filter((row) => row.residentId === added.id).length).toBe(2);
+  });
+
+  // 이슈 #96: [수정]으로 가명·급여 종류를 고치고, 바뀐 게 없으면 '저장했어요'를 띄우지 않는다
+  it("어르신 수정: 가명은 겹치면 안 되고, 기록 있는 어르신은 급여 종류를 못 바꾸며, 바뀐 칸을 가려낸다", () => {
+    const db = createDemoDb(TODAY);
+    const [first, second] = db.residents;
+    const base = {
+      visitDays: first.visitDays,
+      visitTime: first.visitTime,
+      startDate: first.startDate,
+    };
+    expect(updateResident(db, first.id, { ...base, alias: second.alias })).toEqual({
+      error: "duplicate",
+    });
+    expect(residentHasRecords(db, first.id)).toBe(true);
+    expect(
+      updateResident(db, first.id, {
+        ...base,
+        careType: first.careType === "home" ? "facility" : "home",
+      }),
+    ).toEqual({ error: "care_type_locked" });
+    const renamed = ok(updateResident(db, first.id, { ...base, alias: "최○○ 어르신" }));
+    expect(renamed.residents[0]).toMatchObject({ alias: "최○○ 어르신", initial: "최" });
+    expect(residentEditChanged(first, null, base)).toBe(false);
+    expect(residentEditChanged(first, null, { ...base, alias: first.alias })).toBe(false);
+    expect(residentEditChanged(first, null, { ...base, alias: "최○○ 어르신" })).toBe(true);
+    expect(residentEditChanged(first, ["w1"], { ...base, workerIds: ["w1"] })).toBe(false);
+    expect(residentEditChanged(first, ["w1"], { ...base, workerIds: ["w1", "w2"] })).toBe(true);
+    expect(residentEditChanged(first, null, { ...base, startDate: "2026-01-01" })).toBe(true);
   });
 });

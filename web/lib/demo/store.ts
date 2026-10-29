@@ -93,6 +93,17 @@ export type NoCareDay = {
 
 export type FontSize = "small" | "normal" | "large";
 
+/** 기관 직원(실제 모드, list_org_staff). M4 담당 작성자 고르기·M1 작성자 걸러 보기(이슈 #95) */
+export type StaffMember = { id: string; name: string; role: "worker" | "reviewer" };
+/** 담당 연결 한 줄(assignments: 어르신·작성자 한 쌍마다 한 줄). visitTime은 표시용 schedule */
+export type Assignment = {
+  residentId: string;
+  workerId: string;
+  visitDays: number[] | null;
+  startDate: string;
+  visitTime: string | null;
+};
+
 export type DemoDb = {
   version: 4;
   seededOn: string;
@@ -106,6 +117,9 @@ export type DemoDb = {
   /** 실제 모드: DB 함수 list_missed_records·list_overdue_records 결과. 있으면 화면 계산 대신 쓴다 */
   missed?: MissedRecord[];
   overdue?: OverdueDay[];
+  /** 실제 모드(관리자): 기관 직원과 담당 연결 줄. Mock은 작성자 한 명이라 비움(이슈 #95) */
+  staff?: StaffMember[];
+  assignments?: Assignment[];
 };
 
 export const DB_STORAGE_KEY = "carebridge-demo-db-v3";
@@ -584,7 +598,21 @@ export type MissedRecord = {
   careDate: string;
   kind: "missing" | "draft";
   recordId?: string;
+  /** 실제 모드: 어느 작성자의 못 쓴 기록인지(list_missed_records.worker_id). M1은 작성자마다 한 줄(이슈 #95) */
+  workerId?: string;
+  workerName?: string;
 };
+
+/** 어르신을 맡은 작성자 이름들. 실제 모드는 담당 연결·직원 목록에서, Mock은 작성자 한 명 */
+export function residentWorkerNames(db: DemoDb, residentId: string): string[] {
+  if (!db.assignments || !db.staff) return [db.worker.name];
+  const names = new Map(db.staff.map((person) => [person.id, person.name]));
+  return db.assignments
+    .filter((link) => link.residentId === residentId)
+    .map((link) => names.get(link.workerId) ?? "")
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "ko"));
+}
 
 /** list_missed_records와 같은 규칙: 지난 7일 빈 날 + 날짜 제한 없는 지난 임시 저장. 최신이 위. */
 export function listMissed(db: DemoDb, today: string, days = 7): MissedRecord[] {

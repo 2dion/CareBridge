@@ -6,7 +6,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
 import { markOverdueNoCare, removeNoCareDay, reviewQueue, wasResent } from "@/lib/demo/review";
@@ -23,6 +23,7 @@ import {
   noCareReasonLabel,
   OVERDUE_FROM,
   OVERDUE_TO,
+  residentWorkerNames,
   timeRangeLabel,
 } from "@/lib/demo/store";
 
@@ -42,6 +43,11 @@ function ReviewQueue() {
   const demo = useDemo()!;
   const { db, today } = demo;
   const toast = useToast();
+  const names = useRoleNames();
+  // 작성자 걸러 보기: 실제 모드는 기관 작성자 전부(list_org_staff), Mock은 한 명(이슈 #95)
+  const workerNames = db.staff
+    ? db.staff.filter((person) => person.role === "worker").map((person) => person.name)
+    : [db.worker.name];
   const [worker, setWorker] = useState("all");
   const [dates, setDates] = useState<DateFilter>("7");
   const [care, setCare] = useState<CareFilter>("all");
@@ -92,6 +98,8 @@ function ReviewQueue() {
       residentId: day.residentId,
       careDate: day.careDate,
       kind: "no_care" as const,
+      workerId: undefined as string | undefined,
+      workerName: undefined as string | undefined,
       noCare: day,
     })),
   ].sort((a, b) => (a.careDate < b.careDate ? 1 : -1));
@@ -125,12 +133,16 @@ function ReviewQueue() {
       <div className="filters">
         <select
           className="select"
-          aria-label="작성자"
+          aria-label={names.worker}
           value={worker}
           onChange={(event) => setWorker(event.target.value)}
         >
-          <option value="all">작성자 · 전체</option>
-          <option value={db.worker.name}>작성자 · {db.worker.name}</option>
+          <option value="all">{names.worker} · 전체</option>
+          {workerNames.map((name) => (
+            <option key={name} value={name}>
+              {names.worker} · {name}
+            </option>
+          ))}
         </select>
         <select
           className="select"
@@ -167,10 +179,13 @@ function ReviewQueue() {
               {boxRows.map((row) => {
                 const resident = getResident(db, row.residentId);
                 return (
-                  <li key={`${row.residentId}-${row.careDate}-${row.kind}`}>
+                  <li key={`${row.residentId}-${row.careDate}-${row.kind}-${row.workerId ?? ""}`}>
                     <span>{monthDayWeek(row.careDate)}</span>
                     <b>{resident?.alias}</b>
-                    <span>{db.worker.name}</span>
+                    {/* 못 쓴 기록은 작성자마다 한 줄. 기록 없음 처리는 어르신 단위라 담당 작성자들을 보인다(이슈 #95) */}
+                    <span>
+                      {row.workerName ?? residentWorkerNames(db, row.residentId).join(", ")}
+                    </span>
                     {row.noCare ? (
                       <>
                         <b>{noCareText(row.noCare)}</b>
@@ -227,12 +242,12 @@ function ReviewQueue() {
                     <li key={`${row.residentId}-${row.careDate}`}>
                       <span>{monthDayWeek(row.careDate)}</span>
                       <b>{resident?.alias}</b>
-                      <span>{db.worker.name}</span>
+                      <span>{residentWorkerNames(db, row.residentId).join(", ")}</span>
                       {row.noCare ? (
                         <>
                           <b>
                             {noCareText(row.noCare)}
-                            {row.noCare.createdBy !== db.worker.name &&
+                            {!workerNames.includes(row.noCare.createdBy) &&
                               ` · ${row.noCare.createdBy} 정리`}
                           </b>
                           <button
@@ -288,7 +303,7 @@ function ReviewQueue() {
               <tr>
                 <th>어르신</th>
                 <th>급여</th>
-                <th>작성자</th>
+                <th>{names.worker}</th>
                 <th>방문·돌봄 시간</th>
                 <th>확인 필요</th>
                 <th>받은 시각</th>

@@ -1,17 +1,28 @@
 "use client";
 
 // M4(어르신·작성자): 어르신 목록·추가, 작성자 목록, 담당 연결(작성자·담당 시작일·방문 요일·방문 시간).
-// 방문 요일은 1=월 … 7=일(assignments.visit_days). 담당 시작일부터 못 쓴 기록을 센다(데이터구조 v1.6.2).
+// 방문 요일은 1=월 … 7=일(assignments.visit_days). 담당 시작일부터 못 쓴 기록을 센다(데이터구조 v1.6.4).
+// 실제 모드는 기관 작성자 목록(list_org_staff)에서 여럿을 고르고, 담당 연결은 어르신·작성자 한 쌍마다 한 줄로 저장한다(이슈 #95).
+// 방문 시간은 표시용 assignments.schedule에 저장한다.
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
-import { addResident, updateResident } from "@/lib/demo/review";
-import { addDays, monthDay, type Resident, workerRecords } from "@/lib/demo/store";
+import { addResident, type ResidentEdit, updateResident } from "@/lib/demo/review";
+import {
+  addDays,
+  monthDay,
+  type Resident,
+  residentWorkerNames,
+  type StaffMember,
+  workerRecords,
+} from "@/lib/demo/store";
 
 const dayNames = ["월", "화", "수", "목", "금", "토", "일"];
+/** Mock 모드의 작성자 한 명(실제 모드는 list_org_staff) */
+const MOCK_WORKER_ID = "mock-worker";
 
 function VisitDays({ days }: { days: number[] | null }) {
   if (days === null) return <span className="muted">매일 (시설)</span>;
@@ -43,21 +54,34 @@ function Residents() {
   const demo = useDemo()!;
   const { db, today } = demo;
   const toast = useToast();
+  const names = useRoleNames();
   const tab = params.get("tab") === "workers" ? "workers" : "residents";
   const [editing, setEditing] = useState<Resident | null>(null);
   const [adding, setAdding] = useState(false);
   const noDays = db.residents.some((resident) => resident.visitDays?.length === 0);
   const weekStart = addDays(today, -6);
-  const weekCount = workerRecords(db).filter(
-    (record) => record.careDate >= weekStart && record.status !== "draft",
-  ).length;
+  // 작성자 목록: 실제 모드는 기관 직원(worker), Mock은 한 명
+  const workers: StaffMember[] = db.staff
+    ? db.staff.filter((person) => person.role === "worker")
+    : [{ id: MOCK_WORKER_ID, name: db.worker.name, role: "worker" }];
+  const workerIdsOf = (residentId: string) =>
+    db.assignments
+      ? db.assignments.filter((link) => link.residentId === residentId).map((link) => link.workerId)
+      : workers.map((worker) => worker.id);
+  const weekCount = (worker: StaffMember) =>
+    workerRecords(db).filter(
+      (record) =>
+        record.careDate >= weekStart &&
+        record.status !== "draft" &&
+        (!db.staff || record.workerName === worker.name),
+    ).length;
 
   return (
     <>
       <header className="page-head">
         <div>
-          <h1>어르신·작성자</h1>
-          <p>어르신을 추가하고 담당 작성자를 연결해요.</p>
+          <h1>어르신·{names.worker}</h1>
+          <p>어르신을 추가하고 담당 {names.worker}를 연결해요.</p>
         </div>
         {tab === "residents" && (
           <div className="actions">
@@ -84,7 +108,7 @@ function Residents() {
           className={tab === "workers" ? "on" : ""}
           onClick={() => router.replace("/residents?tab=workers")}
         >
-          작성자 1
+          {names.worker} {workers.length}
         </button>
       </div>
 
@@ -95,7 +119,7 @@ function Residents() {
               <tr>
                 <th>가명</th>
                 <th>급여</th>
-                <th>담당 작성자</th>
+                <th>담당 {names.worker}</th>
                 <th>담당 시작일</th>
                 <th>방문 요일</th>
                 <th>방문 시간</th>
@@ -103,30 +127,43 @@ function Residents() {
               </tr>
             </thead>
             <tbody>
-              {db.residents.map((resident) => (
-                <tr key={resident.id}>
-                  <td>
-                    <b>{resident.alias.replace(" 어르신", "")}</b>
-                  </td>
-                  <td>{resident.careType === "home" ? "재가" : "시설"}</td>
-                  <td>{db.worker.name}</td>
-                  <td>{monthDay(resident.startDate)}</td>
-                  <td>
-                    <VisitDays days={resident.visitDays} />
-                  </td>
-                  <td>
-                    {resident.careType === "home"
-                      ? (resident.visitTime?.replace("~", "–") ?? "—")
-                      : "—"}
-                  </td>
-                  <td>
-                    <button type="button" className="dbtn sm" onClick={() => setEditing(resident)}>
-                      <Icon name="pencil" />
-                      수정
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {db.residents.map((resident) => {
+                const assigned = residentWorkerNames(db, resident.id);
+                return (
+                  <tr key={resident.id}>
+                    <td>
+                      <b>{resident.alias.replace(" 어르신", "")}</b>
+                    </td>
+                    <td>{resident.careType === "home" ? "재가" : "시설"}</td>
+                    <td>
+                      {assigned.length > 0 ? (
+                        assigned.join(", ")
+                      ) : (
+                        <span className="warn-text">없음</span>
+                      )}
+                    </td>
+                    <td>{monthDay(resident.startDate)}</td>
+                    <td>
+                      <VisitDays days={resident.visitDays} />
+                    </td>
+                    <td>
+                      {resident.careType === "home"
+                        ? (resident.visitTime?.replace("~", "–") ?? "—")
+                        : "—"}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="dbtn sm"
+                        onClick={() => setEditing(resident)}
+                      >
+                        <Icon name="pencil" />
+                        수정
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {noDays && (
@@ -142,38 +179,43 @@ function Residents() {
             <thead>
               <tr>
                 <th>이름</th>
-                <th>모국어</th>
                 <th>담당 어르신</th>
-                <th>가입일</th>
+                <th>담당 시작일</th>
                 <th>이번 주 기록</th>
-                <th aria-label="담당 연결" />
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>
-                  <b>{db.worker.name}</b>
-                </td>
-                <td>베트남어</td>
-                <td>
-                  {db.residents.map((resident) => resident.alias.replace(" 어르신", "")).join(", ")}
-                </td>
-                <td>{monthDay(db.residents[0]?.startDate ?? today)}</td>
-                <td>{weekCount}건</td>
-                <td>
-                  <button
-                    type="button"
-                    className="dbtn sm"
-                    onClick={() => db.residents[0] && setEditing(db.residents[0])}
-                  >
-                    담당 연결
-                  </button>
-                </td>
-              </tr>
+              {workers.map((worker) => {
+                const mine = db.residents.filter((resident) =>
+                  workerIdsOf(resident.id).includes(worker.id),
+                );
+                const since = db.assignments
+                  ? db.assignments
+                      .filter((link) => link.workerId === worker.id)
+                      .map((link) => link.startDate)
+                      .sort()[0]
+                  : db.residents[0]?.startDate;
+                return (
+                  <tr key={worker.id}>
+                    <td>
+                      <b>{worker.name}</b>
+                    </td>
+                    <td>
+                      {mine.map((resident) => resident.alias.replace(" 어르신", "")).join(", ") || (
+                        <span className="muted">없음</span>
+                      )}
+                    </td>
+                    <td>{since ? monthDay(since) : "—"}</td>
+                    <td>{weekCount(worker)}건</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <p className="info-note" style={{ margin: 16 }}>
-            작성자는 설정의 작성자용 가입 코드로 직접 가입해요. 시연(Mock)에는 작성자가 한 명이에요.
+            {names.worker}는 설정의 가입 코드로 직접 가입해요. 담당 연결은 어르신 탭의 [수정]에서
+            바꿔요.
+            {!db.staff && " 시연(Mock)에는 작성자가 한 명이에요."}
           </p>
         </section>
       )}
@@ -183,34 +225,52 @@ function Residents() {
           key={editing.id}
           resident={editing}
           today={today}
-          worker={db.worker.name}
+          workers={workers}
+          selectedWorkerIds={workerIdsOf(editing.id)}
+          workerLabel={names.worker}
           onClose={() => setEditing(null)}
           onSave={(edit) => {
             setEditing(null);
             if (demo.real) {
-              // assignments의 방문 요일·담당 시작일(관리자, RLS)
+              // 고른 작성자만 남기고(빠진 줄은 지우고, 새 줄은 넣고) 방문 요일·시작일·표시용 방문 시간을 저장한다
               void demo.real.actions.updateResident(editing.id, edit).then((result) => {
                 toast.show(result.ok ? "담당 연결을 저장했어요." : result.ko);
               });
-              return;
+              return null;
             }
-            demo.update((current) => updateResident(current, editing.id, edit));
+            const next = updateResident(db, editing.id, edit);
+            if ("error" in next) return next.error;
+            demo.update(() => next);
             toast.show("담당 연결을 저장했어요.");
+            return null;
           }}
         />
       )}
       <AddResidentModal
         open={adding}
         today={today}
+        workers={workers}
+        workerLabel={names.worker}
         onClose={() => setAdding(false)}
         onAdd={(input) => {
           const next = addResident(db, input);
           if ("error" in next) return next.error;
           if (demo.real) {
-            // residents에 바로 넣는다(관리자, 같은 기관). 가명만(원칙 9)
+            // residents에 바로 넣고(가명만, 원칙 9) 고른 작성자와 담당 연결을 만든다(이슈 #95)
             void demo.real.actions
-              .addResident(`${input.initial.trim().slice(0, 1)}○○ 어르신`, input.careType)
-              .then((result) => !result.ok && toast.show(result.ko));
+              .addResident(`${input.initial.trim().slice(0, 1)}○○ 어르신`, input.careType, {
+                workerIds: input.workerIds,
+                startDate: input.startDate,
+              })
+              .then((result) =>
+                toast.show(
+                  result.ok
+                    ? input.careType === "home"
+                      ? "어르신을 추가했어요. [수정]에서 방문 요일을 정해 주세요."
+                      : "어르신을 추가했어요."
+                    : result.ko,
+                ),
+              );
             setAdding(false);
             return null;
           }
@@ -225,20 +285,59 @@ function Residents() {
   );
 }
 
+const EDIT_ERRORS: Record<"duplicate" | "care_type_locked", string> = {
+  duplicate: "같은 가명이 이미 있어요. 다른 글자를 써 주세요.",
+  care_type_locked: "기록이 있는 어르신은 급여 종류를 바꿀 수 없어요.",
+};
+
+function WorkerPicker({
+  workers,
+  selected,
+  label,
+  onToggle,
+}: {
+  workers: StaffMember[];
+  selected: string[];
+  label: string;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div className="stack" role="group" aria-label={`담당 ${label}`} style={{ gap: 6 }}>
+      {workers.length === 0 && <p className="muted">가입한 {label}가 없어요.</p>}
+      {workers.map((worker) => (
+        <label key={worker.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={selected.includes(worker.id)}
+            onChange={() => onToggle(worker.id)}
+          />
+          {worker.name}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function AssignDrawer({
   resident,
   today,
-  worker,
+  workers,
+  selectedWorkerIds,
+  workerLabel,
   onClose,
   onSave,
 }: {
   resident: Resident;
   today: string;
-  worker: string;
+  workers: StaffMember[];
+  selectedWorkerIds: string[];
+  workerLabel: string;
   onClose: () => void;
-  onSave: (edit: Pick<Resident, "visitDays" | "visitTime" | "startDate">) => void;
+  /** 저장. 막히면 오류 키를 돌려준다 */
+  onSave: (edit: ResidentEdit) => "duplicate" | "care_type_locked" | null;
 }) {
   const home = resident.careType === "home";
+  const [workerIds, setWorkerIds] = useState<string[]>(selectedWorkerIds);
   const [days, setDays] = useState<number[]>(resident.visitDays ?? []);
   const [startDate, setStartDate] = useState(resident.startDate);
   const [from, setFrom] = useState(resident.visitTime?.split("~")[0] ?? "");
@@ -246,6 +345,8 @@ function AssignDrawer({
   const [error, setError] = useState<string | null>(null);
   const toggle = (day: number) =>
     setDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()));
+  const toggleWorker = (id: string) =>
+    setWorkerIds((prev) => (prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]));
 
   const save = () => {
     if (!startDate || startDate > today)
@@ -254,11 +355,13 @@ function AssignDrawer({
       return setError("재가 어르신은 방문 요일을 하나 이상 골라 주세요.");
     if ((from && !to) || (!from && to) || (from && to && from >= to))
       return setError("방문 시간은 시작이 끝보다 앞이어야 해요.");
-    onSave({
+    const result = onSave({
       visitDays: home ? days : null,
-      visitTime: from && to ? `${from}~${to}` : resident.visitTime,
+      visitTime: from && to ? `${from}~${to}` : null,
       startDate,
+      workerIds,
     });
+    if (result) setError(EDIT_ERRORS[result]);
   };
 
   return (
@@ -274,13 +377,16 @@ function AssignDrawer({
           닫기
         </button>
       </div>
-      <label className="flabel" htmlFor="assign-worker">
-        담당 작성자
-      </label>
-      <select id="assign-worker" className="select" defaultValue={worker}>
-        <option value={worker}>{worker}</option>
-      </select>
-      <p className="fhint">가입한 작성자만 고를 수 있어요.</p>
+      <p className="flabel">담당 {workerLabel}</p>
+      <WorkerPicker
+        workers={workers}
+        selected={workerIds}
+        label={workerLabel}
+        onToggle={toggleWorker}
+      />
+      <p className="fhint">
+        가입한 {workerLabel}만 고를 수 있어요. 고른 {workerLabel}마다 담당 연결 한 줄이 생겨요.
+      </p>
       <label className="flabel" htmlFor="assign-start">
         담당 시작일
       </label>
@@ -357,21 +463,30 @@ function AssignDrawer({
 function AddResidentModal({
   open,
   today,
+  workers,
+  workerLabel,
   onClose,
   onAdd,
 }: {
   open: boolean;
   today: string;
+  workers: StaffMember[];
+  workerLabel: string;
   onClose: () => void;
   onAdd: (input: {
     initial: string;
     careType: Resident["careType"];
     startDate: string;
+    workerIds: string[];
   }) => "initial_required" | "duplicate" | null;
 }) {
   const [initial, setInitial] = useState("");
   const [careType, setCareType] = useState<Resident["careType"]>("facility");
+  // 작성자가 한 명이면 바로 고른 채로 둔다
+  const [workerIds, setWorkerIds] = useState<string[]>(workers.length === 1 ? [workers[0].id] : []);
   const [error, setError] = useState<string | null>(null);
+  const toggleWorker = (id: string) =>
+    setWorkerIds((prev) => (prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]));
   return (
     <DeskModal open={open} onClose={onClose} label="어르신 추가">
       <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>어르신 추가</h2>
@@ -410,6 +525,15 @@ function AddResidentModal({
           재가 (별지 제12호)
         </button>
       </div>
+      <p className="flabel" style={{ marginTop: 14 }}>
+        담당 {workerLabel} (담당 시작일은 오늘)
+      </p>
+      <WorkerPicker
+        workers={workers}
+        selected={workerIds}
+        label={workerLabel}
+        onToggle={toggleWorker}
+      />
       {error && (
         <p className="warn-text" role="alert" style={{ marginTop: 10 }}>
           {error}
@@ -423,7 +547,7 @@ function AddResidentModal({
           type="button"
           className="dbtn primary"
           onClick={() => {
-            const result = onAdd({ initial, careType, startDate: today });
+            const result = onAdd({ initial, careType, startDate: today, workerIds });
             if (result === "initial_required") setError("성 한 글자를 써 주세요.");
             else if (result === "duplicate")
               setError("같은 가명이 이미 있어요. 다른 글자를 써 주세요.");
