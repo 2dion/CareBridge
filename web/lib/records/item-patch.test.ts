@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { parseItemPatch, patchItem, type ItemPatchDeps } from "./item-patch";
+import { isNotKorean, parseItemPatch, patchItem, type ItemPatchDeps } from "./item-patch";
 import type { RecordRow } from "./transition";
 
 const worker = { id: "worker-1", role: "worker" as const };
@@ -172,5 +172,39 @@ describe("patchItem", () => {
   it("로그인하지 않으면 401", async () => {
     const deps = fakeDeps(draft, { currentUser: vi.fn(async () => null) });
     expect((await patchItem("rec-1", "meal", { confirmed: true }, deps)).status).toBe(401);
+  });
+});
+
+describe("value_ko 한국어 검사 (이슈 #118)", () => {
+  it("글자는 있는데 한글이 없을 때만 한국어가 아님", () => {
+    expect(isNotKorean("점심 절반 드심")).toBe(false);
+    expect(isNotKorean("14:00~17:00 방문")).toBe(false);
+    expect(isNotKorean("14:00~17:00")).toBe(false);
+    expect(isNotKorean("Bác ăn được một nửa bữa trưa.")).toBe(true);
+  });
+
+  it("숫자·시간만 있는 값(방문 시점)은 저장함", async () => {
+    const deps = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
+    const r = await patchItem("rec-1", "visit_time", { value_ko: "14:00~17:30" }, deps);
+    expect(r.status).toBe(200);
+  });
+
+  it("베트남어만 있는 value_ko는 저장하지 않고 400 value_ko_not_korean", async () => {
+    const deps = fakeDeps(draft);
+    const r = await patchItem("rec-1", "meal", { value_ko: "Bác ăn được một nửa." }, deps);
+    expect(r).toEqual({ status: 400, body: { error: "value_ko_not_korean" } });
+    expect(deps.update).not.toHaveBeenCalled();
+  });
+
+  it("담당자가 고칠 때도 같음", async () => {
+    const deps = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
+    const r = await patchItem("rec-1", "meal", { value_ko: "Ăn hết." }, deps);
+    expect(r.status).toBe(400);
+  });
+
+  it("value_ko를 비우는 것([기록 안 함] 등)은 막지 않음", async () => {
+    const deps = fakeDeps(draft);
+    const r = await patchItem("rec-1", "meal", { value_ko: "" }, deps);
+    expect(r.status).toBe(200);
   });
 });

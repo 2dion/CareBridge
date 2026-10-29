@@ -152,7 +152,7 @@ export async function receiveAudio(
 
   if (input.target.target === "item") {
     try {
-      const item = await addItemByVoice(
+      const item = await rewriteItem(
         userClient,
         serverClient,
         record,
@@ -190,8 +190,46 @@ export async function receiveAudio(
   return { status: 202, body: { id: job.id, status: "filling", transcript } };
 }
 
+// POST /api/records/:id/items/:key { text }
+// W3 [수정 내용 적용]: 작성자가 글로 쓴 고칠 내용도 음성 보태기와 같은 길(③)로 그 항목만 다시 쓴다.
+// 한국어·베트남어 어느 쪽으로 써도 value_ko는 한국어 기록체, value_native는 모국어가 되고,
+// status·reason도 새 내용으로 다시 정한다(이슈 #118).
+export async function addItemByText(
+  userClient: SupabaseClient,
+  serverClient: SupabaseClient,
+  recordId: string,
+  itemKey: ItemKey,
+  body: unknown,
+): Promise<ApiResult> {
+  const text =
+    body && typeof body === "object" && typeof (body as { text?: unknown }).text === "string"
+      ? (body as { text: string }).text.trim()
+      : "";
+  if (!text || text.length > 1000) return fail(400, "invalid_input");
+  const loaded = await loadWorkerRecord(userClient, recordId);
+  if (!loaded.ok) return loaded.result;
+  if (getAiMode() === "mock") return fail(503, "ai_not_configured");
+  try {
+    const item = await rewriteItem(
+      userClient,
+      serverClient,
+      loaded.record,
+      loaded.userId,
+      itemKey,
+      text,
+    );
+    return { status: 200, body: { status: "done", item } };
+  } catch (error) {
+    const message = errorText(error);
+    if (message === "invalid_item") return fail(400, "invalid_item");
+    if (message.includes("stale_item")) return fail(409, "stale_item");
+    return fail(502, "fill_failed");
+  }
+}
+
 // ③ 항목 보태기: Claude 한 번 호출(중간 등급), 형식이 틀리면 한 번 더. 저장은 save_ai_item(item)
-async function addItemByVoice(
+// 작성자가 음성(받아쓴 글)이나 글로 새로 말한 내용(utterance)으로 그 항목만 다시 쓴다.
+async function rewriteItem(
   userClient: SupabaseClient,
   serverClient: SupabaseClient,
   record: WorkerRecord,

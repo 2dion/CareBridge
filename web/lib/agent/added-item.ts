@@ -9,6 +9,7 @@ import {
   type ItemKey,
   type ValidateContext,
 } from "./validate-draft";
+import { isNotKorean } from "@/lib/records/item-patch";
 
 export function addItemSystemPrompt(itemKey: ItemKey, nativeLang: "ko" | "vi") {
   return `너는 요양 돌봄 기록의 항목 하나를 다시 쓴다. 결과는 초안이며 작성자가 확인한다.
@@ -22,8 +23,12 @@ export function addItemSystemPrompt(itemKey: ItemKey, nativeLang: "ko" | "vi") {
    낙상·상처·호흡·의식·통증·복약 이상이 있으면 status=needs_check이고 reason을 쓴다.
 4. 진단하지 말고 본 것만 쓴다. value_ko는 한국어 기록체(~하심, ~드심).
    value_native는 그 번역, reason을 쓰면 reason_native에 그 번역을 쓴다.
-5. 어르신·가족의 실명을 쓰지 않는다.
-6. 다른 말 없이 JSON 한 개로만 답한다:
+5. 작성자가 베트남어 등 모국어로 말했어도 value_ko는 반드시 한국어 기록체로 옮긴다. 모국어 문장을 value_ko에 그대로 넣지 않는다.
+   value_native와 reason_native는 성별을 정하지 말고 ông/bà처럼 쓴다.
+6. 새로 말한 글이 지금 항목의 '확인 필요' 이유를 풀어 주면(예: 직접 봤다고 말함) 그 이유를 다시 쓰지 않는다.
+   reason은 새 내용 기준으로만 쓰고, 이유가 없으면 빈칸이다.
+7. 어르신·가족의 실명을 쓰지 않는다.
+8. 다른 말 없이 JSON 한 개로만 답한다:
 {"value_ko":"","value_native":"","status":"observed|not_mentioned|needs_check","evidence":"","reason":"","reason_native":"","detail":{}}`;
 }
 
@@ -69,6 +74,8 @@ export function checkAddedItem(
   utterance: string,
   formFields: Record<string, unknown>,
 ): DraftItem | null {
+  // value_ko는 한국어 기록체여야 한다. 베트남어를 그대로 옮겼으면 형식 오류로 보고 다시 부른다(이슈 #118)
+  if (item.value_ko && isNotKorean(item.value_ko)) return null;
   const items = ITEM_KEYS.map(
     (key) => (key === item.item_key ? item : currentItems.find((i) => i.item_key === key))!,
   );

@@ -47,6 +47,18 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
     ko: "녹음에서 말을 찾지 못했어요. 다시 녹음해 주세요.",
     vi: "Không nghe thấy lời nói trong bản ghi âm. Hãy ghi âm lại.",
   },
+  value_ko_not_korean: {
+    ko: "공식 기록 칸에는 한국어로 써 주세요.",
+    vi: "Hãy viết ô bản ghi chính thức bằng tiếng Hàn.",
+  },
+  fill_failed: {
+    ko: "고칠 내용을 정리하지 못했어요. 다시 시도해 주세요.",
+    vi: "Không sắp xếp được nội dung sửa. Hãy thử lại.",
+  },
+  stale_item: {
+    ko: "그사이 내용이 바뀌었어요. 화면을 새로 고친 뒤 다시 해 주세요.",
+    vi: "Nội dung vừa thay đổi. Hãy tải lại trang rồi thử lại.",
+  },
   agent_failed: {
     ko: "초안을 만들지 못했어요. 다시 시도하거나 글로 써 주세요.",
     vi: "Không tạo được bản nháp. Hãy thử lại hoặc viết trực tiếp.",
@@ -152,6 +164,10 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
     /** [다시 시도]: 저장된 원문으로 Agent를 다시 돌린다 */
     async retryDraft(recordId: string) {
       return after(await callApi(`/api/records/${recordId}/agent-run`, { body: {} }));
+    },
+    /** W3 [수정 내용 적용]: 글로 쓴 고칠 내용으로 그 항목만 AI가 다시 쓴다(음성 보태기와 같은 길) */
+    async rewriteItemText(recordId: string, key: ItemKey, text: string) {
+      return after(await callApi(`/api/records/${recordId}/items/${key}`, { body: { text } }));
     },
     async patchItem(recordId: string, key: ItemKey, patch: Record<string, unknown>) {
       return after(
