@@ -5,13 +5,19 @@ import {
   type Draft,
   type DraftItem,
   evidenceInTranscript,
+  INTAKE_VALUES,
   ITEM_KEYS,
   type ItemKey,
+  MINUTE_KEYS,
+  minutesBetween,
   REASONS,
+  reasonTranslation,
+  stripQuestionSentences,
   sumSupportMinutes,
   validateDraft,
   type ValidateContext,
 } from "./validate-draft";
+import { getFormSpec } from "./form-spec";
 
 // 시나리오 1(시설 기록 한 건)의 말할 문장. 합성 사례다(문서/설계/시연-일정-v1.1.md).
 const TRANSCRIPT =
@@ -224,6 +230,42 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
     expect(codes(draft, ctx)).toContain("support_minutes_exceed_visit");
   });
 
+  // 이슈 #115: AI가 visit_time.detail.start·end만 채워도 검사 5가 돌아야 시연 시나리오 2가 동작한다
+  it("total_minutes도 없으면 visit_time 항목의 detail.start·end(HH:MM)로 계산함", () => {
+    const draft = withItem(
+      withMinutes({ physical: 80, emotional: 60, housework: 60 }),
+      "visit_time",
+      {
+        value_ko: "14:00~17:00 방문",
+        status: "observed",
+        evidence: "아침에 세수해 드리고 두 시간마다 자세 바꿨어요.",
+        detail: { start: "14:00", end: "17:00" },
+      },
+    );
+    const ctx: ValidateContext = { transcript: TRANSCRIPT, careType: "home" };
+    const result = validateDraft(draft, ctx);
+    expect(result.problems.map((p) => p.code)).toEqual(["support_minutes_exceed_visit"]);
+    expect(result.fixed?.items.find((i) => i.item_key === "support")?.reason).toContain(
+      "200분 > 180분",
+    );
+  });
+
+  it("두 시각 사이의 분: DB time 형식(HH:MM:SS)도 읽고, 틀린 형식·역순은 null", () => {
+    expect(minutesBetween("14:00", "17:00")).toBe(180);
+    expect(minutesBetween("14:00:00", "17:30:00")).toBe(210);
+    expect(minutesBetween("오후 2시", "17:00")).toBeNull();
+    expect(minutesBetween("17:00", "14:00")).toBeNull();
+    expect(minutesBetween(undefined, "17:00")).toBeNull();
+  });
+
+  it("서버가 붙인 이유의 번역은 숫자가 붙어도 찾음", () => {
+    expect(reasonTranslation(`${REASONS.supportMinutesExceed} (200분 > 180분)`)).toBe(
+      "Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)",
+    );
+    expect(reasonTranslation("모르는 이유")).toBe("");
+    expect(reasonTranslation(REASONS.realName, "ko")).toBe(REASONS.realName);
+  });
+
   it("재가인데 방문 시간을 모르면 분이 적힌 제공 지원을 확인 필요로", () => {
     const ctx: ValidateContext = { transcript: TRANSCRIPT, careType: "home" };
     const result = validateDraft(withMinutes({ physical: 60 }), ctx);
@@ -412,5 +454,152 @@ describe("이유 번역 보존", () => {
     const draft = scenarioOneDraft();
     const raw = { ...draft, items: draft.items.map((i) => ({ ...i, reason_native: 123 })) };
     expect(codes(raw)).toContain("invalid_field");
+  });
+});
+
+describe("검사 7: 식사 섭취량 값 (이슈 #133)", () => {
+  const withIntake = (intake: unknown) =>
+    withItem(scenarioOneDraft(), "meal", {
+      value_ko: "점심 죽 절반 이상 드심.",
+      status: "observed",
+      reason: "",
+      detail: { meal_type: "죽", intake },
+    });
+
+  it("full / half_or_more / under_half는 통과", () => {
+    for (const intake of INTAKE_VALUES) {
+      expect(codes(withIntake(intake))).toEqual([]);
+    }
+  });
+
+  it("'1/2 이상'처럼 뜻만 적은 값은 빼고 식사를 확인 필요로", () => {
+    const result = validateDraft(withIntake("1/2 이상"), FACILITY);
+    const meal = result.fixed?.items.find((i) => i.item_key === "meal");
+    expect(result.problems.map((p) => p.code)).toEqual(["invalid_intake"]);
+    expect(meal?.status).toBe("needs_check");
+    expect(meal?.reason).toContain(REASONS.intakeUnknown);
+    expect(meal?.reason_native).toContain("Chưa xác định được lượng ăn");
+    expect(meal?.detail).toEqual({ meal_type: "죽" });
+    expect(result.downgraded).toEqual(["meal"]);
+  });
+
+  it("상태 값(needs_check)을 섭취량에 넣은 경우도 걸림", () => {
+    const result = validateDraft(withIntake("needs_check"), FACILITY);
+    expect(result.problems.map((p) => p.code)).toEqual(["invalid_intake"]);
+    expect(result.fixed?.items.find((i) => i.item_key === "meal")?.detail.intake).toBeUndefined();
+  });
+
+  it("intake가 null이거나 없으면 검사하지 않음", () => {
+    expect(codes(withIntake(null))).toEqual([]);
+    expect(codes(withItem(scenarioOneDraft(), "meal", { detail: {} }))).toEqual([]);
+  });
+
+  it("서식 기준(get_form_spec)의 섭취량 선택지는 저장 값으로 시작한다", () => {
+    const spec = getFormSpec("facility");
+    expect(spec.choices.intake.map((choice) => choice.split(" ")[0])).toEqual([...INTAKE_VALUES]);
+  });
+});
+
+describe("재가 서식 기준의 숫자 칸 안내 (이슈 #115)", () => {
+  it("방문 시각은 detail.start·end와 total_minutes에, 분은 detail.minutes 키 6개에 채우라고 함", () => {
+    const spec = getFormSpec("home");
+    expect(spec.items.visit_time).toContain("detail.start·detail.end");
+    expect(spec.items.visit_time).toContain("form_fields.total_minutes");
+    expect(spec.items.support).toContain("청소·빨래");
+    expect(spec.items.support).toContain("housework");
+    expect(spec.choices.minutes_keys).toEqual([...MINUTE_KEYS]);
+    expect(spec.rules.join(" ")).toContain("말하지 않은 숫자는 지어내지 않고 비운다");
+  });
+});
+
+describe("'확인 필요'인데 내용이 빈 항목 (이슈 #141)", () => {
+  it("문제(needs_check_without_value)로 알리고 상태는 그대로 둠", () => {
+    const draft = withItem(scenarioOneDraft(), "sleep", {
+      value_ko: "",
+      value_native: "",
+      status: "needs_check",
+      reason: "잠든 시간을 짐작함",
+    });
+    const result = validateDraft(draft, FACILITY);
+    expect(result.problems).toEqual([
+      expect.objectContaining({ code: "needs_check_without_value", item_key: "sleep" }),
+    ]);
+    expect(result.fixed?.items.find((i) => i.item_key === "sleep")?.status).toBe("needs_check");
+  });
+
+  it("내용이 있는 '확인 필요'는 걸리지 않음", () => {
+    expect(codes(scenarioOneDraft())).toEqual([]);
+  });
+
+  it("자동 정리 중단 초안(9개 모두 확인 필요·내용 없음)도 저장할 수 있게 fixed를 돌려줌", () => {
+    const result = validateDraft(allNeedsCheckDraft("자동 정리 중단", TRANSCRIPT), FACILITY);
+    expect(result.fixed).not.toBeNull();
+    expect(result.problems.filter((p) => p.code === "needs_check_without_value")).toHaveLength(9);
+  });
+});
+
+describe("검사 8: 기록 내용의 확인 요청 문장 (이슈 #117)", () => {
+  // 10/29 QA가 본 실제 문장 둘 (이슈 #117 '지금 일어나는 일')
+  const MEAL = "간식으로 죽 드심. 섭취량 확인 필요(반 그릇이 1/2 이상인지 1/2 미만인지 불명확).";
+  const NOTES = "화장실 이용 1회, 배설 실수 없었음. '실수 없음' 표현의 교재 공식 용어 확인 필요.";
+
+  it("확인 요청 문장을 빼고, 이유가 비었으면 그 문장을 reason으로 옮기며 확인 필요로 낮춤", () => {
+    const draft = withItem(scenarioOneDraft(), "meal", {
+      value_ko: MEAL,
+      status: "observed",
+      reason: "",
+    });
+    const result = validateDraft(draft, FACILITY);
+    const meal = result.fixed?.items.find((i) => i.item_key === "meal");
+    expect(result.problems.map((p) => p.code)).toEqual(["question_in_value"]);
+    expect(meal?.value_ko).toBe("간식으로 죽 드심.");
+    expect(meal?.status).toBe("needs_check");
+    expect(meal?.reason).toBe("섭취량 확인 필요(반 그릇이 1/2 이상인지 1/2 미만인지 불명확).");
+    expect(meal?.reason_native).toBe(
+      "Câu yêu cầu xác nhận trong nội dung đã được chuyển sang lý do",
+    );
+    expect(result.downgraded).toEqual(["meal"]);
+  });
+
+  it("이미 '확인 필요'이고 이유가 있으면 이유는 그대로, 내용에서만 뺌", () => {
+    const draft = withItem(scenarioOneDraft(), "notes", {
+      value_ko: NOTES,
+      status: "needs_check",
+      evidence: "엉덩이 쪽이 조금 빨개요.",
+      reason: "'실수 없음'의 교재 용어를 찾지 못함",
+    });
+    const notes = validateDraft(draft, FACILITY).fixed?.items.find((i) => i.item_key === "notes");
+    expect(notes?.value_ko).toBe("화장실 이용 1회, 배설 실수 없었음.");
+    expect(notes?.reason).toBe("'실수 없음'의 교재 용어를 찾지 못함");
+  });
+
+  it("괄호 안 확인 요청은 괄호째 빼고 문장은 남김", () => {
+    expect(stripQuestionSentences("아침 밥을 두 그릇 드심 (섭취량 확인 필요).")).toEqual({
+      kept: "아침 밥을 두 그릇 드심.",
+      removed: "섭취량 확인 필요",
+    });
+  });
+
+  it("내용 전체가 확인 요청이면 내용이 비고, 내용 없음 문제도 함께 알림", () => {
+    const draft = withItem(scenarioOneDraft(), "sleep", {
+      value_ko: "수면 상태 확인 필요.",
+      value_native: "Cần kiểm tra giấc ngủ.",
+      status: "observed",
+    });
+    const result = validateDraft(draft, FACILITY);
+    const sleep = result.fixed?.items.find((i) => i.item_key === "sleep");
+    expect(result.problems.map((p) => p.code)).toEqual([
+      "question_in_value",
+      "needs_check_without_value",
+    ]);
+    expect(sleep?.value_ko).toBe("");
+    expect(sleep?.value_native).toBe("");
+  });
+
+  it("'확인'이라는 낱말만으로는 걸리지 않음 (예: 직접 확인함)", () => {
+    const draft = withItem(scenarioOneDraft(), "sleep", {
+      value_ko: "밤 10시에 주무시는 모습을 직접 확인함.",
+    });
+    expect(codes(draft)).toEqual([]);
   });
 });

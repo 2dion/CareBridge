@@ -3,8 +3,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Role } from "@/lib/auth/signup";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+import { recheckSupportMinutes } from "./support-check";
+import { createSupportCheckDeps } from "./support-check-supabase";
 import type { ItemRow, RecordRow, TransitionDeps } from "./transition";
 
 /** 로그인한 사람 id와 role. 로그인하지 않았거나 프로필이 없으면 null */
@@ -21,11 +24,18 @@ export async function readCurrentUser(supabase: SupabaseClient) {
 }
 
 // submit·approve·return의 DB 호출. 읽기·쓰기는 모두 로그인한 사람 권한(RLS)으로 한다.
+// 전송 직전 제공 지원 재검사의 저장만 서버 전용 save_ai_item(check)이다.
 export async function createTransitionDeps(): Promise<TransitionDeps> {
   const supabase = await createSupabaseServerClient();
 
   return {
     currentUser: () => readCurrentUser(supabase),
+    recheckSupport: (recordId, actorId) =>
+      recheckSupportMinutes(
+        recordId,
+        actorId,
+        createSupportCheckDeps(supabase, createSupabaseAdminClient()),
+      ),
     async findRecord(recordId) {
       const { data } = await supabase
         .from("records")

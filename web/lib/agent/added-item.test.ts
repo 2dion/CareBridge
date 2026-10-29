@@ -89,4 +89,34 @@ describe("모국어로 고친 내용 (이슈 #118)", () => {
     expect(prompt).toContain("value_ko는 반드시 한국어 기록체로 옮긴다");
     expect(prompt).toContain("그 이유를 다시 쓰지 않는다");
   });
+
+  it("프롬프트에 '확인 요청 문장은 reason에만' 규칙이 있음 (이슈 #117)", () => {
+    const prompt = addItemSystemPrompt("meal", "vi");
+    expect(prompt).toContain("확인 요청 문장은");
+    expect(prompt).toContain("reason에만 쓴다");
+  });
+
+  it("프롬프트에 '한국어 말투 그대로 쓴 글도 기록체로 고침'과 성별 중립 번역 규칙이 있음 (이슈 #121)", () => {
+    const prompt = addItemSystemPrompt("sleep", "vi");
+    expect(prompt).toContain("말투 그대로 쓴 글");
+    expect(prompt).toContain("기록체로 고쳐 쓴다");
+    expect(prompt).toContain("ông/bà");
+  });
+});
+
+describe("기록 내용의 확인 요청 문장 (이슈 #117)", () => {
+  it("보탠 항목의 value_ko에 확인 요청이 있으면 빼고 reason으로 옮김", () => {
+    const item = {
+      ...items[2],
+      value_ko: "점심 절반 드심. 섭취량 확인 필요.",
+      status: "observed" as const,
+      evidence: "점심 반 드셨어요",
+    };
+    const checked = checkAddedItem(item, items, context, "점심 반 드셨어요", {});
+    expect(checked).toMatchObject({
+      status: "needs_check",
+      value_ko: "점심 절반 드심.",
+      reason: "섭취량 확인 필요.",
+    });
+  });
 });

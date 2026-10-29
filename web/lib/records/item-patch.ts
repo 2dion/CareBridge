@@ -43,6 +43,8 @@ export type ItemPatchDeps = {
   ): Promise<{ ok: true } | { ok: false; error: string }>;
   /** 로그인한 사람 권한으로 다시 읽은 항목 1행 */
   readItem(recordId: string, key: ItemKey): Promise<Record<string, unknown> | null>;
+  /** 재가 제공 지원 재검사(검사 5). records/support-check.ts recheckSupportMinutes */
+  recheckSupport(recordId: string, actorId: string): Promise<unknown>;
 };
 
 const fail = (status: number, error: string): ApiResult => ({ status, body: { error } });
@@ -143,6 +145,12 @@ export async function patchItem(
   // value_ko가 바뀐 항목만 다시 번역한다. 번역이 실패해도 저장한 수정은 그대로 둔다(번역 칸은 트리거가 비움).
   if (patch.value_ko !== undefined && patch.value_ko !== before && patch.value_ko !== "") {
     await retranslate(recordId, itemKey, record, user, patch.value_ko, deps).catch(() => {});
+  }
+
+  // 재가에서 작성자가 지원별 분(support.detail.minutes)이나 방문 시점을 고치면 검사 5(합 ≤ 방문 시간)를
+  // 다시 해 제공 지원의 '확인 필요'와 이유를 맞춘다(이슈 #116). 검사가 실패해도 저장한 수정은 그대로 둔다.
+  if (isWorker && (itemKey === "support" || itemKey === "visit_time")) {
+    await deps.recheckSupport(recordId, user.id).catch(() => {});
   }
 
   const item = await deps.readItem(recordId, itemKey);

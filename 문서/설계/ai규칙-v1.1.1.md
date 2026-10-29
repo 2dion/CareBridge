@@ -123,7 +123,7 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
   },
   {
     "name": "search_glossary",
-    "description": "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 고정 베트남어 번역으로 찾는다. 결과가 비면 뜻을 짐작하지 말고 그 항목을 needs_check로 둔다.",
+    "description": "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 고정 베트남어 번역으로 찾는다. 결과가 비어도 뜻이 분명한 일상 표현은 교재 용어 없이 기록체로 정리한다(observed). 뜻을 짐작해야 하는 말만 needs_check로 두고, 짐작한 내용을 reason에 쓴다.",
     "input_schema": {
       "type": "object",
       "properties": {
@@ -228,7 +228,7 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
 **'확인 필요'로 두는 경우**
 
 1. **양·정도가 모호함:** "조금 드셨어요"처럼 서식 칸(전량 / 1/2 이상 / 1/2 미만)을 고를 수 없을 때.[9]
-2. **사투리·일상 표현:** 뜻을 짐작했을 때. reason에 "'걸신진다'를 '많이 먹는다'로 짐작"처럼 남김. search_glossary가 빈 결과일 때도 같음.[2]
+2. **사투리·일상 표현:** 뜻을 짐작했을 때. reason에 "'걸신진다'를 '많이 먹는다'로 짐작"처럼 남김. search_glossary가 빈 결과여도 뜻이 분명한 일상 표현("화장실에 한 번 모시고 감", "날짜를 두 번 물으심")은 교재 용어 없이 기록체로 정리해 '관찰'로 두고, "용어 검색 결과 없음"만으로는 '확인 필요'로 두지 않음(10/29, [이슈 #121](https://github.com/2dion/CareBridge/issues/121), [결정](../결정/2026-10-29-초안검사보강.md)).[2]
 3. **말이 서로 맞지 않음:** 예) "잘 주무셨다"와 "밤에 세 번 깨셨다"가 함께 있을 때.
 4. **건강·안전 신호:** 낙상, 상처, 호흡·의식 변화, 심한 통증, 약을 안 드시거나 두 번 드신 경우. 특이사항에도 넣고 W3(기록 초안 확인)에 "관리자에게 바로 알리세요"를 보여 줌.
 5. **숫자·이름이 불확실:** 약 이름, 시간, 횟수를 잘못 들었을 수 있을 때.
@@ -276,7 +276,7 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
 
 **왜:** AI 답을 그대로 믿지 않고 서버 코드가 검사한 뒤 DB에 넣습니다. 코디세이 평가의 '예외 처리' 항목에 해당합니다.[5]
 
-검사 1~6은 validate_draft와 return_draft 안에서 같은 코드로 돕니다.
+검사 1~8은 validate_draft와 return_draft 안에서 같은 코드로 돕니다. 검사 5는 작성자가 W3에서 분·방문 시점을 고친 뒤와 전송 직전에도 다시 돕니다(10/29).
 
 | 검사 | 통과 못 하면 |
 | --- | --- |
@@ -284,8 +284,11 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
 | 2. evidence가 원문에 실제로 있는 문장인지 (문자열 비교) | 그 항목을 '확인 필요'로 낮추고 reason에 "근거를 찾지 못함" |
 | 3. '관찰'인데 evidence가 비었는지 | '확인 필요'로 낮춤 |
 | 4. '언급 없음'인데 value_ko가 있는지 | value_ko를 비움 |
-| 5. 재가: 제공시간 합 ≤ 방문 시간인지 | '제공 지원'을 '확인 필요'로 |
+| 5. 재가: 제공시간 합 ≤ 방문 시간인지 | '제공 지원'을 '확인 필요'로, reason에 "지원별 제공시간 합이 방문 시간보다 김 (200분 > 180분)". 방문 시간은 records.visit_start~visit_end → form_fields.total_minutes → visit_time detail.start·end 순으로 찾음. **작성자가 W3에서 분이나 방문 시점을 고친 뒤(PATCH)와 전송(submit) 직전에 서버가 다시 검사**해 같은 이유를 붙이고, 합이 맞으면 서버가 붙인 이유만 걷어 '관찰'로 되돌림(10/29, [이슈 #116](https://github.com/2dion/CareBridge/issues/116)) |
 | 6. 실명이 들어 있는지 | 그 항목을 '확인 필요'로. 같은 기관 계정 이름(`profiles.name`)과 value_ko·value_native를 문자열 비교(가명 ○·한 글자 제외). 어르신·가족 실명은 쓰기 원칙 5로 막고, 검사로 다 잡지 못함(10/21 결정 '재가분칸-실명목록') |
+| 7. 식사 detail.intake가 `full` / `half_or_more` / `under_half` 중 하나인지 (10/29) | 아니면 intake를 빼고 식사를 '확인 필요'로, reason "섭취량을 정하지 못함"([이슈 #133](https://github.com/2dion/CareBridge/issues/133)) |
+| 8. value_ko에 AI의 확인 요청 문장("확인 필요", "용어 확인", "불명확", "확인해 주세요" 등)이 있는지 (10/29) | 그 문장(괄호 안이면 괄호만)을 value_ko에서 빼고 '확인 필요'로. reason이 비었으면 뺀 문장을 reason에 넣음([이슈 #117](https://github.com/2dion/CareBridge/issues/117)) |
+| '확인 필요'인데 value_ko가 비었음 (10/29) | 문제(`needs_check_without_value`)로 알려 Agent가 근거 문장을 기록체로 옮겨 채우게 함. 상태는 그대로([이슈 #141](https://github.com/2dion/CareBridge/issues/141)) |
 | Agent 응답 4번 상한 도달 | 마지막 초안 검증 후 저장, 못 정한 항목은 '확인 필요' + "자동 정리 중단" |
 | 같은 도구·같은 입력 다시 호출 | 실행하지 않고 앞 결과를 돌려줌 |
 | STT·Claude·도구 시간 초과, 연결 오류 | 한 번 다시. 또 실패하면 audio_jobs.status = failed. 받아쓰기 전 오류는 W2, W3의 초안 처리 오류는 같은 W3 자리에 [다시 시도]와 [글로 쓰기]. W3 재시도는 원문·입력 방법을 보존 |
@@ -360,22 +363,40 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
 
 규칙:
 1. 원문에 없는 내용은 쓰지 않는다. 없으면 status=not_mentioned, value_ko="".
+   notes(특이사항)와 next_check(다음 확인사항)도 같다. 원문에 특이한 일이나 다음에 볼 일이 없으면
+   not_mentioned로 두고, 다른 항목의 내용을 요약하거나 추측해 채우지 않는다. reason에도 추측을 쓰지 않는다.
 2. 내용을 쓴 항목은 evidence에 원문 문장을 한 글자도 바꾸지 않고 옮긴다.
-3. 양·정도가 모호하거나, 사투리를 짐작했거나, search_glossary 결과가 비었거나,
+3. 양·정도가 모호하거나, 사투리·일상 표현의 뜻을 짐작했거나,
    말이 서로 맞지 않거나, 낙상·상처·호흡·의식·통증·복약 이상이 있으면
    status=needs_check이고 reason을 쓴다.
+   search_glossary 결과가 비어도 뜻이 분명한 일상 표현("화장실에 한 번 모시고 감", "날짜를 두 번 물으심",
+   "실수 없음", "잘 주무심")은 교재 용어 없이 기록체로 정리하고 observed로 둔다.
+   "용어 검색 결과 없음"만으로 needs_check로 두지 않는다. 뜻을 짐작해야 하는 말만 needs_check다.
+   받아쓴 글이 베트남어 등 모국어여도 같다. 수면·식사처럼 뜻이 분명하면 observed로 정리한다.
 4. 진단하지 말고 본 것만 쓴다. 호전/유지/악화는 원문에 비교가 있을 때만.
 5. value_ko는 한국어 기록체(~하심, ~드심), 교재 용어. value_native는 그 번역.
+   value_ko에는 원문을 정리한 기록 내용만 쓴다. "확인 필요", "용어 확인", "불명확",
+   "~인지 확인해 주세요" 같은 확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다
+   (서버가 걸러 내고 그 항목을 needs_check로 둔다).
    reason을 쓰면 reason_native에 그 번역을 쓴다.
+   value_native·reason_native는 어르신의 성별을 정하지 않는다. "cô ấy", "ông ấy"처럼 성별이 드러나는
+   말 대신 "ông/bà"처럼 중립으로 쓴다.
    용어 목록에 있는 말은 search_glossary가 준 고정 번역만 쓴다.
    받아쓴 글은 한국어만, 모국어만, 둘이 섞인 말일 수 있다. 어느 경우든 value_ko는
    한국어로 쓰고, evidence는 원문 언어 그대로 옮긴다. transcript_ko는 원문 전체의 한국어 번역이다.
 6. notes는 200자 안쪽을 목표로 한다.
 7. 어르신·가족의 실명을 기록에 쓰지 않는다.
 8. 재가면 form_fields도 채운다. 시설이면 form_fields는 빈 객체.
+   재가 숫자 칸은 말한 숫자를 빼지 않고 채운다: 방문 시작·종료 시각("2시부터 5시까지")은
+   visit_time.detail.start·end에 "HH:MM"(14:00, 17:00)으로, form_fields.total_minutes에 종료−시작(분)으로.
+   지원별 분("목욕 80분, 청소랑 빨래 60분, 말벗 60분")은 support.detail.minutes의 키 6개
+   (physical, cognitive_stimulation, daily_living_together, cognitive_management, emotional, housework)에
+   정수로 넣고, value_ko에도 말한 지원을 모두 쓴다(가사 포함). 말하지 않은 숫자는 지어내지 않고 비운다.
 9. 서버 검사 결과를 이기려고 내용을 지어내지 않는다. 고칠 수 없으면 needs_check로 둔다.
 10. 도구 결과 밖의 설명 문장은 쓰지 않는다. 초안은 return_draft의 draft로만 낸다.
 ```
+
+규칙 1·3·5·8의 덧붙인 줄은 10/29 QA 점검([이슈 #115](https://github.com/2dion/CareBridge/issues/115)·[#117](https://github.com/2dion/CareBridge/issues/117)·[#121](https://github.com/2dion/CareBridge/issues/121))에서 나온 것입니다([결정 2026-10-29-초안검사보강](../결정/2026-10-29-초안검사보강.md)). 코드 `web/lib/agent/run-agent.ts`의 `agentSystemPrompt`가 기준이고, 이 초안은 그것을 옮긴 것입니다.
 
 첫 user 메시지:
 

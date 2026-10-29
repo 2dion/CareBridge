@@ -44,6 +44,7 @@ function fakeDeps(
     findRecord: vi.fn(async () => record),
     listItems: vi.fn(async () => items()),
     update: vi.fn(async (_id, _from, patch) => ({ ok: true as const, row: { ...patch } })),
+    recheckSupport: vi.fn(async () => null),
     ...overrides,
   };
 }
@@ -67,6 +68,34 @@ describe("submitRecord", () => {
   it("수정 필요(returned) 기록도 다시 전송할 수 있음", async () => {
     const r = await submitRecord("rec-1", fakeDeps({ ...draft, status: "returned" }));
     expect(r.status).toBe(200);
+  });
+
+  // 이슈 #116: 작성자가 분을 고친 뒤 보내면 전송 직전에 검사 5를 다시 한다
+  it("전송 직전에 제공 지원을 다시 검사한 뒤 상태를 바꿈", async () => {
+    const deps = fakeDeps(draft);
+    const r = await submitRecord("rec-1", deps);
+    expect(r.status).toBe(200);
+    expect(deps.recheckSupport).toHaveBeenCalledWith("rec-1", "worker-1");
+    const [recheckOrder] = vi.mocked(deps.recheckSupport).mock.invocationCallOrder;
+    const [updateOrder] = vi.mocked(deps.update).mock.invocationCallOrder;
+    expect(recheckOrder).toBeLessThan(updateOrder);
+  });
+
+  it("[맞아요]가 안 된 항목이 있으면 다시 검사하지 않고 409", async () => {
+    const deps = fakeDeps(draft, {
+      listItems: vi.fn(async () => items({ support: { confirmed_by_worker: false } })),
+    });
+    expect((await submitRecord("rec-1", deps)).status).toBe(409);
+    expect(deps.recheckSupport).not.toHaveBeenCalled();
+  });
+
+  it("재검사가 실패해도 전송은 됨", async () => {
+    const deps = fakeDeps(draft, {
+      recheckSupport: vi.fn(async () => {
+        throw new Error("stale_item");
+      }),
+    });
+    expect((await submitRecord("rec-1", deps)).status).toBe(200);
   });
 
   it("source = worker 항목은 confirmed_by_worker가 아니어도 됨", async () => {
