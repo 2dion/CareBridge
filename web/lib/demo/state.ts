@@ -34,7 +34,7 @@ export type Item = {
   reason: string;
   /** reason의 모국어 번역(데이터구조 v1.6.2, 확인필요이유병기 결정). */
   reason_native?: string;
-  confirmed: boolean;
+  confirmed_by_worker: boolean;
   source: "ai" | "worker" | "reviewer";
   resolution: Resolution;
   detail?: Record<string, unknown>;
@@ -97,7 +97,7 @@ export function createDemoState(): DemoState {
       value_native: value.value_native,
       evidence: value.evidence,
       reason: value.reason,
-      confirmed: false,
+      confirmed_by_worker: false,
       resolution: null,
       source: "ai" as const,
       ...("detail" in value && typeof value.detail === "object"
@@ -127,7 +127,7 @@ export function countUnresolved(items: Item[]): number {
 export function canSubmit(items: Item[]): boolean {
   // 기획안: 확인 필요는 미해결로 제출할 수 있다. 그 밖의 항목은 작성자가 확인해야 한다.
   return items.every(
-    (item) => item.status === "needs_check" || item.confirmed || item.source === "worker",
+    (item) => item.status === "needs_check" || item.confirmed_by_worker || item.source === "worker",
   );
 }
 export function canApprove(state: DemoState): boolean {
@@ -145,7 +145,7 @@ export function applyMealAddition(state: DemoState): DemoState {
       value_native: patch.value_native,
       evidence: patch.evidence,
       reason: patch.reason,
-      confirmed: item.item_key === "meal",
+      confirmed_by_worker: item.item_key === "meal",
       source: "worker" as const,
       resolution: null,
       ...("detail" in patch && patch.detail
@@ -173,7 +173,7 @@ export const demoAgentSteps = [
     result: "별지 제16호 · 검증됨",
   },
   {
-    tool: "search_terms",
+    tool: "search_glossary",
     name: "용어 검색",
     reason: "‘조금’의 섭취량 기준을 확인하기 위해",
     result: "정확한 수치 없음 → 확인 필요",
@@ -185,7 +185,7 @@ export const demoAgentSteps = [
     result: "모호한 표현은 확인 필요로 표시",
   },
   {
-    tool: "submit_draft",
+    tool: "return_draft",
     name: "초안 반환",
     reason: "작성자가 검토할 초안을 전달하기 위해",
     result: "9개 항목 초안 준비",

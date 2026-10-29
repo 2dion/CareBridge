@@ -41,7 +41,7 @@ const item = (key: ItemRow["item_key"], fields: Partial<ItemRow> = {}): ItemRow 
   reason: "",
   reason_native: "",
   source: "ai",
-  confirmed: false,
+  confirmed_by_worker: false,
   resolution: null,
   resolution_note: "",
   detail: {},

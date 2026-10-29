@@ -58,14 +58,14 @@ select pg_temp.expect_error($q$select * from public.save_ai_item((select id from
 
 -- 항목 보태기: 작성자만, 출처 worker, [맞아요] 다시
 select * from public.save_ai_item((select id from item_ids),'sleep','d2000000-0000-0000-0000-000000000001','','item','{"value_ko":"밤에 두 번 깸","value_native":"Thức dậy hai lần","status":"needs_check","evidence":"밤에 두 번","reason":"시간 확인 필요","reason_native":"Cần kiểm tra giờ","detail":{}}');
-select pg_temp.check_true((select value_ko='밤에 두 번 깸' and reason_native='Cần kiểm tra giờ' and evidence='밤에 두 번' and source='worker' and not confirmed from public.record_items where record_id=(select id from item_ids) and item_key='sleep'),'항목 보태기 저장');
+select pg_temp.check_true((select value_ko='밤에 두 번 깸' and reason_native='Cần kiểm tra giờ' and evidence='밤에 두 번' and source='worker' and not confirmed_by_worker from public.record_items where record_id=(select id from item_ids) and item_key='sleep'),'항목 보태기 저장');
 select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'notes','d2000000-0000-0000-0000-000000000003','','item','{"status":"observed"}')$q$,'not_record_worker');
 select pg_temp.expect_error($q$select * from public.save_ai_item((select id from item_ids),'notes','d2000000-0000-0000-0000-000000000002','','item','{"status":"observed"}')$q$,'not_record_worker');
 
 -- 전송하고 관리자가 고친 뒤 재번역은 관리자 이름으로 가능, 항목 보태기는 불가
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"d2000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
-update public.record_items set confirmed=true where record_id=(select id from item_ids);
+update public.record_items set confirmed_by_worker=true where record_id=(select id from item_ids);
 update public.records set status='submitted' where id=(select id from item_ids);
 select set_config('request.jwt.claims','{"sub":"d2000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 update public.record_items set value_ko='관리자가 고친 식사' where record_id=(select id from item_ids) and item_key='meal';

@@ -73,7 +73,7 @@ select pg_temp.check_true((select value_ko='작성자 직접 수정' and source=
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"f2000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select pg_temp.expect_error($q$update public.records set status='submitted' where id=(select id from contract_ids)$q$,'unconfirmed_items');
-update public.record_items set confirmed=true where record_id=(select id from contract_ids);
+update public.record_items set confirmed_by_worker=true where record_id=(select id from contract_ids);
 update public.records set status='submitted' where id=(select id from contract_ids);
 
 select set_config('request.jwt.claims','{"sub":"f2000000-0000-0000-0000-000000000004","role":"authenticated"}',true);
@@ -95,7 +95,7 @@ update public.records set status='returned',return_reason='합성 검토 사유'
 select set_config('request.jwt.claims','{"sub":"f2000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 update public.record_items set value_ko='생략 뒤 작성자 보완' where record_id=(select id from contract_ids) and item_key='meal';
 select pg_temp.check_true((select resolution is null and value_ko='생략 뒤 작성자 보완' and source='worker' from public.record_items where record_id=(select id from contract_ids) and item_key='meal'),'되돌린 생략 항목 수정은 보존하고 resolution 해제');
-update public.record_items set confirmed=true where record_id=(select id from contract_ids);
+update public.record_items set confirmed_by_worker=true where record_id=(select id from contract_ids);
 update public.records set status='submitted' where id=(select id from contract_ids);
 select set_config('request.jwt.claims','{"sub":"f2000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 update public.record_items set resolution='confirmed_by_reviewer' where record_id=(select id from contract_ids) and item_key='meal';

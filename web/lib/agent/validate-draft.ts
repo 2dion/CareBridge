@@ -1,7 +1,7 @@
 // 기록 검증 (Agent 도구 ③ validate_draft). AI 판단이 아니라 서버 코드 검사다.
 // 근거: 문서/설계/ai규칙-v1.1.1.md '서버 검사와 예외 처리' 검사 1~6,
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
-// AI를 부르지 않으므로 키 없이 테스트한다. submit_draft도 저장 직전에 같은 함수를 부른다.
+// AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
 
 export const ITEM_KEYS = [
   "visit_time",
@@ -88,7 +88,7 @@ export type ValidateResult = {
   // 고칠 수 있는 문제를 고친 초안 (확인 필요로 낮춤, 내용 비움, 순서 정리).
   // 형식이 깨져 고칠 수 없으면 null. 이때 부르는 쪽은 9개 모두 '확인 필요'로 둔다.
   fixed: Draft | null;
-  // '확인 필요'로 낮춘 항목 (submit_draft 출력의 '낮춘 항목 목록')
+  // '확인 필요'로 낮춘 항목 (return_draft 출력의 '낮춘 항목 목록')
   downgraded: ItemKey[];
 };
 
@@ -131,7 +131,7 @@ export const MINUTE_KEYS = [
 ] as const;
 
 // 재가(별지 제12호)에만 있는 form_fields 칸. 시설(별지 제16호) 기록에는 두지 않는다.
-// 근거: 문서/설계/데이터구조-v1.6.3.md 'form_fields (재가 제12호 전용)'
+// 근거: 문서/설계/데이터구조-v1.6.4.md 'form_fields (재가 제12호 전용)'
 export const HOME_ONLY_FORM_FIELDS = [
   "total_minutes",
   "body_trend",

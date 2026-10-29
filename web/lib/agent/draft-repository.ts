@@ -8,13 +8,13 @@ import { ITEM_KEYS, validateDraft, type DraftItem, type ValidateContext } from "
 export type StoredDraftItem = DraftItem & {
   id: string;
   source: "ai" | "worker" | "reviewer";
-  confirmed: boolean;
+  confirmed_by_worker: boolean;
   resolution: "confirmed_by_reviewer" | "omitted" | null;
   resolution_note: string;
 };
 
 const ITEM_COLUMNS =
-  "id,item_key,value_ko,value_native,status,evidence,reason,reason_native,detail,source,confirmed,resolution,resolution_note";
+  "id,item_key,value_ko,value_native,status,evidence,reason,reason_native,detail,source,confirmed_by_worker,resolution,resolution_note";
 
 export async function readRecordItems(userClient: SupabaseClient, recordId: string) {
   const { data, error } = await userClient

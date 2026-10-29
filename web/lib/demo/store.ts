@@ -88,7 +88,7 @@ export type NoCareDay = {
 export type FontSize = "small" | "normal" | "large";
 
 export type DemoDb = {
-  version: 2;
+  version: 3;
   seededOn: string;
   worker: { name: string; email: string; org: string };
   reviewer: { name: string };
@@ -102,7 +102,7 @@ export type DemoDb = {
   overdue?: OverdueDay[];
 };
 
-export const DB_STORAGE_KEY = "carebridge-demo-db-v2";
+export const DB_STORAGE_KEY = "carebridge-demo-db-v3";
 
 const cases = { "S-F01": f01, "S-F05": f05, "S-H01": h01 } as const;
 
@@ -218,7 +218,7 @@ function caseItems(caseId: CaseId): RecordItem[] {
     evidence: value.evidence,
     reason: value.reason,
     reason_native: "reason_native" in value ? String(value.reason_native ?? "") : "",
-    confirmed: false,
+    confirmed_by_worker: false,
     resolution: null,
     source: "ai" as const,
     ...("detail" in value && value.detail && typeof value.detail === "object"
@@ -245,7 +245,7 @@ function emptyItems(): RecordItem[] {
     evidence: "",
     reason: "",
     reason_native: "",
-    confirmed: false,
+    confirmed_by_worker: false,
     resolution: null,
     source: "ai" as const,
   }));
@@ -298,7 +298,7 @@ function confirmAll(record: DemoRecord): DemoRecord {
   return {
     ...record,
     items: record.items.map((item) =>
-      item.status === "needs_check" ? item : { ...item, confirmed: true },
+      item.status === "needs_check" ? item : { ...item, confirmed_by_worker: true },
     ),
   };
 }
@@ -353,7 +353,7 @@ export function withMealAddition(record: DemoRecord): DemoRecord {
         reason: patch.reason,
         reason_native: "",
         source: "worker" as const,
-        confirmed: true,
+        confirmed_by_worker: true,
         resolution: null,
         ...("detail" in patch && patch.detail
           ? { detail: patch.detail as Record<string, unknown> }
@@ -433,7 +433,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
             value_ko: "점심 죽 절반 정도 드심.",
             value_native: "Bữa trưa bà ăn khoảng một nửa bát cháo.",
             source: "reviewer" as const,
-            confirmed: false,
+            confirmed_by_worker: false,
           }
         : item.item_key === "discomfort"
           ? { ...item, resolution: "confirmed_by_reviewer" as const }
@@ -476,7 +476,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
                 status: "needs_check" as const,
                 ...minutesReason(200, 180),
                 source: "worker" as const,
-                confirmed: true,
+                confirmed_by_worker: true,
                 detail: { ...(item.detail ?? {}), minutes },
               }
             : item,
@@ -507,7 +507,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
   }
 
   return {
-    version: 2,
+    version: 3,
     seededOn: today,
     worker: { name: worker, email: "worker@carebridge.test", org: "케어브릿지 데모 요양센터" },
     reviewer: { name: reviewer },
@@ -631,7 +631,7 @@ export function groupItems(items: RecordItem[]) {
   const sorted = [...items].sort(
     (a, b) => displayOrder.indexOf(a.item_key) - displayOrder.indexOf(b.item_key),
   );
-  const done = (item: RecordItem) => item.confirmed || item.source === "worker";
+  const done = (item: RecordItem) => item.confirmed_by_worker || item.source === "worker";
   return {
     needsCheck: sorted.filter((item) => item.status === "needs_check" && !done(item)),
     pending: sorted.filter((item) => item.status !== "needs_check" && !done(item)),
@@ -644,7 +644,8 @@ export function canSubmitRecord(record: DemoRecord): boolean {
     (record.status === "draft" || record.status === "returned") &&
     record.draftState === "ready" &&
     record.items.every(
-      (item) => item.status === "needs_check" || item.confirmed || item.source === "worker",
+      (item) =>
+        item.status === "needs_check" || item.confirmed_by_worker || item.source === "worker",
     )
   );
 }
@@ -745,7 +746,7 @@ export function confirmItem(db: DemoDb, id: string, key: ItemKey, now: string): 
           ...record,
           updatedAt: now,
           items: record.items.map((item) =>
-            item.item_key === key ? { ...item, confirmed: true } : item,
+            item.item_key === key ? { ...item, confirmed_by_worker: true } : item,
           ),
         }
       : record,
@@ -823,7 +824,7 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
   };
 }
 
-/** 작성자가 고침: source=worker, confirmed=true. 수정 필요 기록이면 resolution을 비운다(되돌림재확인 결정). */
+/** 작성자가 고침: source=worker, confirmed_by_worker=true. 수정 필요 기록이면 resolution을 비운다(되돌림재확인 결정). */
 export function workerEditItem(
   db: DemoDb,
   id: string,
@@ -848,7 +849,7 @@ export function workerEditItem(
               reason_native: "",
               detail: edit.detail ?? item.detail,
               source: "worker" as const,
-              confirmed: true,
+              confirmed_by_worker: true,
               resolution: record.status === "returned" ? null : item.resolution,
             }
           : item,

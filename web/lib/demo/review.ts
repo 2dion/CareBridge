@@ -90,7 +90,7 @@ export function reviewerEditItem(
                     ? ("observed" as const)
                     : ("not_mentioned" as const),
               source: "reviewer" as const,
-              confirmed: false,
+              confirmed_by_worker: false,
             }
           : item,
       ),
@@ -290,7 +290,7 @@ export function mockAgentSteps(record: DemoRecord) {
           reason: "재가 방문요양의 별지 제12호 기록 칸을 확인하기 위해",
           result: "별지 제12호 · 검증됨",
         }
-      : step.tool === "search_terms"
+      : step.tool === "search_glossary"
         ? { ...step, reason: "말한 표현을 교재 용어로 맞추기 위해", result: "목욕 → 몸 씻기 도움" }
         : step,
   );

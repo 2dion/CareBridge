@@ -30,7 +30,7 @@ describe("S-F01 Mock FE 상태", () => {
     const state = applyMealAddition(createDemoState());
     state.items = state.items.map((item) => ({
       ...item,
-      confirmed: item.status !== "needs_check",
+      confirmed_by_worker: item.status !== "needs_check",
     }));
     expect(canSubmit(state.items)).toBe(true);
     state.status = "submitted";

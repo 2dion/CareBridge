@@ -26,7 +26,7 @@ function items(overrides: Partial<Record<string, Partial<ItemRow>>> = {}): ItemR
     item_key: key,
     status: "observed",
     source: "ai",
-    confirmed: true,
+    confirmed_by_worker: true,
     resolution: null,
     ...overrides[key],
   }));
@@ -69,16 +69,18 @@ describe("submitRecord", () => {
     expect(r.status).toBe(200);
   });
 
-  it("source = worker 항목은 confirmed가 아니어도 됨", async () => {
+  it("source = worker 항목은 confirmed_by_worker가 아니어도 됨", async () => {
     const deps = fakeDeps(draft, {
-      listItems: vi.fn(async () => items({ meal: { source: "worker", confirmed: false } })),
+      listItems: vi.fn(async () =>
+        items({ meal: { source: "worker", confirmed_by_worker: false } }),
+      ),
     });
     expect((await submitRecord("rec-1", deps)).status).toBe(200);
   });
 
   it("확인 안 된 항목이 있으면 409 unconfirmed_items와 항목 이름", async () => {
     const deps = fakeDeps(draft, {
-      listItems: vi.fn(async () => items({ sleep: { confirmed: false } })),
+      listItems: vi.fn(async () => items({ sleep: { confirmed_by_worker: false } })),
     });
     expect(await submitRecord("rec-1", deps)).toEqual({
       status: 409,

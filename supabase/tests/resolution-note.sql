@@ -42,7 +42,7 @@ with created as (
  insert into public.records(resident_id,care_date)
  values ('e3000000-0000-0000-0000-000000000001',(now() at time zone 'Asia/Seoul')::date) returning id
 ) insert into note_ids select id from created;
-update public.record_items set value_ko='합성 내용', status='needs_check', confirmed=true where record_id=(select id from note_ids);
+update public.record_items set value_ko='합성 내용', status='needs_check', confirmed_by_worker=true where record_id=(select id from note_ids);
 select pg_temp.expect_error($q$update public.record_items set resolution_note='작성자 사유' where record_id=(select id from note_ids) and item_key='meal'$q$,'reviewer_only');
 update public.records set status='submitted' where id=(select id from note_ids);
 

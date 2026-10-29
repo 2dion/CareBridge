@@ -190,7 +190,7 @@ export default function DraftPage() {
     canSubmitRecord(record) &&
     (!demo.real ||
       (record.items.length === 9 &&
-        record.items.every((item) => item.confirmed || item.source === "worker")));
+        record.items.every((item) => item.confirmed_by_worker || item.source === "worker")));
   const doneCount = groups.done.length;
   const total = record.items.length;
   const needsLeft = record.items.filter((item) => item.status === "needs_check").length;
@@ -199,7 +199,7 @@ export default function DraftPage() {
   const act = (change: (db: DemoDb) => DemoDb) => demo.update(change);
   const confirm = (key: RecordItem["item_key"]) => {
     if (!real) return act((db) => confirmItem(db, id, key, nowIso()));
-    void real.actions.patchItem(id, key, { confirmed: true }).then((result) => {
+    void real.actions.patchItem(id, key, { confirmed_by_worker: true }).then((result) => {
       if (!result.ok) setToast(`${result.ko} ${result.vi}`);
     });
   };
@@ -395,7 +395,7 @@ function ItemCard({
 }) {
   const [open, setOpen] = useState(false);
   const label = itemLabel(item.item_key);
-  const done = item.confirmed || item.source === "worker";
+  const done = item.confirmed_by_worker || item.source === "worker";
   const editHref = `/records/${record.id}/items/${item.item_key}`;
   const badge = done
     ? { label: item.source === "worker" ? "고침" : "확인 완료", tone: "green" }
@@ -413,7 +413,7 @@ function ItemCard({
           </span>
         )}
         <b>{label.ko}</b>
-        {item.source === "ai" && !item.confirmed && item.status !== "not_mentioned" && (
+        {item.source === "ai" && !item.confirmed_by_worker && item.status !== "not_mentioned" && (
           <span className="ai-mark">AI 초안</span>
         )}
         {done && item.status === "needs_check" && (
@@ -440,7 +440,7 @@ function ItemCard({
           고치기 전: {item.before_ko}
         </p>
       )}
-      {item.source === "reviewer" && !item.confirmed && (
+      {item.source === "reviewer" && !item.confirmed_by_worker && (
         <span style={{ fontSize: 12, color: "var(--color-warn-text)" }}>
           관리자가 고쳤어요. 맞는지 확인해 주세요.
           <span className="vi" style={{ display: "block" }}>

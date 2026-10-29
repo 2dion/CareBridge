@@ -1,5 +1,5 @@
 // 기록 상태 바꾸기: 보내기(submit)·승인(approve)·되돌리기(return).
-// 근거: 문서/설계/데이터구조-v1.6.3.md '공통 계약'(submit 조건·approve 조건·되돌림), '승인 서버 검사'
+// 근거: 문서/설계/데이터구조-v1.6.4.md '공통 계약'(submit 조건·approve 조건·되돌림), '승인 서버 검사'
 // DB 트리거도 같은 조건을 막지만, API가 먼저 검사해 이유를 돌려준다(supabase/README.md '서버 코드가 알아야 할 것').
 // DB 호출은 TransitionDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
@@ -13,7 +13,7 @@ export type ItemRow = {
   item_key: string;
   status: "observed" | "not_mentioned" | "needs_check";
   source: "ai" | "worker" | "reviewer";
-  confirmed: boolean;
+  confirmed_by_worker: boolean;
   resolution: "confirmed_by_reviewer" | "omitted" | null;
 };
 
@@ -70,10 +70,10 @@ async function load(recordId: string, deps: TransitionDeps): Promise<Loaded> {
   return { ok: true, userId: user.id, role: user.role, record };
 }
 
-/** 9개 항목이 모두 confirmed 이거나 source = worker 여야 전송. 안 된 항목 이름을 돌려줌 */
+/** 9개 항목이 모두 confirmed_by_worker 이거나 source = worker 여야 전송. 안 된 항목 이름을 돌려줌 */
 export function unconfirmedItemKeys(items: ItemRow[]): string[] {
   return items
-    .filter((item) => !(item.confirmed || item.source === "worker"))
+    .filter((item) => !(item.confirmed_by_worker || item.source === "worker"))
     .map((i) => i.item_key);
 }
 

@@ -126,7 +126,7 @@ export default function ItemEditPage() {
         const result = await real.actions.patchItem(id, key, {
           ...(value !== item.value_ko ? { value_ko: value } : {}),
           ...(detail ? { detail: rest } : {}),
-          confirmed: true,
+          confirmed_by_worker: true,
         });
         if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
         router.push(back);

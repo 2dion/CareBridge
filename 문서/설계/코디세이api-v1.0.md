@@ -82,7 +82,7 @@ const response = await client.messages.create({
   model: process.env.AI_MODEL_MAIN!,
   max_tokens: 2048,                 // 필수
   system: "<AI 규칙 v1.1.1의 시스템 프롬프트>",
-  tools: [/* 도구 4개: get_form_spec, search_terms, validate_draft, submit_draft */],
+  tools: [/* 도구 4개: get_form_spec, search_glossary, validate_draft, return_draft */],
   messages: [{ role: "user", content: "<받아쓴 글과 어르신 정보>" }],
 });
 

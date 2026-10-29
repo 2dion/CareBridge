@@ -2,7 +2,7 @@ import { parseSignupInput, signup, type SignupDeps } from "@/lib/auth/signup";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 // POST /api/auth/signup: 로그인 없이 부름. 가입 코드 확인과 계정 만들기는 service_role로 한다.
-// 근거: 문서/설계/데이터구조-v1.6.3.md '공통 계약', 문서/결정/2026-10-25-로그인가입.md
+// 근거: 문서/설계/데이터구조-v1.6.4.md '공통 계약', 문서/결정/2026-10-25-로그인가입.md
 export async function POST(request: Request) {
   let body: unknown;
   try {

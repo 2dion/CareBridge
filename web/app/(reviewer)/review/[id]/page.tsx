@@ -37,9 +37,9 @@ import {
 const NOTES_LIMIT = 200;
 const TOOL_NAMES: Record<string, string> = {
   get_form_spec: "서식 기준 조회",
-  search_terms: "용어 검색",
+  search_glossary: "용어 검색",
   validate_draft: "기록 검증",
-  submit_draft: "초안 반환",
+  return_draft: "초안 반환",
 };
 const RETURN_LIMIT = 300;
 
