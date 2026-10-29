@@ -83,13 +83,12 @@
       {
         "item_key": "meal",
         "status": "needs_check",
-        "value_ko": "점심 죽 섭취, 섭취량 확인 필요(\"조금\")",
-        "value_native": "Bữa trưa ăn cháo, cần xác nhận lượng ăn (\"một ít\")",
+        "value_ko": "점심 죽을 조금 드심",
+        "value_native": "Bữa trưa ăn cháo, ăn được một ít",
         "evidence": "Bữa trưa bà ăn cháo, ăn được một ít.",
         "reason": "\"조금\"은 제16호 섭취량(1 / 1/2이상 / 1/2미만) 중 하나로 정할 수 없음",
         "detail": {
-          "meal_type": "죽",
-          "intake": null
+          "meal_type": "죽"
         },
         "evidence_ko": "점심은 죽으로 조금 드셨어요."
       },
@@ -136,8 +135,8 @@
       {
         "item_key": "notes",
         "status": "observed",
-        "value_ko": "점심 죽 섭취(섭취량 확인 필요). 어젯밤 잠을 잘 못 주무셨다고 하심. 오른쪽 무릎 통증 호소하심. 점심 식사 후 복약 확인함.",
-        "value_native": "Bữa trưa ăn cháo (cần xác nhận lượng ăn). Bà nói tối qua ngủ không ngon. Bà kêu đau đầu gối phải. Đã xác nhận bà uống thuốc sau bữa trưa.",
+        "value_ko": "점심 죽 섭취. 어젯밤 잠을 잘 못 주무셨다고 하심. 오른쪽 무릎 통증 호소하심. 점심 식사 후 복약 확인함.",
+        "value_native": "Bữa trưa ăn cháo. Bà nói tối qua ngủ không ngon. Bà kêu đau đầu gối phải. Đã xác nhận bà uống thuốc sau bữa trưa.",
         "evidence": "Bữa trưa bà ăn cháo, ăn được một ít. Hôm nay tôi thay tã cho bà ba lần. Bà nói tối qua bà ngủ không ngon. Bà nói đầu gối bên phải bị đau. Sau bữa trưa tôi thấy bà uống thuốc.",
         "reason": "",
         "detail": {}
