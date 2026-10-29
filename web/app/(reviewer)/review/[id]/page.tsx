@@ -173,7 +173,7 @@ function ReviewRecord() {
             {late > 0 && (
               <>
                 {" "}
-                <span className="chip blue">늦게 전송 · {late}일 뒤</span>
+                <span className="chip blue">지연전송 · {late}일 뒤</span>
               </>
             )}
           </p>

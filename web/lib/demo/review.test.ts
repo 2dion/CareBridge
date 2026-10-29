@@ -90,7 +90,7 @@ describe("관리자 규칙 (R1~R4)", () => {
     expect(reviewQueue(next).some((entry) => entry.id === record.id)).toBe(false);
   });
 
-  it("되돌린 뒤 다시 전송한 기록만 '다시 전송한 기록'으로 표시한다", () => {
+  it("되돌린 뒤 다시 전송한 기록만 '재전송'으로 표시한다", () => {
     const db = createDemoDb(TODAY);
     const record = reviewQueue(db)[0];
     expect(wasResent(record)).toBe(false);

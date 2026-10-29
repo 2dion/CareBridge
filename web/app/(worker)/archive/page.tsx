@@ -158,7 +158,7 @@ export default function ArchivePage() {
                 </span>
               </p>
               <p className="foot-note" style={{ margin: "0 6px 16px" }}>
-                돌봄 날짜보다 늦게 전송한 기록은 관리자 화면에 ‘늦게 전송한 기록’으로 보여요.
+                돌봄 날짜보다 늦게 전송한 기록은 관리자 화면에 ‘지연전송’으로 보여요.
                 <span className="vi">
                   Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho người quản lý.
                 </span>

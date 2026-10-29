@@ -43,7 +43,7 @@ export default function SentPage() {
         </span>
         {late !== null && late > 0 && (
           <p style={{ marginTop: 8, fontSize: 13, color: "var(--color-warn-text)" }}>
-            돌봄 날짜보다 {late}일 늦게 전송한 기록으로 표시돼요.
+            돌봄 날짜보다 {late}일 늦게 전송해서 ‘지연전송’으로 표시돼요.
             <span className="vi" style={{ display: "block" }}>
               Bản ghi được đánh dấu gửi muộn {late} ngày.
             </span>

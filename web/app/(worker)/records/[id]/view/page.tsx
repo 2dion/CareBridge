@@ -72,7 +72,7 @@ export default function RecordViewPage() {
         기록 내용
         <small>
           {approved ? `${kstTime(record.approvedAt)} 승인` : `${kstTime(record.submittedAt)} 전송`}
-          {late ? ` · ${late}일 늦게 전송` : ""}
+          {late ? ` · 지연전송 ${late}일` : ""}
         </small>
       </div>
       <div className="scroll" style={{ paddingBottom: 16 }}>

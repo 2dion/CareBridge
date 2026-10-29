@@ -26,7 +26,7 @@ export function reviewQueue(db: DemoDb): DemoRecord[] {
     });
 }
 
-/** R1 '다시 전송한 기록' 표시: 한 번이라도 되돌린 뒤 다시 전송한 기록(record_events의 returned로 계산). */
+/** R1 '재전송' 표시: 한 번이라도 되돌린 뒤 다시 전송한 기록(record_events의 returned로 계산). */
 export function wasResent(record: DemoRecord): boolean {
   return record.status === "submitted" && record.events.some((event) => event.type === "returned");
 }
