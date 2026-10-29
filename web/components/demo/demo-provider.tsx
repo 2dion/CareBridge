@@ -17,7 +17,13 @@ import {
 } from "react";
 
 import { supabaseConfigured } from "@/lib/auth/session";
-import { createDemoDb, DB_STORAGE_KEY, type DemoDb, kstToday } from "@/lib/demo/store";
+import {
+  createDemoDb,
+  DB_STORAGE_KEY,
+  type DemoDb,
+  type DemoRecord,
+  kstToday,
+} from "@/lib/demo/store";
 import { createRealActions, type RealActions } from "@/lib/real/actions";
 import { loadRealDb, NotSignedInError } from "@/lib/real/load";
 import type { JoinCode } from "@/lib/real/map";
@@ -128,24 +134,30 @@ function RealProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, [processing, reload]);
 
-  // [글로 쓰기]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다
-  const [running, setRunning] = useState<Record<string, "processing" | "failed">>({});
+  // [글로 쓰기]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다.
+  // [글로 쓰기]는 서버가 다시 읽히기 전에도 입력 방법을 '글'로 보여, '정리 중'에 음성 단계가 나오지 않게 한다(이슈 #135)
+  type Running = { draftState: "processing" | "failed"; inputMode?: DemoRecord["inputMode"] };
+  const [running, setRunning] = useState<Record<string, Running>>({});
   const base = useMemo(() => createRealActions(supabase, reload), [supabase, reload]);
   const actions = useMemo<RealActions>(() => {
-    const track = async (id: string, run: () => ReturnType<RealActions["retryDraft"]>) => {
-      setRunning((prev) => ({ ...prev, [id]: "processing" }));
+    const track = async (
+      id: string,
+      run: () => ReturnType<RealActions["retryDraft"]>,
+      inputMode?: DemoRecord["inputMode"],
+    ) => {
+      setRunning((prev) => ({ ...prev, [id]: { draftState: "processing", inputMode } }));
       const result = await run();
       setRunning((prev) => {
         const next = { ...prev };
         if (result.ok) delete next[id];
-        else next[id] = "failed";
+        else next[id] = { draftState: "failed", inputMode };
         return next;
       });
       return result;
     };
     return {
       ...base,
-      writeText: (id, text) => track(id, () => base.writeText(id, text)),
+      writeText: (id, text) => track(id, () => base.writeText(id, text), "text"),
       retryDraft: (id) => track(id, () => base.retryDraft(id)),
     };
   }, [base]);
@@ -173,7 +185,10 @@ function RealProvider({ children }: { children: ReactNode }) {
     const ids = Object.keys(running).filter((id) => state.db.records[id]);
     if (ids.length === 0) return state.db;
     const records = { ...state.db.records };
-    for (const id of ids) records[id] = { ...records[id], draftState: running[id] };
+    for (const id of ids) {
+      const { draftState, inputMode } = running[id];
+      records[id] = { ...records[id], draftState, ...(inputMode ? { inputMode } : {}) };
+    }
     return { ...state.db, records };
   }, [state, running]);
   const noop = useCallback(() => {}, []);

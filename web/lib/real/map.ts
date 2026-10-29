@@ -160,6 +160,13 @@ export function draftStateOf(record: RecordRow, items: ItemRow[], jobs: AudioJob
   return record.transcript.trim() || touched ? "ready" : "empty";
 }
 
+/** 입력 방법: 기록 전체 녹음 작업(audio_jobs.target = record)이 있으면 음성, 없고 원문만 있으면 글(이슈 #135).
+ *  글로 쓴 기록을 음성으로 보면 W3 ‘정리 중’에 “음성을 글자로” 단계가 나오고 W2 · 글로 쓰기에 쓴 글이 다시 채워지지 않는다 */
+export function inputModeOf(record: RecordRow, jobs: AudioJobRow[]): DemoRecord["inputMode"] {
+  const voiced = jobs.some((job) => job.record_id === record.id && job.target === "record");
+  return voiced ? "voice" : record.transcript ? "text" : null;
+}
+
 /** 항목 ‘수정’으로 치는 칸. DB의 출처 판정(record_items_guard_source)과 같다. [맞아요]·번역·사유만 바뀐 줄은 수정이 아니다 */
 const EDIT_KEYS = ["value_ko", "status", "detail"];
 
@@ -275,7 +282,7 @@ export function mapRecord(
     formType: row.form_type === 12 ? "12" : "16",
     status: row.status,
     draftState: draftStateOf(row, rowItems, rows.jobs),
-    inputMode: row.transcript ? "voice" : null,
+    inputMode: inputModeOf(row, rows.jobs),
     transcript: row.transcript,
     transcriptKo: row.transcript_ko,
     items,
