@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { saveItemCheck } from "@/lib/agent/draft-repository";
 import { minutesBetween, resolveVisitMinutes, type ItemStatus } from "@/lib/agent/validate-draft";
 
+import { toFormType } from "./form-type";
 import type { SupportCheckDeps, SupportCheckTarget } from "./support-check";
 
 type ItemRow = {
@@ -28,7 +29,7 @@ export function createSupportCheckDeps(
         .select("form_type, worker_id, visit_start, visit_end, form_fields")
         .eq("id", recordId)
         .maybeSingle();
-      if (!record || record.form_type !== "12") return null;
+      if (!record || toFormType(record.form_type) !== "12") return null;
       const { data: items } = await userClient
         .from("record_items")
         .select("item_key, value_ko, status, reason, reason_native, detail")
