@@ -82,6 +82,7 @@ function ReviewRecord() {
   const record = db.records[id];
   const [selected, setSelected] = useState<ItemKey | null>(null);
   const [returning, setReturning] = useState(false);
+  const [returnError, setReturnError] = useState("");
   const [realSteps, setRealSteps] = useState<
     { tool: string; key: string; name: string; reason: string; result: string }[]
   >([]);
@@ -334,14 +335,20 @@ function ReviewRecord() {
       <ReturnModal
         open={returning}
         record={record}
-        onClose={() => setReturning(false)}
+        error={returnError}
+        onClose={() => {
+          setReturning(false);
+          setReturnError("");
+        }}
         onReturn={(reason) => {
           const next = returnRecord(db, record.id, reason, now());
           if ("error" in next) return;
           if (real) {
-            // 관리자는 한국어 사유만 보낸다(결정 2026-10-28-되돌림사유한국어)
+            // 관리자는 한국어 사유만 보낸다(결정 2026-10-28-되돌림사유한국어).
+            // 실패하면 창 안에 이유를 남긴다(이슈 #114: 창이 그대로 있고 아무 반응이 없던 문제)
+            setReturnError("");
             void real.actions.returnRecord(record.id, reason).then((result) => {
-              if (!result.ok) return fail(result);
+              if (!result.ok) return setReturnError(result.ko);
               setReturning(false);
               router.push("/review");
             });
@@ -556,11 +563,14 @@ function ReturnModal({
   record,
   onClose,
   onReturn,
+  error: serverError = "",
 }: {
   open: boolean;
   record: DemoRecord;
   onClose: () => void;
   onReturn: (reason: string) => void;
+  /** 서버가 거절한 이유. 있으면 창 안에 보인다 */
+  error?: string;
 }) {
   const [keys, setKeys] = useState<ItemKey[]>([]);
   const [reason, setReason] = useState("");
@@ -612,6 +622,11 @@ function ReturnModal({
           {reason.length}/{RETURN_LIMIT}자
         </span>
       </p>
+      {serverError && (
+        <p className="warn-text" role="alert" style={{ margin: "0 0 8px" }}>
+          되돌리지 못했어요. {serverError}
+        </p>
+      )}
       <p className="info-note">
         되돌리면 승인 대기에서 빠지고, 작성자 오늘 화면에 주황 띠로 보여요. 작성자가 고친 항목은
         관리자가 다시 확인해요.
