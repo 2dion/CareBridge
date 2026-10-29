@@ -97,7 +97,7 @@
         "value_ko": "식탁에 아침 약이 그대로 있어 드시지 않은 것으로 보임",
         "value_native": "Thuốc buổi sáng vẫn còn trên bàn, có vẻ chưa uống",
         "evidence": "식탁에 아침 약이 그대로 있었어요. 아침 약을 안 드신 것 같아요.",
-        "reason": "건강·안전 신호(약을 안 드신 경우, AI 규칙 '확인 필요' 4번). 담당자에게 바로 알림. 작성자 추측('것 같아요')",
+        "reason": "건강·안전 신호(약을 안 드신 경우, AI 규칙 '확인 필요' 4번). 관리자에게 바로 알림. 작성자 추측('것 같아요')",
         "detail": {},
         "health_signal": true
       },
@@ -116,8 +116,8 @@
       {
         "item_key": "notes",
         "status": "observed",
-        "value_ko": "식탁에 아침 약이 그대로 있어 드시지 않은 것으로 보임(담당자에게 알림 필요). 평소처럼 신문 보시고 날짜를 잘 말씀하심. 반찬 만들기, 청소함.",
-        "value_native": "Thuốc buổi sáng vẫn còn trên bàn, có vẻ chưa uống (cần báo người phụ trách). Đọc báo như mọi khi và nói đúng ngày. Làm món ăn kèm, dọn dẹp.",
+        "value_ko": "식탁에 아침 약이 그대로 있어 드시지 않은 것으로 보임(관리자에게 알림 필요). 평소처럼 신문 보시고 날짜를 잘 말씀하심. 반찬 만들기, 청소함.",
+        "value_native": "Thuốc buổi sáng vẫn còn trên bàn, có vẻ chưa uống (cần báo người quản lý). Đọc báo như mọi khi và nói đúng ngày. Làm món ăn kèm, dọn dẹp.",
         "evidence": "식탁에 아침 약이 그대로 있었어요. 아침 약을 안 드신 것 같아요. 평소처럼 신문 보시고 날짜도 잘 말씀하셨어요. 반찬 만들어 드리고 청소했어요.",
         "reason": "",
         "detail": {}
