@@ -10,6 +10,7 @@ import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen } from "@/components/mobile/shell";
+import { TextInput } from "@/components/mobile/text-field";
 import { type HelperAnswer, helperSuggestions, mockHelperAnswer } from "@/lib/demo/helper";
 import { kstTime } from "@/lib/demo/store";
 
@@ -188,11 +189,11 @@ export default function HelperPage() {
           <label className="sr-only" htmlFor="helper-q">
             질문
           </label>
-          <input
+          <TextInput
             id="helper-q"
             className="input"
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onValueChange={setText}
             placeholder="궁금한 내용을 입력하세요."
             autoComplete="off"
           />

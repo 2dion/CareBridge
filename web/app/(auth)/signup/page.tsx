@@ -10,6 +10,7 @@ import { useDemo } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel } from "@/components/mobile/parts";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
+import { TextInput } from "@/components/mobile/text-field";
 import { signIn, supabaseConfigured } from "@/lib/auth/session";
 import { MIN_PASSWORD_LENGTH, type SignupError } from "@/lib/auth/signup";
 
@@ -135,12 +136,12 @@ export default function SignupPage() {
           <label htmlFor="code">
             가입 코드 <span className="vi">Mã đăng ký</span>
           </label>
-          <input
+          <TextInput
             id="code"
             className={`input ${codeError ? "invalid" : ""}`}
             value={code}
-            onChange={(event) => {
-              setCode(event.target.value.toUpperCase());
+            onValueChange={(next) => {
+              setCode(next.toUpperCase());
               if (codeError) setServerError(null);
             }}
             autoCapitalize="characters"
@@ -162,11 +163,11 @@ export default function SignupPage() {
           <label htmlFor="name">
             이름 <span className="vi">Tên</span>
           </label>
-          <input
+          <TextInput
             id="name"
             className="input"
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onValueChange={setName}
             autoComplete="nickname"
           />
           <small className="hint-line">
@@ -177,13 +178,13 @@ export default function SignupPage() {
           <label htmlFor="email">
             이메일 <span className="vi">Email</span>
           </label>
-          <input
+          <TextInput
             id="email"
             className={`input ${badEmail || serverError === "invalid_email" || serverError === "email_taken" ? "invalid" : ""}`}
             type="email"
             value={email}
-            onChange={(event) => {
-              setEmail(event.target.value);
+            onValueChange={(next) => {
+              setEmail(next);
               if (serverError === "email_taken" || serverError === "invalid_email")
                 setServerError(null);
             }}
@@ -207,12 +208,12 @@ export default function SignupPage() {
             비밀번호 <span className="vi">Mật khẩu</span>
           </label>
           <div className="pw-wrap">
-            <input
+            <TextInput
               id="password"
               className={`input ${shortPw || serverError === "weak_password" ? "invalid" : ""}`}
               type={show ? "text" : "password"}
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onValueChange={setPassword}
               autoComplete="new-password"
             />
             <button
@@ -237,12 +238,12 @@ export default function SignupPage() {
             비밀번호 다시 쓰기 <span className="vi">Nhập lại</span>
           </label>
           <div className="pw-wrap">
-            <input
+            <TextInput
               id="password2"
               className={`input ${mismatch ? "invalid" : ""}`}
               type={show ? "text" : "password"}
               value={password2}
-              onChange={(event) => setPassword2(event.target.value)}
+              onValueChange={setPassword2}
               autoComplete="new-password"
             />
           </div>

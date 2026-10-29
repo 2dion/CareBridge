@@ -9,6 +9,7 @@ import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
+import { TextArea } from "@/components/mobile/text-field";
 import { getResident, markProcessing } from "@/lib/demo/store";
 
 const MIN_LENGTH = 5;
@@ -76,10 +77,10 @@ export default function WritePage() {
         <label className="sr-only" htmlFor="care-text">
           돌봄 내용
         </label>
-        <textarea
+        <TextArea
           id="care-text"
           value={value}
-          onChange={(event) => setText(event.target.value)}
+          onValueChange={setText}
           placeholder={"오늘 도운 일, 식사, 수면,\n달라진 점을 자유롭게\n적어 주세요."}
         />
         <div className="note-line">

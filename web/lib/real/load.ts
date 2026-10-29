@@ -65,6 +65,7 @@ export async function loadRealDb(
     font_size: me.font_size,
     onboarded: me.onboarded,
     org_name: org?.name ?? "",
+    email: auth.user.email ?? "",
   };
   const reviewer = profile.role === "reviewer";
 
