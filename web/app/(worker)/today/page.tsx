@@ -33,7 +33,7 @@ function cardGuide(resident: Resident, record?: DemoRecord): { ko: string; vi: s
     case "submitted":
       return { ko: "관리자가 확인하고 있어요", vi: "Người quản lý đang xem." };
     case "returned":
-      return { ko: "관리자가 수정해 달라고 했어요", vi: "Người quản lý nhờ bạn sửa lại." };
+      return { ko: "관리자가 수정을 요청했어요", vi: "Người quản lý đã yêu cầu chỉnh sửa." };
     case "approved":
       return { ko: "오늘 기록을 확인할 수 있어요.", vi: "Bản ghi hôm nay đã được duyệt." };
   }
