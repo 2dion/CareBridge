@@ -4,32 +4,35 @@
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { nowIso, useDemo } from "@/components/demo/demo-provider";
+import { nowIso, useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
+import type { RoleNames } from "@/lib/demo/roles";
 import { type CreateError, ensureRecord, findRecord, getResident } from "@/lib/demo/store";
 
-const createErrors: Record<CreateError, { ko: string; vi: string }> = {
+// 교육용 기관이면 알릴 상대가 '강사'(이슈 #146)
+const createErrors = (names: RoleNames): Record<CreateError, { ko: string; vi: string }> => ({
   future: {
     ko: "앞으로 올 날의 기록은 쓸 수 없어요.",
     vi: "Không thể ghi cho ngày trong tương lai.",
   },
   too_old: {
-    ko: "7일이 지나 이 날 기록은 쓸 수 없어요. 관리자에게 알려 주세요.",
-    vi: "Đã quá 7 ngày nên không thể ghi. Hãy báo người quản lý.",
+    ko: `7일이 지나 이 날 기록은 쓸 수 없어요. ${names.reviewer}에게 알려 주세요.`,
+    vi: `Đã quá 7 ngày nên không thể ghi. Hãy báo ${names.reviewerVi}.`,
   },
   no_care_day: {
     ko: "기록 없음으로 처리한 날이에요.",
     vi: "Ngày này đã được đánh dấu không có chăm sóc.",
   },
-};
+});
 
 export default function StartPage() {
   const { residentId } = useParams<{ residentId: string }>();
   const search = useSearchParams();
   const router = useRouter();
   const demo = useDemo();
+  const errorTexts = createErrors(useRoleNames());
   const [error, setError] = useState<CreateError | null>(null);
   const [realError, setRealError] = useState("");
   if (!demo) return <Loading tab="today" />;
@@ -106,8 +109,8 @@ export default function StartPage() {
       </div>
       {error && (
         <div className="reason-box" role="alert" style={{ margin: "0 16px 12px" }}>
-          <b>{createErrors[error].ko}</b>
-          <span className="vi">{createErrors[error].vi}</span>
+          <b>{errorTexts[error].ko}</b>
+          <span className="vi">{errorTexts[error].vi}</span>
         </div>
       )}
       {realError && (

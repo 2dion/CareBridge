@@ -185,6 +185,29 @@
   padding-right: 16px;
 }
 
+/* W4 상태 칩 줄(이슈 #109): 오른쪽에 칩이 더 있으면(.more) 끝을 바탕색으로 흐리게 해 알린다. 끝까지 밀면 사라진다 */
+.m-app .filters-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.m-app .filters-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 48px;
+  background: linear-gradient(to right, transparent, var(--color-canvas));
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.m-app .filters-wrap.more::after {
+  opacity: 1;
+}
+
 .m-app button.filter {
   border: 0;
   font: inherit;
@@ -504,6 +527,42 @@
 .m-app .auth-form {
   gap: 14px;
   margin-top: 28px;
+}
+
+/* A0(스플래시, 이슈 #111): 로고와 소개가 살짝 떠오르며 나타난다. 어디를 눌러도 바로 넘어간다.
+   움직임 줄이기 설정(prefers-reduced-motion)이면 globals.css 공통 규칙이 애니메이션을 끈다 */
+.m-app .splash {
+  cursor: pointer;
+}
+
+.m-app .splash .center {
+  animation: splash-in 0.6s ease-out both;
+}
+
+.m-app .splash-skip {
+  display: grid;
+  gap: 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  animation: splash-in 0.6s ease-out 0.4s both;
+}
+
+.m-app .splash-skip .vi {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+@keyframes splash-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .m-app .field label .vi {

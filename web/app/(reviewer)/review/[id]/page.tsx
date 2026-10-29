@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
+import { TextArea, TextInput } from "@/components/mobile/text-field";
 import {
   approveRecord,
   formFieldHint,
@@ -186,8 +187,8 @@ function ReviewRecord() {
             {resident?.alias} · {monthDayWeek(record.careDate)}
           </h1>
           <p>
-            {resident?.careType === "home" ? "재가" : "시설"} · 별지 제{record.formType}호 · 작성자{" "}
-            {record.workerName ?? db.worker.name} · 받은 시각{" "}
+            {resident?.careType === "home" ? "재가" : "시설"} · 별지 제{record.formType}호 ·{" "}
+            {names.worker} {record.workerName ?? db.worker.name} · 받은 시각{" "}
             {receivedLabel(record.submittedAt, today)}
             {late > 0 && (
               <>
@@ -235,8 +236,8 @@ function ReviewRecord() {
           {record.status === "approved"
             ? `승인한 기록이에요 (${record.approvedBy} · ${kstTime(record.approvedAt)}). `
             : record.status === "returned"
-              ? "작성자에게 되돌린 기록이에요. 작성자가 고쳐 다시 전송하면 검토 대기에 보여요. "
-              : "작성자가 아직 전송하지 않은 기록이에요. "}
+              ? `${names.worker}에게 되돌린 기록이에요. ${names.worker}가 고쳐 다시 전송하면 검토 대기에 보여요. `
+              : `${names.worker}가 아직 전송하지 않은 기록이에요. `}
           {record.status === "approved" && (
             <Link className="text-link" href={`/approved?id=${record.id}`}>
               승인한 기록에서 보기
@@ -283,13 +284,13 @@ function ReviewRecord() {
             ))
           ) : (
             <p className="muted" style={{ fontSize: 13 }}>
-              작성자가 한국어로 말해 번역이 필요 없습니다.
+              {names.worker}가 한국어로 말해 번역이 필요 없습니다.
             </p>
           )}
           <p className="hint-note">
             <Icon name="info" />
             {selectedItem && !highlight
-              ? `${itemLabel(selectedItem.item_key).ko}은(는) 관리자가 고친 항목이라 고치기 전 근거를 칠하지 않아요`
+              ? `${itemLabel(selectedItem.item_key).ko}은(는) ${names.reviewer}가 고친 항목이라 고치기 전 근거를 칠하지 않아요`
               : selectedItem
                 ? `노란 줄 = 오른쪽에서 고른 항목(${itemLabel(selectedItem.item_key).ko})의 근거 문장`
                 : "오른쪽 항목을 누르면 근거 문장을 노랗게 보여 줘요"}
@@ -470,7 +471,7 @@ function ReviewItem({
           <p>{item.reason}</p>
         </details>
       )}
-      <textarea
+      <TextArea
         className="field"
         aria-label={`${label} 내용`}
         rows={Math.max(1, Math.ceil(draft.length / 48))}
@@ -478,7 +479,7 @@ function ReviewItem({
         disabled={!editable || item.resolution === "omitted"}
         placeholder="언급 없음"
         maxLength={isNotes ? undefined : 500}
-        onChange={(event) => setDraft(event.target.value)}
+        onValueChange={setDraft}
         onBlur={() => {
           if (draft !== item.value_ko) onEdit(draft);
         }}
@@ -559,13 +560,13 @@ function ReviewItem({
           <label className="flabel" htmlFor={`omit-${item.item_key}`}>
             기록하지 않는 이유 (꼭 쓰기)
           </label>
-          <input
+          <TextInput
             id={`omit-${item.item_key}`}
             className={`field ${noteError ? "invalid" : ""}`}
             value={note}
             maxLength={100}
-            onChange={(event) => {
-              setNote(event.target.value);
+            onValueChange={(next) => {
+              setNote(next);
               setNoteError(false);
             }}
             placeholder="예: 원문만으로 판단할 수 없음"
@@ -647,10 +648,10 @@ function ReturnModal({
   const toggle = (key: ItemKey) =>
     setKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   return (
-    <DeskModal open={open} onClose={onClose} label="작성자에게 되돌리기">
-      <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>작성자에게 되돌리기</h2>
+    <DeskModal open={open} onClose={onClose} label={`${names.worker}에게 되돌리기`}>
+      <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>{names.worker}에게 되돌리기</h2>
       <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
-        작성자가 고쳐서 다시 전송해요.
+        {names.worker}가 고쳐서 다시 전송해요.
       </p>
       <p className="flabel">다시 볼 항목 (고르면 사유 앞에 붙어요)</p>
       <div className="chips" style={{ marginBottom: 14 }}>
@@ -669,14 +670,14 @@ function ReturnModal({
       <label className="flabel" htmlFor="return-reason">
         되돌리는 사유 (꼭 쓰기)
       </label>
-      <textarea
+      <TextArea
         id="return-reason"
         className={`field ${error ? "invalid" : ""}`}
         rows={4}
         maxLength={RETURN_LIMIT}
         value={reason}
-        onChange={(event) => {
-          setReason(event.target.value);
+        onValueChange={(next) => {
+          setReason(next);
           setError(false);
         }}
         placeholder="예: 식사량이 ‘조금’이면 얼마나인지 다시 확인해 주세요."
@@ -685,7 +686,7 @@ function ReturnModal({
         {error ? (
           <span className="warn-text">사유를 써 주세요.</span>
         ) : (
-          "작성자 모국어로 번역해 함께 보여요."
+          `${names.worker} 모국어로 번역해 함께 보여요.`
         )}{" "}
         <span style={{ float: "right" }}>
           {reason.length}/{RETURN_LIMIT}자

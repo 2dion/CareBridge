@@ -3,9 +3,9 @@
 // W4(기록): 작성 전 / 임시 저장 / 전송 완료 / 수정 필요 / 승인 완료, 기간 거르기, 기록 없음 처리.
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { BottomSheet, BtnLabel } from "@/components/mobile/parts";
 import { type DateRange, RangePicker, rangeLabel } from "@/components/mobile/range-picker";
@@ -57,6 +57,33 @@ function recordHref(record: DemoRecord) {
   return `/start/${record.residentId}?date=${record.careDate}`;
 }
 
+/** 상태 칩 줄. 오른쪽에 칩이 더 있으면 끝을 흐리게 해 알린다(PC는 스크롤 막대가 숨어 더 있는지 모름, 이슈 #109).
+ *  끝까지 밀면 흐림이 사라진다. 폭이 바뀌어도 다시 본다 */
+function ChipRow({ children, ...rest }: ComponentProps<"div">) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const row = ref.current;
+    if (!row) return;
+    const check = () => setMore(row.scrollLeft + row.clientWidth < row.scrollWidth - 1);
+    row.addEventListener("scroll", check, { passive: true });
+    // ResizeObserver는 붙이자마자 한 번 알려서 처음 상태도 여기서 정해진다
+    const observer = new ResizeObserver(check);
+    observer.observe(row);
+    return () => {
+      row.removeEventListener("scroll", check);
+      observer.disconnect();
+    };
+  }, []);
+  return (
+    <div className={`filters-wrap ${more ? "more" : ""}`}>
+      <div ref={ref} {...rest}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function DateBox({ date }: { date: string }) {
   return (
     <div className="date-box">
@@ -76,6 +103,8 @@ export default function ArchivePage() {
   const [noCare, setNoCare] = useState<MissedRecord | null>(null);
   const tabParam = search.get("tab");
   const tab: Tab = isTab(tabParam) ? tabParam : "missed";
+  // 교육용 기관이면 '강사에게 알려 주세요'(이슈 #146)
+  const names = useRoleNames();
 
   if (!demo) return <Loading tab="archive" />;
   const { db, today } = demo;
@@ -117,7 +146,7 @@ export default function ArchivePage() {
         />
       ) : (
         <>
-          <div className="filters scroll-x" role="tablist" aria-label="기록 상태">
+          <ChipRow className="filters scroll-x" role="tablist" aria-label="기록 상태">
             {tabs.map((item) => (
               <button
                 key={item.key}
@@ -133,7 +162,7 @@ export default function ArchivePage() {
                 )}
               </button>
             ))}
-          </div>
+          </ChipRow>
           <div className="list-head">
             기록 목록<span className="badge badge-green">{counts[tab]}개</span>
           </div>
@@ -154,15 +183,15 @@ export default function ArchivePage() {
                 />
               ))}
               <p className="foot-note" style={{ margin: "4px 6px 0" }}>
-                기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 관리자에게 알려 주세요.
+                기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 {names.reviewer}에게 알려 주세요.
                 <span className="vi">
-                  Sau 7 ngày sẽ không thể viết. Khi đó hãy báo người quản lý.
+                  Sau 7 ngày sẽ không thể viết. Khi đó hãy báo {names.reviewerVi}.
                 </span>
               </p>
               <p className="foot-note" style={{ margin: "0 6px 16px" }}>
-                돌봄 날짜보다 늦게 전송한 기록은 관리자 화면에 ‘지연전송’으로 보여요.
+                돌봄 날짜보다 늦게 전송한 기록은 {names.reviewer} 화면에 ‘지연전송’으로 보여요.
                 <span className="vi">
-                  Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho người quản lý.
+                  Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho {names.reviewerVi}.
                 </span>
               </p>
             </div>
@@ -393,6 +422,7 @@ function NoCareSheet({
   const [reason, setReason] = useState<NoCareReason | null>(null);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const names = useRoleNames();
   const resident = row ? getResident(db, row.residentId) : undefined;
   const close = () => {
     setReason(null);
@@ -413,7 +443,7 @@ function NoCareSheet({
           ? "기타 사유를 적어 주세요."
           : next.error === "has_record"
             ? "이미 기록이 있는 날이에요."
-            : "7일이 지나 처리할 수 없어요. 관리자에게 알려 주세요.",
+            : `7일이 지나 처리할 수 없어요. ${names.reviewer}에게 알려 주세요.`,
       );
       return;
     }

@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
+import { TextInput } from "@/components/mobile/text-field";
 import {
   addResident,
   type ResidentEdit,
@@ -428,13 +429,13 @@ function AssignDrawer({
       <label className="flabel" htmlFor="edit-initial">
         가명 · 성 (한 글자)
       </label>
-      <input
+      <TextInput
         id="edit-initial"
         className="field"
         maxLength={1}
         value={initial}
-        onChange={(event) => {
-          setInitial(event.target.value);
+        onValueChange={(next) => {
+          setInitial(next);
           setError(null);
         }}
       />
@@ -582,13 +583,13 @@ function AddResidentModal({
       <label className="flabel" htmlFor="add-initial">
         성 (한 글자)
       </label>
-      <input
+      <TextInput
         id="add-initial"
         className="field"
         maxLength={1}
         value={initial}
-        onChange={(event) => {
-          setInitial(event.target.value);
+        onValueChange={(next) => {
+          setInitial(next);
           setError(null);
         }}
       />
