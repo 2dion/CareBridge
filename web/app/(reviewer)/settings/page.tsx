@@ -1,12 +1,11 @@
 "use client";
 
 // M5(설정): 기관 정보(읽기만), 작성자용 가입 코드 복사, AI 사용 원칙.
-// 가입 코드를 만들거나 끄는 것은 팀장이 DB에서 한다(로그인가입 결정). 관리자용 코드는 화면에 보이지 않는다.
+// 가입 코드는 실제 모드에서 기관의 join_codes(active)를 RLS로 읽기만 한다. 만들거나 끄는 것은 팀장이 DB에서 한다(로그인가입 결정 6).
+// 관리자용 코드는 화면에 보이지 않는다(화면 v1.3 '가입 코드 보기'). 코드 값을 화면 코드에 두지 않는다(이슈 #119).
 import { useDemo } from "@/components/demo/demo-provider";
 import { DeskShell, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
-
-const WORKER_CODE = "DEMO-CARE-24";
 
 const principles = [
   "AI 결과는 초안입니다. 작성자가 확인하고 관리자가 승인합니다.",
@@ -24,11 +23,22 @@ export default function SettingsPage() {
 }
 
 function Settings() {
-  const { db } = useDemo()!;
+  const { db, real } = useDemo()!;
   const toast = useToast();
   const careTypes = [...new Set(db.residents.map((resident) => resident.careType))]
     .map((type) => (type === "home" ? "재가" : "시설"))
     .join(" · ");
+  // 실제 모드: 기관의 켜진 작성자용 코드(보통 1개). Mock 모드: 코드가 없어 자리만 보인다
+  const workerCodes = real ? real.joinCodes.filter((entry) => entry.role === "worker") : [];
+  const writer = real?.isTraining ? "작성자(교육생)" : "작성자";
+  const copy = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.show("가입 코드를 복사했어요.");
+    } catch {
+      toast.show("복사하지 못했어요. 코드를 직접 적어 주세요.");
+    }
+  };
   return (
     <>
       <header className="page-head">
@@ -51,33 +61,37 @@ function Settings() {
             </div>
             <div>
               <dt>교육용 기관</dt>
-              <dd>아니요 (읽기만)</dd>
+              <dd>{real ? (real.isTraining ? "예" : "아니요") : "아니요 (Mock)"} (읽기만)</dd>
             </div>
           </dl>
         </section>
         <section className="panel" style={{ padding: 24 }}>
-          <h2 className="panel-head">작성자용 가입 코드</h2>
-          <div className="code-box">
-            <b>{WORKER_CODE}</b>
-            <button
-              type="button"
-              className="dbtn sm"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(WORKER_CODE);
-                  toast.show("가입 코드를 복사했어요.");
-                } catch {
-                  toast.show("복사하지 못했어요. 코드를 직접 적어 주세요.");
-                }
-              }}
-            >
-              <Icon name="copy" />
-              복사
-            </button>
-          </div>
+          <h2 className="panel-head">{writer}용 가입 코드</h2>
+          {!real ? (
+            <div className="code-box">
+              <b>Mock 모드 · 코드 없음</b>
+            </div>
+          ) : workerCodes.length === 0 ? (
+            <div className="code-box">
+              <b>켜진 코드 없음</b>
+            </div>
+          ) : (
+            workerCodes.map((entry) => (
+              <div className="code-box" key={entry.code}>
+                <b>{entry.code}</b>
+                <button type="button" className="dbtn sm" onClick={() => copy(entry.code)}>
+                  <Icon name="copy" />
+                  복사
+                </button>
+              </div>
+            ))
+          )}
           <p className="fhint">
-            새 작성자는 이 코드로 직접 가입해요. 코드를 만들거나 끄는 것은 팀장이 합니다. 관리자용
-            코드는 화면에 보이지 않아요.
+            {!real
+              ? "Supabase에 연결하면 기관의 가입 코드(join_codes)를 여기서 읽어요. Mock 모드에는 실제 코드가 없어요."
+              : workerCodes.length === 0
+                ? "이 기관에 켜진 작성자용 코드가 없어요. 팀장에게 요청하세요."
+                : `새 ${writer}는 이 코드로 직접 가입해요. 코드를 만들거나 끄는 것은 팀장이 합니다. 관리자용 코드는 화면에 보이지 않아요.`}
           </p>
         </section>
       </div>

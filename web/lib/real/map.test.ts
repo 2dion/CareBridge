@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { actionError, audioMime } from "./actions";
 import {
+  activeJoinCodes,
   applyPrintData,
   draftStateOf,
   type ItemRow,
@@ -74,6 +75,23 @@ describe("mapResidents", () => {
     );
     expect(resident.visitDays).toBeNull();
     expect(resident.startDate).toBe("2026-10-28");
+  });
+});
+
+describe("activeJoinCodes", () => {
+  // 값은 DB 코드 형식(대문자·숫자 8자 이상)에 맞지 않는 자리표시자. 실제 코드는 저장소에 두지 않는다(이슈 #119)
+  it("켜진 코드만, 작성자용 먼저", () => {
+    expect(
+      activeJoinCodes([
+        { code: "r-code", role: "reviewer", active: true },
+        { code: "w-old", role: "worker", active: false },
+        { code: "w-code", role: "worker", active: true },
+      ]),
+    ).toEqual([
+      { role: "worker", code: "w-code" },
+      { role: "reviewer", code: "r-code" },
+    ]);
+    expect(activeJoinCodes([])).toEqual([]);
   });
 });
 
