@@ -13,6 +13,7 @@ import type {
   RecordEvent,
   RecordItem,
   Resident,
+  StaffMember,
 } from "../demo/store";
 
 export type ProfileRow = {
@@ -91,7 +92,12 @@ export type NoCareRow = {
   note: string;
   created_by: string;
 };
-export type StaffRow = { id: string; name: string; role: "worker" | "reviewer" };
+export type StaffRow = {
+  id: string;
+  name: string;
+  role: "worker" | "reviewer";
+  native_lang: string; // profiles.native_lang(ko / vi). 결정 2026-10-30-명단모국어
+};
 /** join_codes 줄(관리자만 자기 기관 것을 RLS로 읽음). 코드 값은 DB에만 있고 저장소에는 두지 않는다(로그인가입 결정 6) */
 export type JoinCodeRow = { code: string; role: "worker" | "reviewer"; active: boolean };
 export type JoinCode = { role: "worker" | "reviewer"; code: string };
@@ -414,6 +420,18 @@ export function toDemoDb(rows: RealRows, today: string): DemoDb {
     records: Object.fromEntries(rows.records.map((row) => [row.id, mapRecord(row, rows, nameOf)])),
     noCareDays: mapNoCare(rows.noCareDays, nameOf),
     // 관리자만 직원 목록을 읽는다(list_org_staff). 작성자 화면은 비워 Mock과 같은 모양
-    ...(isWorker ? {} : { staff: rows.staff, assignments: mapAssignments(rows.assignments) }),
+    ...(isWorker
+      ? {}
+      : { staff: rows.staff.map(mapStaff), assignments: mapAssignments(rows.assignments) }),
+  };
+}
+
+/** list_org_staff 한 줄 → 화면 직원. 모국어는 ko가 아니면 vi(MVP는 두 값만) */
+function mapStaff(row: StaffRow): StaffMember {
+  return {
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    nativeLang: row.native_lang === "ko" ? "ko" : "vi",
   };
 }

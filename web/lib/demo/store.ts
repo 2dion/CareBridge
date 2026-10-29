@@ -94,7 +94,13 @@ export type NoCareDay = {
 export type FontSize = "small" | "normal" | "large";
 
 /** 기관 직원(실제 모드, list_org_staff). M4 담당 작성자 고르기·M1 작성자 걸러 보기(이슈 #95) */
-export type StaffMember = { id: string; name: string; role: "worker" | "reviewer" };
+export type StaffMember = {
+  id: string;
+  name: string;
+  role: "worker" | "reviewer";
+  /** 모국어(ko / vi). M4 작성자 탭에 보임(결정 2026-10-30-명단모국어) */
+  nativeLang: "ko" | "vi";
+};
 /** 담당 연결 한 줄(assignments: 어르신·작성자 한 쌍마다 한 줄). visitTime은 표시용 schedule */
 export type Assignment = {
   residentId: string;

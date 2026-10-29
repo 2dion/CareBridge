@@ -29,6 +29,8 @@ import {
 const dayNames = ["월", "화", "수", "목", "금", "토", "일"];
 /** Mock 모드의 작성자 한 명(실제 모드는 list_org_staff) */
 const MOCK_WORKER_ID = "mock-worker";
+/** 작성자 모국어 표시(화면 설계 v1.3 M4 "작성자: 이름, 모국어", 결정 2026-10-30-명단모국어) */
+const LANG_LABEL: Record<StaffMember["nativeLang"], string> = { ko: "한국어", vi: "베트남어" };
 
 function VisitDays({ days }: { days: number[] | null }) {
   if (days === null) return <span className="muted">매일 (시설)</span>;
@@ -69,7 +71,7 @@ function Residents() {
   // 작성자 목록: 실제 모드는 기관 직원(worker), Mock은 한 명
   const workers: StaffMember[] = db.staff
     ? db.staff.filter((person) => person.role === "worker")
-    : [{ id: MOCK_WORKER_ID, name: db.worker.name, role: "worker" }];
+    : [{ id: MOCK_WORKER_ID, name: db.worker.name, role: "worker", nativeLang: "vi" }];
   const workerIdsOf = (residentId: string) =>
     db.assignments
       ? db.assignments.filter((link) => link.residentId === residentId).map((link) => link.workerId)
@@ -185,6 +187,7 @@ function Residents() {
             <thead>
               <tr>
                 <th>이름</th>
+                <th>모국어</th>
                 <th>담당 어르신</th>
                 <th>담당 시작일</th>
                 <th>이번 주 기록</th>
@@ -206,6 +209,7 @@ function Residents() {
                     <td>
                       <b>{worker.name}</b>
                     </td>
+                    <td>{LANG_LABEL[worker.nativeLang]}</td>
                     <td>
                       {mine.map((resident) => resident.alias.replace(" 어르신", "")).join(", ") || (
                         <span className="muted">없음</span>
@@ -342,6 +346,7 @@ function WorkerPicker({
             onChange={() => onToggle(worker.id)}
           />
           {worker.name}
+          <span className="muted">· {LANG_LABEL[worker.nativeLang]}</span>
         </label>
       ))}
     </div>
