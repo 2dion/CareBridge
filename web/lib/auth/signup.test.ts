@@ -116,7 +116,7 @@ describe("signup", () => {
     expect(deps.deleteUser).toHaveBeenCalledWith("user-1");
   });
 
-  it("담당자 코드면 모국어를 ko로 저장", async () => {
+  it("관리자 코드면 모국어를 ko로 저장", async () => {
     const deps = fakeDeps({
       findActiveCode: vi.fn(async () => ({ ...workerCode, role: "reviewer" as const })),
     });

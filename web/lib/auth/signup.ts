@@ -97,7 +97,7 @@ export async function signup(input: SignupInput, deps: SignupDeps): Promise<Sign
     org_id: joinCode.orgId,
     role: joinCode.role,
     name: input.name,
-    // 담당자 코드면 ko로 저장 (공통 계약)
+    // 관리자 코드면 ko로 저장 (공통 계약)
     native_lang: joinCode.role === "reviewer" ? "ko" : input.nativeLang,
   });
   if (!inserted) {

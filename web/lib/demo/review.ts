@@ -1,4 +1,4 @@
-// 담당자 화면(R1~R4) Mock 규칙. 승인 조건·되돌림·덮어쓰기 금지는 코드가 맡는다(AGENTS.md 원칙 3·5).
+// 관리자 화면(M1~M5) Mock 규칙. 승인 조건·되돌림·덮어쓰기 금지는 코드가 맡는다(AGENTS.md 원칙 3·5).
 // 실제로는 PATCH /api/records/:id/items/:key, POST /approve, POST /return(데이터구조 v1.6.2 공통 계약).
 import { countUnresolved, demoAgentSteps, type ItemKey } from "./state";
 import {
@@ -15,7 +15,7 @@ import {
   updateRecord,
 } from "./store";
 
-/** R1: 보낸 기록, 확인 필요가 많은 순 → 받은 시각 이른 순. */
+/** M1: 전송한 기록, 확인 필요가 많은 순 → 받은 시각 이른 순. */
 export function reviewQueue(db: DemoDb): DemoRecord[] {
   return Object.values(db.records)
     .filter((record) => record.status === "submitted")
@@ -26,7 +26,7 @@ export function reviewQueue(db: DemoDb): DemoRecord[] {
     });
 }
 
-/** R1 '다시 보냄' 아이콘: 한 번이라도 되돌린 뒤 다시 보낸 기록(record_events의 returned로 계산). */
+/** M1 '재전송' 표시: 한 번이라도 되돌린 뒤 다시 전송한 기록(record_events의 returned로 계산). */
 export function wasResent(record: DemoRecord): boolean {
   return record.status === "submitted" && record.events.some((event) => event.type === "returned");
 }
@@ -37,7 +37,7 @@ export function approvedRecords(db: DemoDb): DemoRecord[] {
     .sort((a, b) => (a.careDate === b.careDate ? 0 : a.careDate < b.careDate ? 1 : -1));
 }
 
-/** R2 묶음: 정하지 않은 확인 필요 → 고친 항목 → 관찰 → 언급 없음. 묶음 안은 기본 순서. */
+/** M2 묶음: 정하지 않은 확인 필요 → 고친 항목 → 관찰 → 언급 없음. 묶음 안은 기본 순서. */
 export function reviewOrder(record: DemoRecord) {
   const rank = (item: DemoRecord["items"][number]) => {
     if (item.status === "needs_check" && item.resolution === null) return 0;
@@ -62,7 +62,7 @@ function reviewable(record: DemoRecord) {
   return record.status === "submitted";
 }
 
-/** 담당자 직접 수정: source=reviewer, 고치기 전 내용을 남김. 작성자 확인은 풀린다(되돌아오면 다시 [맞아요]). */
+/** 관리자 직접 수정: source=reviewer, 고치기 전 내용을 남김. 작성자 확인은 풀린다(되돌아오면 다시 [맞아요]). */
 export function reviewerEditItem(
   db: DemoDb,
   id: string,
@@ -198,7 +198,7 @@ export function returnRecord(
   );
 }
 
-/** R1 기한 지난 빈 기록 → [기록 없음으로 정리]. 담당자만, 8~30일 전 날짜만(기한지난빈기록 결정). */
+/** M1 기한 지난 빈 기록 → [기록 없음으로 정리]. 관리자만, 8~30일 전 날짜만(기한지난빈기록 결정). */
 export function markOverdueNoCare(
   db: DemoDb,
   day: Omit<NoCareDay, "createdBy">,
@@ -258,7 +258,7 @@ export const formFieldHint: Record<"16" | "12", Record<ItemKey, string>> = {
   },
 };
 
-/** R4 어르신 추가: 실명 대신 성 한 글자 + ○○(원칙 9). 시연 초안은 같은 급여의 합성 사례를 쓴다. */
+/** M4 어르신 추가: 실명 대신 성 한 글자 + ○○(원칙 9). 시연 초안은 같은 급여의 합성 사례를 쓴다. */
 export function addResident(
   db: DemoDb,
   input: { initial: string; careType: Resident["careType"]; startDate: string },
@@ -280,7 +280,7 @@ export function addResident(
   return { ...db, residents: [...db.residents, resident] };
 }
 
-/** R2 ‘AI 작업 기록’ Mock(실제로는 agent_steps 표). 서식에 맞춰 문구만 바꾼다. */
+/** M2 ‘AI 작업 기록’ Mock(실제로는 agent_steps 표). 서식에 맞춰 문구만 바꾼다. */
 export function mockAgentSteps(record: DemoRecord) {
   if (record.formType === "16") return demoAgentSteps;
   return demoAgentSteps.map((step) =>

@@ -1,6 +1,6 @@
 "use client";
 
-// R4(어르신·작성자, 피그마 D03·D11·D12): 어르신 목록·추가, 작성자 목록, 담당 연결(작성자·담당 시작일·방문 요일·방문 시간).
+// M4(어르신·작성자): 어르신 목록·추가, 작성자 목록, 담당 연결(작성자·담당 시작일·방문 요일·방문 시간).
 // 방문 요일은 1=월 … 7=일(assignments.visit_days). 담당 시작일부터 못 쓴 기록을 센다(데이터구조 v1.6.2).
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -188,7 +188,7 @@ function Residents() {
           onSave={(edit) => {
             setEditing(null);
             if (demo.real) {
-              // assignments의 방문 요일·담당 시작일(담당자, RLS)
+              // assignments의 방문 요일·담당 시작일(관리자, RLS)
               void demo.real.actions.updateResident(editing.id, edit).then((result) => {
                 toast.show(result.ok ? "담당 연결을 저장했어요." : result.ko);
               });
@@ -207,7 +207,7 @@ function Residents() {
           const next = addResident(db, input);
           if ("error" in next) return next.error;
           if (demo.real) {
-            // residents에 바로 넣는다(담당자, 같은 기관). 가명만(원칙 9)
+            // residents에 바로 넣는다(관리자, 같은 기관). 가명만(원칙 9)
             void demo.real.actions
               .addResident(`${input.initial.trim().slice(0, 1)}○○ 어르신`, input.careType)
               .then((result) => !result.ok && toast.show(result.ko));

@@ -1,9 +1,9 @@
 "use client";
 
-// 역할별 화면 막기(이슈 #114). 작성자·교육생(worker)은 W 화면만, 담당자·강사(reviewer)는 R 화면만 연다.
+// 역할별 화면 막기(이슈 #114). 작성자·교육생(worker)은 W 화면만, 관리자·강사(reviewer)는 M 화면만 연다.
 // 다른 역할의 화면 주소로 들어오면 자기 첫 화면으로 돌려보낸다. 권한 자체는 서버(API·RLS)가 이미 막고,
 // 이 막기는 쓸 수 없는 버튼이 보이지 않게 하는 화면 쪽 안내다.
-// Mock 모드는 작성자·담당자를 오가며 시연하므로 막지 않는다(화면 v1.3 '개발 환경').
+// Mock 모드는 작성자·관리자를 오가며 시연하므로 막지 않는다(화면 v1.3 '개발 환경').
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect } from "react";
 

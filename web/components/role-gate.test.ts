@@ -8,11 +8,11 @@ describe("역할별 화면 막기 (이슈 #114)", () => {
     expect(roleHome("reviewer")).toBe("/review");
   });
 
-  it("작성자·교육생이 R 화면을 열면 /today로", () => {
+  it("작성자·교육생이 M 화면을 열면 /today로", () => {
     expect(redirectFor("reviewer", "worker")).toBe("/today");
   });
 
-  it("담당자·강사가 W 화면을 열면 /review로", () => {
+  it("관리자·강사가 W 화면을 열면 /review로", () => {
     expect(redirectFor("worker", "reviewer")).toBe("/review");
   });
 

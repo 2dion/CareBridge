@@ -1,6 +1,6 @@
 "use client";
 
-// 보낸·승인된 기록 보기(피그마 M18 sent/approved detail). 읽기만 한다.
+// W4 · 기록 보기(전송 완료·승인 완료). 읽기만 한다.
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -62,11 +62,9 @@ export default function RecordViewPage() {
         </span>
         <div>
           <b>{approved ? "승인 완료" : "전송 완료"}</b>
-          <p>{approved ? "담당자가 검토하고 승인했어요." : "담당자 확인을 기다리고 있어요."}</p>
+          <p>{approved ? "관리자가 검토하고 승인했어요." : "관리자 확인을 기다리고 있어요."}</p>
           <span className="vi">
-            {approved
-              ? "Người phụ trách đã phê duyệt bản ghi."
-              : "Đang chờ người phụ trách xem xét."}
+            {approved ? "Người quản lý đã phê duyệt bản ghi." : "Đang chờ người quản lý xem xét."}
           </span>
         </div>
       </section>
@@ -74,7 +72,7 @@ export default function RecordViewPage() {
         기록 내용
         <small>
           {approved ? `${kstTime(record.approvedAt)} 승인` : `${kstTime(record.submittedAt)} 전송`}
-          {late ? ` · ${late}일 늦게 보냄` : ""}
+          {late ? ` · 지연전송 ${late}일` : ""}
         </small>
       </div>
       <div className="scroll" style={{ paddingBottom: 16 }}>
@@ -112,7 +110,7 @@ export default function RecordViewPage() {
         })}
         {!approved && (
           <p className="foot-note">
-            담당자 검토가 끝나면 기록 상태가 바뀌어요.
+            관리자 검토가 끝나면 기록 상태가 바뀌어요.
             <span className="vi">Trạng thái sẽ thay đổi sau khi được xem xét.</span>
           </p>
         )}

@@ -1,8 +1,8 @@
 "use client";
 
-// R1(검토 대기, 피그마 D00): 확인 필요가 많은 기록부터. 위에 지난 7일 작성 전 기록·기록 없음 처리.
-// 되돌린 뒤 다시 보낸 기록은 어르신 이름 옆에 ↻ 아이콘(10/28 알림표시 결정).
-// 그 아래 8~30일 전 빈 날은 ‘기한 지난 빈 기록’ 상자, 담당자가 기록 없음으로 정리(기한지난빈기록 결정).
+// M1(검토 대기): 확인 필요가 많은 기록부터. 위에 지난 7일 작성 전 기록·기록 없음 처리.
+// 재전송 기록(되돌린 뒤 다시 전송한 기록)은 어르신 이름 옆에 ↻ 아이콘(10/28 알림표시 결정).
+// 그 아래 8~30일 전 빈 날은 ‘기한 지난 빈 기록’ 상자, 관리자가 기록 없음으로 정리(기한지난빈기록 결정).
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -162,7 +162,7 @@ function ReviewQueue() {
                               );
                             }
                             toast.show(
-                              "기록 없음 처리를 지웠어요. 작성자 기록함 ‘작성 전’에 다시 보여요.",
+                              "기록 없음 처리를 지웠어요. 작성자 기록 ‘작성 전’에 다시 보여요.",
                             );
                           }}
                         >
@@ -261,7 +261,7 @@ function ReviewQueue() {
       <section className="panel">
         {rows.some(wasResent) && (
           <p className="table-legend">
-            <Icon name="refresh" /> 다시 보낸 기록: 되돌린 뒤 작성자가 고쳐서 다시 보냈어요.
+            <Icon name="refresh" /> 재전송: 되돌린 뒤 작성자가 고쳐서 다시 전송했어요.
           </p>
         )}
         {rows.length === 0 ? (
@@ -301,12 +301,7 @@ function ReviewQueue() {
                     <td>
                       <b>{resident?.alias.replace(" 어르신", "")}</b>
                       {wasResent(record) && (
-                        <span
-                          className="resent"
-                          role="img"
-                          aria-label="다시 보낸 기록"
-                          title="다시 보낸 기록"
-                        >
+                        <span className="resent" role="img" aria-label="재전송" title="재전송">
                           <Icon name="refresh" />
                         </span>
                       )}
@@ -323,7 +318,7 @@ function ReviewQueue() {
                       ) : (
                         <span className="muted">0개</span>
                       )}{" "}
-                      {late > 0 && <span className="chip blue">늦게 보냄 · {late}일 뒤</span>}
+                      {late > 0 && <span className="chip blue">지연전송 · {late}일 뒤</span>}
                     </td>
                     <td>{receivedLabel(record.submittedAt, today)}</td>
                     <td>
@@ -345,7 +340,7 @@ function ReviewQueue() {
             if ("error" in next) return false;
             setMarking(null);
             if (demo.real) {
-              // 담당자가 no_care_days에 바로 넣는다(8~30일 전, 범위 밖은 DB가 거절).
+              // 관리자가 no_care_days에 바로 넣는다(8~30일 전, 범위 밖은 DB가 거절).
               // 결과가 온 뒤에 성공·실패를 알린다(이슈 #114: 실패해도 '정리했어요'가 먼저 뜨던 문제)
               void demo.real.actions
                 .addNoCare({ ...marking, reason, note })
@@ -422,7 +417,7 @@ function OverdueModal({
         </p>
       )}
       <p className="info-note">
-        정리한 사람은 담당자 이름으로 남고, 잘못 정리했으면 지울 수 있어요.
+        정리한 사람은 관리자 이름으로 남고, 잘못 정리했으면 지울 수 있어요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
         <button type="button" className="dbtn" onClick={onClose}>

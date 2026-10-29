@@ -1,7 +1,7 @@
 "use client";
 
-// R2(기록 검토, 피그마 D01·D05·D09·D10): 왼쪽 원문·번역, 오른쪽 항목.
-// 담당자는 항목을 고치거나 ‘확인 필요’를 [확인함]/[기록 안 함]으로 정한다. 하나라도 안 정하면 승인할 수 없다(원칙 3).
+// M2(기록 검토): 왼쪽 원문·번역, 오른쪽 항목.
+// 관리자는 항목을 고치거나 ‘확인 필요’를 [확인함]/[기록 안 함]으로 정한다. 하나라도 안 정하면 승인할 수 없다(원칙 3).
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -68,7 +68,7 @@ function evidenceHit(line: string, evidence: string) {
 function itemChip(item: RecordItem) {
   if (item.status === "needs_check") return <span className="chip warn">확인 필요</span>;
   if (item.source === "worker") return <span className="chip blue">작성자 수정</span>;
-  if (item.source === "reviewer") return <span className="chip blue">담당자 수정</span>;
+  if (item.source === "reviewer") return <span className="chip blue">관리자 수정</span>;
   if (item.status === "observed") return <span className="chip green">관찰</span>;
   return <span className="chip gray">언급 없음</span>;
 }
@@ -87,7 +87,7 @@ function ReviewRecord() {
     { tool: string; key: string; name: string; reason: string; result: string }[]
   >([]);
   const realActions = demo.real?.actions;
-  // R2 'AI 작업 기록': agent_steps(담당자는 같은 기관 읽기)
+  // M2 'AI 작업 기록': agent_steps(관리자는 같은 기관 읽기)
   useEffect(() => {
     if (!realActions) return;
     let alive = true;
@@ -174,7 +174,7 @@ function ReviewRecord() {
             {late > 0 && (
               <>
                 {" "}
-                <span className="chip blue">늦게 보냄 · {late}일 뒤</span>
+                <span className="chip blue">지연전송 · {late}일 뒤</span>
               </>
             )}
           </p>
@@ -212,8 +212,8 @@ function ReviewRecord() {
           {record.status === "approved"
             ? `승인한 기록이에요 (${record.approvedBy} · ${kstTime(record.approvedAt)}). `
             : record.status === "returned"
-              ? "작성자에게 되돌린 기록이에요. 작성자가 고쳐 다시 보내면 검토 대기에 보여요. "
-              : "작성자가 아직 보내지 않은 기록이에요. "}
+              ? "작성자에게 되돌린 기록이에요. 작성자가 고쳐 다시 전송하면 검토 대기에 보여요. "
+              : "작성자가 아직 전송하지 않은 기록이에요. "}
           {record.status === "approved" && (
             <Link className="text-link" href={`/approved?id=${record.id}`}>
               승인한 기록에서 보기
@@ -225,7 +225,7 @@ function ReviewRecord() {
       <section className="panel summary">
         <span>
           작성자 수정: {summary.worker.map((key) => itemLabel(key).ko).join(", ") || "없음"} ·
-          담당자 수정: {summary.reviewer.map((key) => itemLabel(key).ko).join(", ") || "없음"} · AI
+          관리자 수정: {summary.reviewer.map((key) => itemLabel(key).ko).join(", ") || "없음"} · AI
           그대로 {summary.aiCount}개
         </span>
         <span className={`checks ${unresolved === 0 ? "ok" : ""}`}>
@@ -344,7 +344,7 @@ function ReviewRecord() {
           const next = returnRecord(db, record.id, reason, now());
           if ("error" in next) return;
           if (real) {
-            // 담당자는 한국어 사유만 보낸다(결정 2026-10-28-되돌림사유한국어).
+            // 관리자는 한국어 사유만 보낸다(결정 2026-10-28-되돌림사유한국어).
             // 실패하면 창 안에 이유를 남긴다(이슈 #114: 창이 그대로 있고 아무 반응이 없던 문제)
             setReturnError("");
             void real.actions.returnRecord(record.id, reason).then((result) => {
@@ -581,7 +581,7 @@ function ReturnModal({
     <DeskModal open={open} onClose={onClose} label="작성자에게 되돌리기">
       <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>작성자에게 되돌리기</h2>
       <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
-        작성자가 고쳐서 다시 보내요.
+        작성자가 고쳐서 다시 전송해요.
       </p>
       <p className="flabel">다시 볼 항목 (고르면 사유 앞에 붙어요)</p>
       <div className="chips" style={{ marginBottom: 14 }}>
@@ -629,7 +629,7 @@ function ReturnModal({
       )}
       <p className="info-note">
         되돌리면 승인 대기에서 빠지고, 작성자 오늘 화면에 주황 띠로 보여요. 작성자가 고친 항목은
-        담당자가 다시 확인해요.
+        관리자가 다시 확인해요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
         <button type="button" className="dbtn" onClick={onClose}>

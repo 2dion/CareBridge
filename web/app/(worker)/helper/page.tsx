@@ -1,6 +1,6 @@
 "use client";
 
-// W6(도우미, 피그마 M35~M39): 교재 근거 질문·답. 기록을 대신 쓰거나 고치지 않는다.
+// W6(도우미): 교재 근거 질문·답. 기록을 대신 쓰거나 고치지 않는다.
 // 답변은 남이 쓴 내용이라 병기(원칙 ②), 내 질문은 그대로(①).
 import { useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
@@ -101,8 +101,8 @@ export default function HelperPage() {
         }
       />
       <div className="reason-box big helper-notice" role="note">
-        <b>건강·안전 문제는 담당자에게 먼저 보고하세요.</b>
-        <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo người phụ trách.</span>
+        <b>건강·안전 문제는 관리자에게 먼저 보고하세요.</b>
+        <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo người quản lý.</span>
       </div>
       <div className="chat" aria-live="polite">
         {messages.length === 0 ? (

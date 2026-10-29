@@ -64,7 +64,7 @@ describe("askHelper", () => {
     expect(r).toEqual({ status: 503, body: { error: "ai_not_configured" } });
   });
 
-  it("담당자 403, 로그인 안 함 401, 질문이 비거나 너무 길면 400", async () => {
+  it("관리자 403, 로그인 안 함 401, 질문이 비거나 너무 길면 400", async () => {
     const reviewer = fakeDeps({
       currentUser: vi.fn(async () => ({
         id: "r1",

@@ -1,6 +1,6 @@
 "use client";
 
-// AI 사용 원칙(피그마 M42). AGENTS.md '바꾸지 않는 원칙' 1·2를 작성자 말로 옮김.
+// W5 · AI 사용 원칙. AGENTS.md '바꾸지 않는 원칙' 1·2를 작성자 말로 옮김.
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
@@ -19,10 +19,10 @@ const steps = [
     bodyVi: "Sửa chỗ sai và bổ sung chỗ thiếu.",
   },
   {
-    ko: "담당자가 승인해요",
-    vi: "Người phụ trách phê duyệt.",
-    body: "담당자가 확인하고 승인해야 기록이 끝나요.",
-    bodyVi: "Bản ghi hoàn tất khi người phụ trách duyệt.",
+    ko: "관리자가 승인해요",
+    vi: "Người quản lý phê duyệt.",
+    body: "관리자가 확인하고 승인해야 기록이 끝나요.",
+    bodyVi: "Bản ghi hoàn tất khi người quản lý duyệt.",
   },
 ];
 
@@ -67,9 +67,9 @@ export default function AiPrinciplesPage() {
         >
           <Icon name="alert" />
           <div>
-            <b>건강·안전 문제는 담당자에게 먼저 알려 주세요.</b>
+            <b>건강·안전 문제는 관리자에게 먼저 알려 주세요.</b>
             <span className="vi" style={{ display: "block" }}>
-              Hãy báo người phụ trách trước khi có vấn đề sức khỏe hoặc an toàn.
+              Hãy báo người quản lý trước khi có vấn đề sức khỏe hoặc an toàn.
             </span>
           </div>
         </div>

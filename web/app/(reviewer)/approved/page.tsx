@@ -1,6 +1,6 @@
 "use client";
 
-// R3(승인한 기록, 피그마 D02): 왼쪽 목록, 오른쪽 내용과 진행 4단계. 인쇄·PDF는 /print/[id].
+// M3(승인한 기록): 왼쪽 목록, 오른쪽 내용과 진행 4단계. 인쇄·PDF는 /print/[id].
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -203,7 +203,7 @@ function ApprovedDetail({ record }: { record: DemoRecord }) {
             <dd>
               {item.value_ko}
               {item.resolution === "confirmed_by_reviewer" && (
-                <span className="muted"> (담당자 확인함)</span>
+                <span className="muted"> (관리자 확인함)</span>
               )}
             </dd>
           </div>

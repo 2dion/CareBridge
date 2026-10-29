@@ -1,6 +1,6 @@
 "use client";
 
-// 기록 시작(피그마 M05~M07): 음성으로 기록 / 글로 쓰기. 임시 저장이 있으면 그 방법 카드에 표시.
+// W2(기록 시작): 음성으로 기록 / 글로 쓰기. 임시 저장이 있으면 그 방법 카드에 표시.
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -16,8 +16,8 @@ const createErrors: Record<CreateError, { ko: string; vi: string }> = {
     vi: "Không thể ghi cho ngày trong tương lai.",
   },
   too_old: {
-    ko: "7일이 지나 이 날 기록은 쓸 수 없어요. 담당자에게 알려 주세요.",
-    vi: "Đã quá 7 ngày nên không thể ghi. Hãy báo người phụ trách.",
+    ko: "7일이 지나 이 날 기록은 쓸 수 없어요. 관리자에게 알려 주세요.",
+    vi: "Đã quá 7 ngày nên không thể ghi. Hãy báo người quản lý.",
   },
   no_care_day: {
     ko: "기록 없음으로 처리한 날이에요.",

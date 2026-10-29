@@ -97,7 +97,7 @@ describe("draftStateOf", () => {
 });
 
 describe("mapRecord", () => {
-  const names = (id: string | null) => (id === "rv" ? "박 담당자" : id === "w1" ? "마이" : "");
+  const names = (id: string | null) => (id === "rv" ? "박 관리자" : id === "w1" ? "마이" : "");
   const mapped = mapRecord(
     record,
     {
@@ -143,13 +143,13 @@ describe("mapRecord", () => {
     expect(mapped.items[0].detail).toMatchObject({ start: "14:00", end: "17:00" });
   });
 
-  it("담당자가 고친 항목은 고치기 전 내용을 이력에서", () => {
+  it("관리자가 고친 항목은 고치기 전 내용을 이력에서", () => {
     expect(mapped.items[1].before_ko).toBe("조금 드심");
   });
 
   it("되돌린 사람·처음 보낸 때·작성자 이름·숫자 서식 칸", () => {
     expect(mapped).toMatchObject({
-      returnedBy: "박 담당자",
+      returnedBy: "박 관리자",
       firstSubmittedAt: "2026-10-28T00:00:00Z",
       workerName: "마이",
       formType: "12",

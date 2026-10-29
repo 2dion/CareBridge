@@ -20,8 +20,8 @@ export type ActionError = {
 
 const MESSAGES: Record<string, { ko: string; vi: string }> = {
   ai_not_configured: {
-    ko: "AI 기능이 아직 켜지지 않았어요. 담당자에게 알려 주세요.",
-    vi: "Tính năng AI chưa được bật. Hãy báo người phụ trách.",
+    ko: "AI 기능이 아직 켜지지 않았어요. 관리자에게 알려 주세요.",
+    vi: "Tính năng AI chưa được bật. Hãy báo người quản lý.",
   },
   unconfirmed_items: {
     ko: "아직 확인하지 않은 항목이 있어요.",
@@ -40,8 +40,8 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
   record_locked: { ko: "승인된 기록은 고칠 수 없어요.", vi: "Không thể sửa bản ghi đã duyệt." },
   // 권한·날짜 거절(이슈 #114). DB 트리거·API 오류 키와 같은 글자(supabase/README.md, 공통 계약 '응답 코드와 오류 키')
   reviewer_only: {
-    ko: "담당자(강사)만 할 수 있어요.",
-    vi: "Chỉ người phụ trách (giảng viên) mới làm được.",
+    ko: "관리자(강사)만 할 수 있어요.",
+    vi: "Chỉ người quản lý (giảng viên) mới làm được.",
   },
   not_record_worker: {
     ko: "이 기록을 쓴 사람만 할 수 있어요.",
@@ -69,7 +69,7 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
   },
   not_signed_in: { ko: "다시 로그인해 주세요.", vi: "Hãy đăng nhập lại." },
   stt_failed: {
-    ko: "음성을 글자로 바꾸지 못했어요. 다시 보내거나 글로 써 주세요.",
+    ko: "음성을 글자로 바꾸지 못했어요. 다시 올리거나 글로 써 주세요.",
     vi: "Không chuyển được giọng nói thành văn bản. Hãy gửi lại hoặc viết trực tiếp.",
   },
   empty_transcript: {
@@ -251,7 +251,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .eq("care_date", careDate);
       return after(dbError(error) ?? { ok: true as const });
     },
-    /** R4: 담당 연결의 방문 요일·담당 시작일(담당자, RLS). 방문 시간은 DB 칸이 없어 저장하지 않는다 */
+    /** M4: 담당 연결의 방문 요일·담당 시작일(관리자, RLS). 방문 시간은 DB 칸이 없어 저장하지 않는다 */
     async updateResident(residentId: string, edit: ResidentEdit) {
       const { error } = await supabase
         .from("assignments")
@@ -280,7 +280,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .eq("id", auth.user.id);
       return after(dbError(error) ?? { ok: true as const });
     },
-    /** 되돌아온 기록의 사유를 작성자 모국어로 번역해 채움(W3·W4를 열 때, 결정 2026-10-28-되돌림사유번역). 다시 읽기는 부르는 쪽이 한다 */
+    /** 수정 필요 기록의 사유를 작성자 모국어로 번역해 채움(W3·W4를 열 때, 결정 2026-10-28-되돌림사유번역). 다시 읽기는 부르는 쪽이 한다 */
     async translateReturnReason(recordId: string) {
       return callApi(`/api/records/${recordId}/return/translate`);
     },
@@ -288,7 +288,7 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
     async askHelper(question: string) {
       return callApi<HelperAnswer>("/api/helper/ask", { body: { question } });
     },
-    /** R2 'AI 작업 기록'(담당자는 같은 기관 agent_steps 읽기) */
+    /** M2 'AI 작업 기록'(관리자는 같은 기관 agent_steps 읽기) */
     async agentSteps(recordId: string) {
       const { data } = await supabase
         .from("agent_steps")

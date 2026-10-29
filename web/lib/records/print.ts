@@ -1,4 +1,4 @@
-// 인쇄용 기록: 승인한 기록(R3)의 9개 항목과 서식 정보를 돌려준다.
+// 인쇄용 기록: 승인한 기록(M3)의 9개 항목과 서식 정보를 돌려준다.
 // 근거: 문서/설계/데이터구조-v1.6.3.md '공통 계약' GET /api/records/:id/print, '서식 칸 대응' verified 표
 // DB 호출은 PrintDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
@@ -40,7 +40,7 @@ export type PrintDeps = {
   listItems(recordId: string): Promise<PrintItem[]>;
 };
 
-// GET /api/records/:id/print — 담당자·강사, approved 기록만
+// GET /api/records/:id/print — 관리자·강사, approved 기록만
 export async function printRecord(recordId: string, deps: PrintDeps): Promise<ApiResult> {
   const user = await deps.currentUser();
   if (!user) return { status: 401, body: { error: "not_signed_in" } };

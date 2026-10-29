@@ -163,7 +163,7 @@ export default function PrintPage() {
             </p>
             {needsArea && (
               <label className="flabel">
-                특이사항을 넣을 영역 (담당자 선택)
+                특이사항을 넣을 영역 (관리자 선택)
                 <select
                   className="field"
                   value={notesArea}

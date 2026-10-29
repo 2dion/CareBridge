@@ -1,4 +1,4 @@
-// 항목 하나 고치기: PATCH /api/records/:id/items/:key (W3 작성자, R2 담당자·강사).
+// 항목 하나 고치기: PATCH /api/records/:id/items/:key (W3 작성자, M2 관리자·강사).
 // 근거: 문서/설계/데이터구조-v1.6.3.md '공통 계약' PATCH 규칙, 문서/결정/2026-10-28-항목하나저장.md
 // 순서: ① 로그인한 사람 권한으로 저장(트리거가 확인 풀림·재확인·옛 번역 비움·이력을 맡음)
 //       ② value_ko가 바뀌었으면 서버가 다시 번역 ③ save_ai_item(translation)으로 번역만 저장.
@@ -117,7 +117,7 @@ export async function patchItem(
   if (!record) return fail(404, "record_not_found");
   if (record.status === "approved") return fail(409, "record_locked");
 
-  // PATCH 규칙: draft·returned면 작성자만, submitted면 담당자만
+  // PATCH 규칙: draft·returned면 작성자만, submitted면 관리자만
   const isWorker = record.worker_id === user.id;
   if (record.status === "submitted") {
     if (user.role !== "reviewer") return fail(403, "reviewer_only");

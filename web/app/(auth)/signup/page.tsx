@@ -1,6 +1,6 @@
 "use client";
 
-// A2(회원가입, 피그마 M33·M34): 한 화면에서 모두 채우고 [가입하기] 한 번. 가입 코드가 기관·역할을 정한다.
+// A2(회원가입): 한 화면에서 모두 채우고 [가입하기] 한 번. 가입 코드가 기관·역할을 정한다.
 // 로그인 전이라 늘 병기. MVP는 병기 모드 하나라 모국어 칸을 숨기고 vi를 보낸다(병기모드우선 결정).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -120,7 +120,7 @@ export default function SignupPage() {
       return;
     }
     const joined = encodeURIComponent(
-      `${orgName} · ${role === "worker" ? "작성자" : "담당자"}로 가입했습니다`,
+      `${orgName} · ${role === "worker" ? "작성자" : "관리자"}로 가입했습니다`,
     );
     router.push(role === "worker" ? `/guide?joined=${joined}` : "/review");
   };
@@ -148,12 +148,12 @@ export default function SignupPage() {
           />
           {codeError ? (
             <FieldError
-              ko="가입 코드가 맞지 않습니다. 담당자에게 다시 확인하세요."
+              ko="가입 코드가 맞지 않습니다. 관리자에게 다시 확인하세요."
               vi="Mã không đúng. Hãy hỏi lại người quản lý."
             />
           ) : (
             <small className="hint-line">
-              담당자(교육원은 강사)에게 받은 코드 ·{" "}
+              관리자(교육원은 강사)에게 받은 코드 ·{" "}
               <span className="vi">Mã do người quản lý cấp</span>
             </small>
           )}
@@ -256,7 +256,7 @@ export default function SignupPage() {
               onChange={(event) => setAgree(event.target.checked)}
             />
             <span>
-              <b>AI 결과는 초안이며 담당자가 승인합니다.</b>
+              <b>AI 결과는 초안이며 관리자가 승인합니다.</b>
               <b>어르신·가족 실명을 쓰지 않습니다.</b>
               <span className="vi">
                 Kết quả AI là bản nháp, người quản lý duyệt. Không dùng tên thật.
@@ -275,10 +275,10 @@ export default function SignupPage() {
           {more && (
             <div style={{ fontSize: 13, color: "var(--color-sub)", display: "grid", gap: 6 }}>
               <p>
-                AI가 말한 내용을 항목별 초안으로 정리하고, 작성자가 확인한 뒤 담당자가 승인해야
+                AI가 말한 내용을 항목별 초안으로 정리하고, 작성자가 확인한 뒤 관리자가 승인해야
                 기록이 끝나요. 말하지 않은 내용은 지어내지 않아요.
                 <span className="vi" style={{ display: "block" }}>
-                  AI soạn bản nháp, người ghi chép kiểm tra, người phụ trách duyệt.
+                  AI soạn bản nháp, người ghi chép kiểm tra, người quản lý duyệt.
                 </span>
               </p>
               <p>
@@ -315,7 +315,7 @@ export default function SignupPage() {
         </button>
         {!supabaseConfigured() && (
           <p className="foot-note" style={{ margin: "0 0 20px" }}>
-            시연(Mock) 가입 코드: DEMO-CARE-24 (작성자), DEMO-STAFF-24 (담당자)
+            시연(Mock) 가입 코드: DEMO-CARE-24 (작성자), DEMO-STAFF-24 (관리자)
           </p>
         )}
       </form>

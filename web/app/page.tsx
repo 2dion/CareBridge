@@ -1,6 +1,6 @@
 "use client";
 
-// Mock 시연 입구. 로그인 대신 작성자·담당자를 고른다(화면 v1.3 '개발 환경': Mock에서는 전환 버튼을 그대로 씀).
+// Mock 시연 입구. 로그인 대신 작성자·관리자를 고른다(화면 v1.3 '개발 환경': Mock에서는 전환 버튼을 그대로 씀).
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -46,7 +46,7 @@ export default function Home() {
           </Link>
           <Link className="btn btn-outline" href="/review">
             <span className="spacer" />
-            <span className="label">담당자로 시작</span>
+            <span className="label">관리자로 시작</span>
             <Icon name="next" />
           </Link>
           <Link className="text-link" href="/login">

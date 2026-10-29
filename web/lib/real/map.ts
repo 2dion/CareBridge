@@ -1,5 +1,5 @@
 // 실제 Supabase에서 읽은 줄을 화면이 쓰는 모양(DemoDb)으로 바꾼다. 화면 코드는 Mock과 같은 모양을 그대로 읽는다.
-// 근거: 문서/설계/데이터구조-v1.6.3.md 표 구조·상태 값. 계산(못 쓴 기록·늦게 보낸 기록)은 DB 함수 결과를 그대로 쓴다.
+// 근거: 문서/설계/데이터구조-v1.6.3.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
 import type { ItemKey, ItemStatus, RecordStatus, Resolution } from "../demo/state";
 import type {
   DemoDb,
@@ -104,7 +104,7 @@ export const FONT_VALUE: Record<FontSize, number> = { small: 1, normal: 2, large
 
 const hhmm = (time: string | null) => (time ? time.slice(0, 5) : null);
 
-/** 담당 연결이 여럿이면(담당자 화면) 가장 이른 시작일과 방문 요일 합집합을 쓴다 */
+/** 담당 연결이 여럿이면(관리자 화면) 가장 이른 시작일과 방문 요일 합집합을 쓴다 */
 export function mapResidents(
   residents: ResidentRow[],
   assignments: AssignmentRow[],
@@ -282,7 +282,7 @@ export function mapNoCare(rows: NoCareRow[], nameOf: (id: string | null) => stri
 export function toDemoDb(rows: RealRows, today: string): DemoDb {
   const names = new Map(rows.staff.map((person) => [person.id, person.name]));
   names.set(rows.profile.id, rows.profile.name);
-  const fallback = rows.profile.role === "worker" ? "담당자" : "작성자";
+  const fallback = rows.profile.role === "worker" ? "관리자" : "작성자";
   const nameOf = (id: string | null) => (id ? (names.get(id) ?? fallback) : "");
   const isWorker = rows.profile.role === "worker";
   const firstWorker = rows.staff.find((person) => person.role === "worker");

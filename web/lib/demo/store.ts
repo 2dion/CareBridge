@@ -1,4 +1,4 @@
-// 작성자·담당자 화면이 함께 쓰는 Mock 데이터(브라우저 저장).
+// 작성자·관리자 화면이 함께 쓰는 Mock 데이터(브라우저 저장).
 // 실제 API·Supabase가 붙기 전까지 화면이 같은 규칙(데이터구조 v1.6.2 공통 계약)으로 움직이게 한다.
 // 상태 변화·승인 조건·못 쓴 기록 계산은 여기 코드가 맡고, AI에게 맡기지 않는다(AGENTS.md 원칙 5).
 import f01 from "./s-f01.json";
@@ -33,7 +33,7 @@ export type Resident = {
 };
 
 export type RecordItem = Item & {
-  /** 담당자가 고치기 전 내용(W3 되돌아온 기록 ‘고치기 전’). */
+  /** 관리자가 고치기 전 내용(W3 수정 필요 기록 ‘고치기 전’). */
   before_ko?: string;
   /** [기록 안 함] 사유. */
   resolution_note?: string;
@@ -113,7 +113,7 @@ export const noCareReasonLabel: Record<NoCareReason, { ko: string; vi: string }>
   other: { ko: "기타 (직접 쓰기)", vi: "Khác" },
 };
 
-/** W3·R2 표시 순서: 별지 제12호·제16호처럼 인지 변화를 복약 관찰 앞에 둔다(화면 v1.3 W3 항목 순서). */
+/** W3·M2 표시 순서: 별지 제12호·제16호처럼 인지 변화를 복약 관찰 앞에 둔다(화면 v1.3 W3 항목 순서). */
 export const displayOrder: ItemKey[] = [
   "visit_time",
   "support",
@@ -394,7 +394,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
       visitDays: null,
       visitTime: "07:00~16:00",
       caseId: "S-F05",
-      // 담당을 10일 전에 시작: 8~10일 전 빈 날이 R1 '기한 지난 빈 기록'에 보이게(기한지난빈기록 결정)
+      // 담당을 10일 전에 시작: 8~10일 전 빈 날이 M1 '기한 지난 빈 기록'에 보이게(기한지난빈기록 결정)
       startDate: addDays(today, -10),
     },
   ];
@@ -403,7 +403,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
   const reviewer = "박 사회복지사";
   const records: DemoRecord[] = [];
 
-  // 김○○(시설, S-F01): 어제 임시 저장, 3일 전 되돌아옴, 5일 전 보냄, 그 밖은 승인·빈 날
+  // 김○○(시설, S-F01): 어제 임시 저장, 3일 전 수정 필요, 5일 전 전송 완료, 그 밖은 승인·빈 날
   records.push(filledRecord(kim, addDays(today, -1), "14:30", worker));
   records.push(
     seedApproved(
@@ -459,7 +459,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
     ),
   );
 
-  // 이○○(재가, S-H01): 방문 요일 중 가장 가까운 지난 날은 보냄(제공시간 합 200분 > 방문 180분)
+  // 이○○(재가, S-H01): 방문 요일 중 가장 가까운 지난 날은 전송 완료(제공시간 합 200분 > 방문 180분)
   const leeDays = [-1, -2, -3, -4, -5, -6, -7]
     .map((n) => addDays(today, n))
     .filter((date) => lee.visitDays?.includes(isoWeekday(date)));
@@ -710,7 +710,7 @@ export function fillMockDraft(db: DemoDb, id: string, now: string): DemoDb {
       draftState: "ready",
       transcript: record.transcript || transcript,
       transcriptKo: record.transcript ? record.transcriptKo : transcriptKo,
-      // 작성자·담당자가 쓴 항목(source가 ai가 아님)은 AI가 덮어쓰지 않는다(AGENTS.md 원칙 4).
+      // 작성자·관리자가 쓴 항목(source가 ai가 아님)은 AI가 덮어쓰지 않는다(AGENTS.md 원칙 4).
       items: caseItems(resident.caseId).map(
         (item) =>
           record.items.find((old) => old.item_key === item.item_key && old.source !== "ai") ?? item,
@@ -823,7 +823,7 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
   };
 }
 
-/** 작성자가 고침: source=worker, confirmed=true. 되돌아온 기록이면 resolution을 비운다(되돌림재확인 결정). */
+/** 작성자가 고침: source=worker, confirmed=true. 수정 필요 기록이면 resolution을 비운다(되돌림재확인 결정). */
 export function workerEditItem(
   db: DemoDb,
   id: string,
