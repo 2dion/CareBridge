@@ -233,8 +233,21 @@ export default function ItemEditPage() {
                 </span>
                 <b>{item.source === "ai" ? "AI가 정리한 내용" : "지금 내용"}</b>
               </div>
-              <p>{item.value_ko}</p>
-              {item.value_native && <span className="vi">{item.value_native}</span>}
+              {item.status === "needs_check" && !item.value_ko.trim() ? (
+                // AI가 '확인 필요'로 두면서 내용을 비워 둔 경우: 빈 문단 대신 그 사실을 알린다(이슈 #141, 서버 검사는 #162)
+                <>
+                  <p>AI가 내용을 정하지 못했어요. 확인 이유를 보고 고칠 내용을 써 주세요.</p>
+                  <span className="vi">
+                    AI chưa xác định được nội dung. Hãy xem lý do cần kiểm tra và viết nội dung cần
+                    sửa.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <p>{item.value_ko}</p>
+                  {item.value_native && <span className="vi">{item.value_native}</span>}
+                </>
+              )}
             </section>
             {item.evidence && (
               <div className="said-box">
