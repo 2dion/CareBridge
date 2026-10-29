@@ -95,6 +95,13 @@ describe("모국어로 고친 내용 (이슈 #118)", () => {
     expect(prompt).toContain("확인 요청 문장은");
     expect(prompt).toContain("reason에만 쓴다");
   });
+
+  it("프롬프트에 '한국어 말투 그대로 쓴 글도 기록체로 고침'과 성별 중립 번역 규칙이 있음 (이슈 #121)", () => {
+    const prompt = addItemSystemPrompt("sleep", "vi");
+    expect(prompt).toContain("말투 그대로 쓴 글");
+    expect(prompt).toContain("기록체로 고쳐 쓴다");
+    expect(prompt).toContain("ông/bà");
+  });
 });
 
 describe("기록 내용의 확인 요청 문장 (이슈 #117)", () => {

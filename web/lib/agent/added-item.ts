@@ -26,6 +26,8 @@ export function addItemSystemPrompt(itemKey: ItemKey, nativeLang: "ko" | "vi") {
    value_ko에 넣지 않고 reason에만 쓴다(서버가 걸러 낸다).
    value_native는 그 번역, reason을 쓰면 reason_native에 그 번역을 쓴다.
 5. 작성자가 베트남어 등 모국어로 말했어도 value_ko는 반드시 한국어 기록체로 옮긴다. 모국어 문장을 value_ko에 그대로 넣지 않는다.
+   한국어로 말투 그대로 쓴 글("밤 10시에 방에 들어가서 주무시는 모습을 직접 봤어요")도 기록체로 고쳐 쓴다
+   ("22시경 취침하시는 모습을 직접 확인함"). 말한 문장을 그대로 옮기지 않는다.
    value_native와 reason_native는 성별을 정하지 말고 ông/bà처럼 쓴다.
 6. 새로 말한 글이 지금 항목의 '확인 필요' 이유를 풀어 주면(예: 직접 봤다고 말함) 그 이유를 다시 쓰지 않는다.
    reason은 새 내용 기준으로만 쓰고, 이유가 없으면 빈칸이다.

@@ -146,7 +146,7 @@ export const AGENT_TOOLS = [
   {
     name: "search_glossary",
     description:
-      "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 고정 베트남어 번역으로 찾는다. 결과가 비면 뜻을 짐작하지 말고 그 항목을 needs_check로 둔다.",
+      "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 고정 베트남어 번역으로 찾는다. 결과가 비어도 뜻이 분명한 일상 표현은 교재 용어 없이 기록체로 정리한다(observed). 뜻을 짐작해야 하는 말만 needs_check로 두고, 짐작한 내용을 reason에 쓴다.",
     input_schema: {
       type: "object",
       properties: {
@@ -204,16 +204,24 @@ export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
 
 규칙:
 1. 원문에 없는 내용은 쓰지 않는다. 없으면 status=not_mentioned, value_ko="".
+   notes(특이사항)와 next_check(다음 확인사항)도 같다. 원문에 특이한 일이나 다음에 볼 일이 없으면
+   not_mentioned로 두고, 다른 항목의 내용을 요약하거나 추측해 채우지 않는다. reason에도 추측을 쓰지 않는다.
 2. 내용을 쓴 항목은 evidence에 원문 문장을 한 글자도 바꾸지 않고 옮긴다.
-3. 양·정도가 모호하거나, 사투리를 짐작했거나, search_glossary 결과가 비었거나,
+3. 양·정도가 모호하거나, 사투리·일상 표현의 뜻을 짐작했거나,
    말이 서로 맞지 않거나, 낙상·상처·호흡·의식·통증·복약 이상이 있으면
    status=needs_check이고 reason을 쓴다.
+   search_glossary 결과가 비어도 뜻이 분명한 일상 표현("화장실에 한 번 모시고 감", "날짜를 두 번 물으심",
+   "실수 없음", "잘 주무심")은 교재 용어 없이 기록체로 정리하고 observed로 둔다.
+   "용어 검색 결과 없음"만으로 needs_check로 두지 않는다. 뜻을 짐작해야 하는 말만 needs_check다.
+   받아쓴 글이 베트남어 등 모국어여도 같다. 수면·식사처럼 뜻이 분명하면 observed로 정리한다.
 4. 진단하지 말고 본 것만 쓴다. 호전/유지/악화는 원문에 비교가 있을 때만.
 5. value_ko는 한국어 기록체(~하심, ~드심), 교재 용어. value_native는 그 번역.
    value_ko에는 원문을 정리한 기록 내용만 쓴다. "확인 필요", "용어 확인", "불명확",
    "~인지 확인해 주세요" 같은 확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다
    (서버가 걸러 내고 그 항목을 needs_check로 둔다).
    reason을 쓰면 reason_native에 그 번역을 쓴다.
+   value_native·reason_native는 어르신의 성별을 정하지 않는다. "cô ấy", "ông ấy"처럼 성별이 드러나는
+   말 대신 "ông/bà"처럼 중립으로 쓴다.
    용어 목록에 있는 말은 search_glossary가 준 고정 번역만 쓴다.
    받아쓴 글은 한국어만, 모국어만, 둘이 섞인 말일 수 있다. 어느 경우든 value_ko는
    한국어로 쓰고, evidence는 원문 언어 그대로 옮긴다. transcript_ko는 원문 전체의 한국어 번역이다.
