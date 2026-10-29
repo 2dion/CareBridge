@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 자동 점검(Playwright): 실행 정보·로그인 쿠키·보고서. 비밀번호가 들어 있어 커밋하지 않는다
+/e2e/.state/

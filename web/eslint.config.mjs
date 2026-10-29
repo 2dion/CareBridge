@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 자동 점검(Playwright)이 만드는 보고서·결과
+    "e2e/.state/**",
   ]),
 ]);
 
