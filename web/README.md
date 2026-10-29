@@ -1,6 +1,6 @@
 # web
 
-케어브릿지 앱(화면 + 서버 API)입니다. Next.js(TypeScript) 하나로 작성자 폰 화면, 담당자 PC 화면, 서버 API를 같이 만듭니다.
+케어브릿지 앱(화면 + 서버 API)입니다. Next.js(TypeScript) 하나로 작성자 폰 화면, 관리자 PC 화면, 서버 API를 같이 만듭니다.
 
 - **목적:** 팀원 누구나 같은 명령으로 앱을 띄우고 같은 검사를 통과시키게 합니다.
 - **배경:** 10/23 기능 마감까지 여러 사람이 동시에 AI 코딩 도구로 코드를 씁니다. 키가 없는 팀원도 바로 개발할 수 있어야 합니다.
@@ -59,7 +59,7 @@ PR 전에 `npm run check`가 통과해야 합니다. GitHub Actions "web 검사"
 | `lib/supabase/` | Supabase 클라이언트 (`server.ts` 서버용, `client.ts` 브라우저용)                                        |
 
 - `lib/ai`, `lib/stt`, `lib/supabase/server.ts`는 맨 위에 `import "server-only"`가 있어, 브라우저 코드에서 부르면 빌드가 깨집니다. 키가 새는 것을 막는 장치이니 지우지 않습니다.
-- 지금은 뼈대만 있습니다. 화면(W0~W6, R1~R4), API, Agent 반복, Mock 응답 내용은 각 담당이 채웁니다.
+- 지금은 뼈대만 있습니다. 화면(W0~W6, M1~M4), API, Agent 반복, Mock 응답 내용은 각 담당이 채웁니다.
 
 ## Vercel 연결
 
