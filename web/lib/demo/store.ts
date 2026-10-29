@@ -45,7 +45,10 @@ export type RecordEvent = {
   type: EventType;
   actor: string;
   at: string;
+  /** 누가 했는지. AI 줄(ai_filled)은 비움. 요약 띠·처리 이력은 record_items.source 대신 이것을 본다(이슈 #124) */
+  actor_role?: "worker" | "reviewer";
   item_key?: ItemKey;
+  /** returned면 되돌림 사유, resolved면 고른 값(confirmed_by_reviewer / omitted / reopened) */
   note?: string;
 };
 
@@ -91,7 +94,7 @@ export type NoCareDay = {
 export type FontSize = "small" | "normal" | "large";
 
 export type DemoDb = {
-  version: 3;
+  version: 4;
   seededOn: string;
   worker: { name: string; email: string; org: string };
   reviewer: { name: string };
@@ -279,7 +282,7 @@ function blankRecord(resident: Resident, careDate: string, now: string, actor: s
     approvedAt: null,
     approvedBy: "",
     updatedAt: now,
-    events: [{ type: "created", actor, at: now }],
+    events: [{ type: "created", actor, actor_role: "worker", at: now }],
   };
 }
 
@@ -294,6 +297,24 @@ function filledRecord(resident: Resident, careDate: string, time: string, actor:
     inputMode: "voice" as const,
     items: caseItems(resident.caseId),
     events: [...record.events, { type: "ai_filled" as const, actor: "AI", at: created }],
+  };
+}
+
+/** 시드에서 작성자가 고친 항목: 요약 띠·처리 이력이 보는 edited 줄을 함께 남긴다 */
+function withSeedEdit(record: DemoRecord, key: ItemKey): DemoRecord {
+  const last = record.events[record.events.length - 1];
+  return {
+    ...record,
+    events: [
+      ...record.events,
+      {
+        type: "edited",
+        actor: record.events[0].actor,
+        actor_role: "worker",
+        at: last.at,
+        item_key: key,
+      },
+    ],
   };
 }
 
@@ -314,7 +335,7 @@ function seedSubmitted(record: DemoRecord, time: string, actor: string): DemoRec
     firstSubmittedAt: when,
     submittedAt: when,
     updatedAt: when,
-    events: [...record.events, { type: "submitted", actor, at: when }],
+    events: [...record.events, { type: "submitted", actor, actor_role: "worker", at: when }],
   };
 }
 
@@ -329,7 +350,10 @@ function seedApproved(record: DemoRecord, reviewer: string): DemoRecord {
     items: record.items.map((item) =>
       item.status === "needs_check" ? { ...item, resolution: "confirmed_by_reviewer" } : item,
     ),
-    events: [...record.events, { type: "approved", actor: reviewer, at: when }],
+    events: [
+      ...record.events,
+      { type: "approved", actor: reviewer, actor_role: "reviewer", at: when },
+    ],
   };
 }
 
@@ -415,15 +439,16 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
     ),
   );
   const returned = seedSubmitted(
-    withMealAddition(filledRecord(kim, addDays(today, -3), "16:00", worker)),
+    withSeedEdit(withMealAddition(filledRecord(kim, addDays(today, -3), "16:00", worker)), "meal"),
     "16:20",
     worker,
   );
   const returnedAt = at(addDays(today, -2), "09:10");
+  const returnReason = "식사량을 ‘조금’이 아니라 ‘절반 정도’로 고쳤어요. 맞는지 확인해 주세요.";
   records.push({
     ...returned,
     status: "returned",
-    returnReason: "식사량을 ‘조금’이 아니라 ‘절반 정도’로 고쳤어요. 맞는지 확인해 주세요.",
+    returnReason,
     returnReasonNative: "Tôi đã sửa lượng ăn thành “khoảng một nửa”. Hãy kiểm tra lại.",
     returnedBy: reviewer,
     returnedAt,
@@ -444,13 +469,22 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
     ),
     events: [
       ...returned.events,
-      { type: "edited", actor: reviewer, at: returnedAt, item_key: "meal" },
-      { type: "returned", actor: reviewer, at: returnedAt },
+      { type: "edited", actor: reviewer, actor_role: "reviewer", at: returnedAt, item_key: "meal" },
+      {
+        type: "returned",
+        actor: reviewer,
+        actor_role: "reviewer",
+        at: returnedAt,
+        note: returnReason,
+      },
     ],
   });
   records.push(
     seedSubmitted(
-      withMealAddition(filledRecord(kim, addDays(today, -5), "16:00", worker)),
+      withSeedEdit(
+        withMealAddition(filledRecord(kim, addDays(today, -5), "16:00", worker)),
+        "meal",
+      ),
       "16:20",
       worker,
     ),
@@ -485,7 +519,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
             : item,
         ),
       };
-      records.push(seedSubmitted(filled, "17:20", worker));
+      records.push(seedSubmitted(withSeedEdit(filled, "support"), "17:20", worker));
     } else if (index === 2) {
       // 비워 둠 → 못 쓴 기록
     } else {
@@ -510,7 +544,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
   }
 
   return {
-    version: 3,
+    version: 4,
     seededOn: today,
     worker: { name: worker, email: "worker@carebridge.test", org: "케어브릿지 데모 요양센터" },
     reviewer: { name: reviewer },
@@ -857,7 +891,10 @@ export function workerEditItem(
             }
           : item,
       ),
-      events: [...record.events, { type: "edited", actor: db.worker.name, at: now, item_key: key }],
+      events: [
+        ...record.events,
+        { type: "edited", actor: db.worker.name, actor_role: "worker", at: now, item_key: key },
+      ],
     });
   });
 }
@@ -896,7 +933,10 @@ export function mockVoiceAddition(
     items: next.items.map((item) =>
       item.item_key === key && record.status === "returned" ? { ...item, resolution: null } : item,
     ),
-    events: [...record.events, { type: "edited", actor: db.worker.name, at: now, item_key: key }],
+    events: [
+      ...record.events,
+      { type: "edited", actor: db.worker.name, actor_role: "worker", at: now, item_key: key },
+    ],
   }));
 }
 
@@ -909,7 +949,10 @@ export function submitRecord(db: DemoDb, id: string, now: string): DemoDb {
           firstSubmittedAt: record.firstSubmittedAt ?? now,
           submittedAt: now,
           updatedAt: now,
-          events: [...record.events, { type: "submitted", actor: db.worker.name, at: now }],
+          events: [
+            ...record.events,
+            { type: "submitted", actor: db.worker.name, actor_role: "worker", at: now },
+          ],
         }
       : record,
   );

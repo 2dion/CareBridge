@@ -4,12 +4,14 @@ import {
   addResident,
   approveRecord,
   markOverdueNoCare,
+  processHistory,
   removeNoCareDay,
   resolveItem,
   returnRecord,
   reviewerEditItem,
   reviewOrder,
   reviewQueue,
+  sourceSummary,
   updateResident,
   wasResent,
 } from "./review";
@@ -22,6 +24,7 @@ import {
   listOverdue,
   submitRecord,
   type DemoDb,
+  workerEditItem,
 } from "./store";
 
 const TODAY = "2026-10-27";
@@ -99,6 +102,82 @@ describe("관리자 규칙 (M1~M5)", () => {
     const resent = submitRecord(returned, record.id, "2026-10-27T12:00:00+09:00");
     expect(resent.records[record.id].status).toBe("submitted");
     expect(wasResent(resent.records[record.id])).toBe(true);
+  });
+
+  // 이슈 #124: 되돌림 → 작성자 고침 → 재전송 → 관리자 수정·[확인함]·[기록 안 함] → 승인
+  it("요약 띠는 이력(edited)으로 센다: 관리자가 같은 항목을 고쳐도 작성자 수정이 남고, [기록 안 함]은 수정이 아니다", () => {
+    let db: DemoDb = createDemoDb(TODAY);
+    const record = reviewQueue(db).find((entry) => countUnresolved(entry.items) >= 2)!;
+    const [first, second] = record.items
+      .filter((item) => item.status === "needs_check")
+      .map((item) => item.item_key);
+    const seeded = sourceSummary(record);
+    db = ok(returnRecord(db, record.id, `[${first}] 다시 확인해 주세요`, NOW));
+    db = workerEditItem(db, record.id, first, { value_ko: "작성자가 고친 내용" }, NOW);
+    db = submitRecord(db, record.id, "2026-10-27T12:00:00+09:00");
+    db = reviewerEditItem(
+      db,
+      record.id,
+      first,
+      "관리자가 다듬은 내용",
+      "2026-10-27T13:00:00+09:00",
+    );
+    db = ok(
+      resolveItem(db, record.id, first, "confirmed_by_reviewer", "", "2026-10-27T13:01:00+09:00"),
+    );
+    db = ok(
+      resolveItem(db, record.id, second, "omitted", "원문에 없음", "2026-10-27T13:02:00+09:00"),
+    );
+    const summary = sourceSummary(db.records[record.id]);
+    expect(new Set(summary.worker)).toEqual(new Set([...seeded.worker, first]));
+    expect(summary.reviewer).toEqual([first]);
+    expect(summary.reviewer).not.toContain(second);
+    expect(summary.aiCount).toBe(9 - new Set([...summary.worker, ...summary.reviewer]).size);
+
+    db = ok(approveRecord(db, record.id, "2026-10-27T14:00:00+09:00"));
+    const steps = processHistory(db.records[record.id]);
+    expect(steps.map((step) => step.kind)).toEqual([
+      "created",
+      "submitted",
+      "returned",
+      "resubmitted",
+      "reviewed",
+      "approved",
+    ]);
+    expect(steps[2]).toMatchObject({
+      actor: db.reviewer.name,
+      reason: `[${first}] 다시 확인해 주세요`,
+    });
+    expect(steps[3].edited).toEqual([first]);
+    expect(steps[4]).toMatchObject({
+      edited: [first],
+      resolved: expect.arrayContaining([
+        { item_key: first, resolution: "confirmed_by_reviewer" },
+        { item_key: second, resolution: "omitted" },
+      ]),
+    });
+  });
+
+  it("승인만 한 기록도 ‘검토·수정(수정 없음)’ 단계를 두고, 되돌리기 전 관리자 수정은 되돌림 앞에 놓인다", () => {
+    const db = createDemoDb(TODAY);
+    const approved = Object.values(db.records).find((record) => record.status === "approved")!;
+    expect(processHistory(approved).map((step) => step.kind)).toEqual([
+      "created",
+      "submitted",
+      "reviewed",
+      "approved",
+    ]);
+    const returned = Object.values(db.records).find((record) => record.status === "returned")!;
+    const steps = processHistory(returned);
+    expect(steps.map((step) => step.kind)).toEqual([
+      "created",
+      "submitted",
+      "reviewed",
+      "returned",
+    ]);
+    expect(steps[2].edited).toEqual(["meal"]);
+    expect(steps[3].reason).toBe(returned.returnReason);
+    expect(sourceSummary(returned)).toMatchObject({ worker: ["meal"], reviewer: ["meal"] });
   });
 
   it("기한 지난 빈 기록: 8~30일 전 빈 날만, 관리자가 기록 없음으로 정리하면 빠진다", () => {

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { processHistory, sourceSummary } from "../demo/review";
 import { actionError, audioMime } from "./actions";
 import {
   activeJoinCodes,
   applyPrintData,
   draftStateOf,
+  type EventRow,
   type ItemRow,
   mapRecord,
   mapResidents,
@@ -174,6 +176,162 @@ describe("mapRecord", () => {
       formFields: { stool_accidents: 1, total_minutes: 180 },
       returnReasonNative: "",
     });
+  });
+});
+
+// 이슈 #124: 되돌림 → 작성자 고침 → 재전송 → 관리자 수정·[확인함]·[기록 안 함] → 승인.
+// DB는 관리자가 손댄 항목의 source를 reviewer로 바꾸므로(record_items_guard_source) 요약 띠·이력은 record_events로 본다.
+describe("mapRecord 이력(record_events)", () => {
+  const names = (id: string | null) => (id === "rv" ? "박 관리자" : id === "w1" ? "마이" : "");
+  const ev = (
+    at: string,
+    actor_id: string | null,
+    type: EventRow["type"],
+    rest: Partial<Pick<EventRow, "item_key" | "before" | "after">> = {},
+  ): EventRow => ({
+    record_id: "rec-1",
+    actor_id,
+    type,
+    item_key: null,
+    before: null,
+    after: null,
+    created_at: `2026-10-28T${at}:00Z`,
+    ...rest,
+  });
+  const flow: EventRow[] = [
+    ev("00:00", "w1", "created", { after: { status: "draft" } }),
+    ev("00:01", null, "ai_filled", { item_key: "sleep", after: { value_ko: "잘 못 잠" } }),
+    // [맞아요]만 누른 줄은 수정이 아니다
+    ev("00:02", "w1", "edited", { item_key: "meal", after: { confirmed_by_worker: true } }),
+    ev("00:10", "w1", "submitted", { before: { status: "draft" }, after: { status: "submitted" } }),
+    ev("01:00", "rv", "returned", {
+      before: { status: "submitted" },
+      after: { status: "returned", return_reason: "[수면] 다시 확인해 주세요" },
+    }),
+    ev("02:00", "w1", "edited", {
+      item_key: "sleep",
+      before: { value_ko: "잘 못 잠", source: "ai" },
+      after: { value_ko: "밤에 두 번 깸", source: "worker", resolution: null },
+    }),
+    ev("02:10", "w1", "submitted", {
+      before: { status: "returned" },
+      after: { status: "submitted" },
+    }),
+    ev("03:00", "rv", "edited", {
+      item_key: "sleep",
+      before: { value_ko: "밤에 두 번 깸", source: "worker" },
+      after: { value_ko: "밤에 두 번 깨어 화장실 다녀옴", source: "reviewer" },
+    }),
+    // 서버가 다시 번역한 줄(actor 없음, 번역만)도 수정이 아니다
+    ev("03:01", null, "edited", { item_key: "sleep", after: { value_native: "Đêm thức hai lần" } }),
+    ev("03:05", "rv", "resolved", {
+      item_key: "sleep",
+      before: { resolution: null },
+      after: { resolution: "confirmed_by_reviewer" },
+    }),
+    ev("03:10", "rv", "resolved", {
+      item_key: "next_check",
+      before: { value_ko: "혈압 다시 확인", resolution: null },
+      after: { value_ko: "", resolution: "omitted", source: "reviewer" },
+    }),
+    ev("04:00", "rv", "approved", {
+      before: { status: "submitted" },
+      after: { status: "approved" },
+    }),
+  ];
+  const mapped = mapRecord(
+    { ...record, status: "approved", approved_at: "2026-10-28T04:00:00Z", approved_by: "rv" },
+    {
+      items: [
+        item("sleep", {
+          status: "needs_check",
+          source: "reviewer",
+          value_ko: "밤에 두 번 깨어 화장실 다녀옴",
+          resolution: "confirmed_by_reviewer",
+        }),
+        item("meal", {
+          status: "observed",
+          source: "ai",
+          value_ko: "절반 드심",
+          confirmed_by_worker: true,
+        }),
+        item("next_check", {
+          status: "needs_check",
+          source: "reviewer",
+          resolution: "omitted",
+          resolution_note: "원문에 없음",
+        }),
+      ],
+      events: flow,
+      jobs: [],
+    },
+    names,
+  );
+
+  it("누가 했는지는 actor_id로(작성자 worker, 그 밖 reviewer, 서버·AI는 비움), 사유·고른 값은 note로", () => {
+    expect(mapped.events.map((event) => [event.type, event.actor_role ?? "-"])).toEqual([
+      ["created", "worker"],
+      ["ai_filled", "-"],
+      ["submitted", "worker"],
+      ["returned", "reviewer"],
+      ["edited", "worker"],
+      ["submitted", "worker"],
+      ["edited", "reviewer"],
+      ["resolved", "reviewer"],
+      ["resolved", "reviewer"],
+      ["approved", "reviewer"],
+    ]);
+    expect(mapped.events.find((event) => event.type === "returned")?.note).toBe(
+      "[수면] 다시 확인해 주세요",
+    );
+    expect(
+      mapped.events.filter((event) => event.type === "resolved").map((event) => event.note),
+    ).toEqual(["confirmed_by_reviewer", "omitted"]);
+  });
+
+  it("요약 띠: 관리자가 같은 항목을 고쳐도 작성자 수정이 남고, [기록 안 함]은 수정으로 세지 않는다", () => {
+    expect(sourceSummary(mapped)).toEqual({ worker: ["sleep"], reviewer: ["sleep"], aiCount: 2 });
+  });
+
+  it("처리 이력: 첫 전송·검토·되돌림(사유)·재전송(고친 항목)·검토(수정·확인 처리)·승인이 순서대로", () => {
+    const steps = processHistory(mapped);
+    expect(steps.map((step) => step.kind)).toEqual([
+      "created",
+      "submitted",
+      "returned",
+      "resubmitted",
+      "reviewed",
+      "approved",
+    ]);
+    expect(steps[0]).toMatchObject({ actor: "마이", at: "2026-10-28T00:00:00Z" });
+    expect(steps[2]).toMatchObject({ actor: "박 관리자", reason: "[수면] 다시 확인해 주세요" });
+    expect(steps[3]).toMatchObject({ actor: "마이", edited: ["sleep"] });
+    expect(steps[4]).toMatchObject({
+      actor: "박 관리자",
+      at: "2026-10-28T03:10:00Z",
+      edited: ["sleep"],
+      resolved: [
+        { item_key: "sleep", resolution: "confirmed_by_reviewer" },
+        { item_key: "next_check", resolution: "omitted" },
+      ],
+    });
+  });
+
+  it("[기록 안 함]으로 비운 항목도 고치기 전 내용을 이력에서 찾는다", () => {
+    expect(mapped.items.find((entry) => entry.item_key === "next_check")?.before_ko).toBe(
+      "혈압 다시 확인",
+    );
+  });
+
+  it("created 줄이 없으면 records.created_at으로 ‘작성’을 만든다", () => {
+    const noCreated = mapRecord(record, { items: [], events: [flow[3]], jobs: [] }, names);
+    expect(noCreated.events[0]).toMatchObject({
+      type: "created",
+      actor: "마이",
+      actor_role: "worker",
+      at: "2026-10-27T08:00:00Z",
+    });
+    expect(processHistory(noCreated).map((step) => step.kind)).toEqual(["created", "submitted"]);
   });
 });
 

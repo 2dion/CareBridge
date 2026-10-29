@@ -9,6 +9,7 @@ import type {
   FontSize,
   NoCareDay,
   NoCareReason,
+  RecordEvent,
   RecordItem,
   Resident,
 } from "../demo/store";
@@ -159,6 +160,60 @@ export function draftStateOf(record: RecordRow, items: ItemRow[], jobs: AudioJob
   return record.transcript.trim() || touched ? "ready" : "empty";
 }
 
+/** 항목 ‘수정’으로 치는 칸. DB의 출처 판정(record_items_guard_source)과 같다. [맞아요]·번역·사유만 바뀐 줄은 수정이 아니다 */
+const EDIT_KEYS = ["value_ko", "status", "detail"];
+
+/** record_events → 화면 이력. 요약 띠·M3 처리 이력이 쓴다(이슈 #124).
+ *  - 항목 edited 줄은 내용(value_ko·status·detail)이 바뀐 것만 남긴다
+ *  - returned 줄은 사유(after.return_reason), resolved 줄은 고른 값(after.resolution)을 note로
+ *  - created 줄이 없으면 records.created_at으로 ‘작성’을 만든다 */
+function mapEvents(
+  row: RecordRow,
+  events: EventRow[],
+  nameOf: (id: string | null) => string,
+  roleOf: (actorId: string | null) => RecordEvent["actor_role"],
+): RecordEvent[] {
+  const mapped: RecordEvent[] = events
+    .filter(
+      (event) =>
+        !(
+          event.type === "edited" &&
+          event.item_key &&
+          !EDIT_KEYS.some((key) => key in (event.after ?? {}))
+        ),
+    )
+    .map((event) => {
+      const role = roleOf(event.actor_id);
+      const note =
+        event.type === "returned"
+          ? typeof event.after?.return_reason === "string"
+            ? event.after.return_reason
+            : row.return_reason
+          : event.type === "resolved"
+            ? typeof event.after?.resolution === "string"
+              ? event.after.resolution
+              : "reopened"
+            : undefined;
+      return {
+        type: event.type,
+        actor: event.actor_id ? nameOf(event.actor_id) : "AI",
+        at: event.created_at,
+        ...(role ? { actor_role: role } : {}),
+        ...(event.item_key ? { item_key: event.item_key } : {}),
+        ...(note ? { note } : {}),
+      };
+    });
+  if (!mapped.some((event) => event.type === "created")) {
+    mapped.unshift({
+      type: "created",
+      actor: nameOf(row.worker_id),
+      actor_role: "worker",
+      at: row.created_at,
+    });
+  }
+  return mapped;
+}
+
 export function mapRecord(
   row: RecordRow,
   rows: Pick<RealRows, "items" | "events" | "jobs">,
@@ -170,6 +225,12 @@ export function mapRecord(
   const rowItems = rows.items.filter((item) => item.record_id === row.id);
   const lastReturned = [...events].reverse().find((event) => event.type === "returned");
   const firstSubmitted = events.find((event) => event.type === "submitted");
+  // 누가 했는지는 actor_id로 가른다(기록의 작성자면 worker, 그 밖의 사람은 reviewer, 서버·AI는 비움).
+  // 이름으로 가르면 관리자가 여럿인 기관에서 어긋난다.
+  const roleOf = (actorId: string | null): RecordEvent["actor_role"] =>
+    actorId === null ? undefined : actorId === row.worker_id ? "worker" : "reviewer";
+  const isReviewer = (event: EventRow) =>
+    event.actor_id !== null && event.actor_id !== row.worker_id;
   const items: RecordItem[] = rowItems.map((item) => {
     const detail = { ...(item.detail ?? {}) };
     // 방문 시간은 records.visit_start·visit_end에 있다. 화면은 visit_time 항목 detail.start·end로 읽는다
@@ -177,13 +238,15 @@ export function mapRecord(
       if (row.visit_start && detail.start === undefined) detail.start = hhmm(row.visit_start);
       if (row.visit_end && detail.end === undefined) detail.end = hhmm(row.visit_end);
     }
+    // 고치기 전 내용: 관리자가 고친(edited) 줄이나 [기록 안 함]으로 비운(resolved) 줄의 before.value_ko
     const reviewerEdit =
       item.source === "reviewer"
         ? [...events]
             .reverse()
             .find(
               (event) =>
-                event.type === "edited" &&
+                (event.type === "edited" || event.type === "resolved") &&
+                isReviewer(event) &&
                 event.item_key === item.item_key &&
                 typeof event.before?.value_ko === "string",
             )
@@ -226,12 +289,7 @@ export function mapRecord(
     approvedBy: row.approved_by ? nameOf(row.approved_by) : "",
     formFields,
     updatedAt: events[events.length - 1]?.created_at ?? row.created_at,
-    events: events.map((event) => ({
-      type: event.type,
-      actor: event.actor_id ? nameOf(event.actor_id) : "AI",
-      at: event.created_at,
-      ...(event.item_key ? { item_key: event.item_key } : {}),
-    })),
+    events: mapEvents(row, events, nameOf, roleOf),
     workerName: nameOf(row.worker_id),
   };
 }
@@ -310,7 +368,7 @@ export function toDemoDb(rows: RealRows, today: string): DemoDb {
   const isWorker = rows.profile.role === "worker";
   const firstWorker = rows.staff.find((person) => person.role === "worker");
   return {
-    version: 3,
+    version: 4,
     seededOn: today,
     worker: {
       name: isWorker ? rows.profile.name : (firstWorker?.name ?? ""),

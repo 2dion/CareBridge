@@ -760,7 +760,8 @@
 
 .d-app .timeline {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* 되돌린 기록은 단계가 4개보다 많다(되돌림·재전송). 넘치면 다음 줄로 */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
   margin: 16px 0;
   padding-bottom: 16px;
