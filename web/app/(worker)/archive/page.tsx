@@ -3,7 +3,7 @@
 // W4(기록): 작성 전 / 임시 저장 / 전송 완료 / 수정 필요 / 승인 완료, 기간 거르기, 기록 없음 처리.
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
@@ -54,6 +54,33 @@ function recordHref(record: DemoRecord) {
     return `/records/${record.id}/view`;
   if (record.draftState === "ready" || record.status === "returned") return `/records/${record.id}`;
   return `/start/${record.residentId}?date=${record.careDate}`;
+}
+
+/** 상태 칩 줄. 오른쪽에 칩이 더 있으면 끝을 흐리게 해 알린다(PC는 스크롤 막대가 숨어 더 있는지 모름, 이슈 #109).
+ *  끝까지 밀면 흐림이 사라진다. 폭이 바뀌어도 다시 본다 */
+function ChipRow({ children, ...rest }: ComponentProps<"div">) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const row = ref.current;
+    if (!row) return;
+    const check = () => setMore(row.scrollLeft + row.clientWidth < row.scrollWidth - 1);
+    row.addEventListener("scroll", check, { passive: true });
+    // ResizeObserver는 붙이자마자 한 번 알려서 처음 상태도 여기서 정해진다
+    const observer = new ResizeObserver(check);
+    observer.observe(row);
+    return () => {
+      row.removeEventListener("scroll", check);
+      observer.disconnect();
+    };
+  }, []);
+  return (
+    <div className={`filters-wrap ${more ? "more" : ""}`}>
+      <div ref={ref} {...rest}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function DateBox({ date }: { date: string }) {
@@ -118,7 +145,7 @@ export default function ArchivePage() {
         />
       ) : (
         <>
-          <div className="filters scroll-x" role="tablist" aria-label="기록 상태">
+          <ChipRow className="filters scroll-x" role="tablist" aria-label="기록 상태">
             {tabs.map((item) => (
               <button
                 key={item.key}
@@ -134,7 +161,7 @@ export default function ArchivePage() {
                 )}
               </button>
             ))}
-          </div>
+          </ChipRow>
           <div className="list-head">
             기록 목록<span className="badge badge-green">{counts[tab]}개</span>
           </div>

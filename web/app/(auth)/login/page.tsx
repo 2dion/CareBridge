@@ -7,6 +7,7 @@ import { type FormEvent, useState } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
+import { CapsLockNote, useCapsLock } from "@/components/mobile/caps-lock";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel } from "@/components/mobile/parts";
 import { MobileScreen } from "@/components/mobile/shell";
@@ -33,6 +34,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<keyof typeof errors | null>(null);
   const [forgot, setForgot] = useState(false);
+  const caps = useCapsLock();
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -92,6 +94,7 @@ export default function LoginPage() {
               value={password}
               onValueChange={setPassword}
               required
+              {...caps.props}
             />
             <button
               type="button"
@@ -102,6 +105,7 @@ export default function LoginPage() {
               <Icon name={show ? "eyeOff" : "eye"} />
             </button>
           </div>
+          <CapsLockNote on={caps.on} />
         </div>
         {error && (
           <div className="form-error box" role="alert">

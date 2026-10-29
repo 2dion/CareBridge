@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { supabaseConfigured } from "@/lib/auth/session";
+import { splashRemaining } from "@/lib/auth/splash";
 import { type RoleNames, roleNames } from "@/lib/demo/roles";
 import {
   createDemoDb,
@@ -102,7 +103,14 @@ function RealProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       if (error instanceof NotSignedInError) {
         setState(null);
-        if (!AUTH_PATHS.some((path) => window.location.pathname.startsWith(path))) {
+        const path = window.location.pathname;
+        if (path === "/") {
+          // A0(스플래시): 스플래시 시간이 남았으면 그만큼 보인 뒤 A1(로그인)으로 보낸다(이슈 #111).
+          // 그 사이 사용자가 눌러서 이미 다른 화면으로 갔으면 보내지 않는다
+          window.setTimeout(() => {
+            if (window.location.pathname === "/") window.location.replace("/login");
+          }, splashRemaining());
+        } else if (!AUTH_PATHS.some((prefix) => path.startsWith(prefix))) {
           window.location.replace("/login");
         }
         return;
