@@ -13,6 +13,7 @@ import { AppBar, MobileScreen } from "@/components/mobile/shell";
 import { TextInput } from "@/components/mobile/text-field";
 import { signIn, supabaseConfigured } from "@/lib/auth/session";
 import { MIN_PASSWORD_LENGTH, type SignupError } from "@/lib/auth/signup";
+import { ROLE_NAMES_BOTH, roleNames } from "@/lib/demo/roles";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Mock 가입 코드(시연용). 실제 코드는 join_codes 표에 있다. */
@@ -71,6 +72,8 @@ export default function SignupPage() {
     setServerError(null);
     let role: "worker" | "reviewer";
     let orgName: string;
+    // 가입 코드의 기관이 교육용이면 가입 안내도 교육생·강사로(이슈 #146). Mock은 일반 기관
+    let isTraining = false;
     if (supabaseConfigured()) {
       try {
         const response = await fetch("/api/auth/signup", {
@@ -85,7 +88,8 @@ export default function SignupPage() {
           }),
         });
         const body = (await response.json()) as
-          { role: "worker" | "reviewer"; org_name: string } | { error: SignupError };
+          | { role: "worker" | "reviewer"; org_name: string; is_training: boolean }
+          | { error: SignupError };
         if ("error" in body) {
           setServerError(body.error);
           setBusy(false);
@@ -93,6 +97,7 @@ export default function SignupPage() {
         }
         role = body.role;
         orgName = body.org_name;
+        isTraining = Boolean(body.is_training);
       } catch {
         setServerError("network");
         setBusy(false);
@@ -120,8 +125,9 @@ export default function SignupPage() {
       router.push("/login");
       return;
     }
+    const names = roleNames(isTraining);
     const joined = encodeURIComponent(
-      `${orgName} · ${role === "worker" ? "작성자" : "관리자"}로 가입했습니다`,
+      `${orgName} · ${role === "worker" ? names.worker : names.reviewer}로 가입했습니다`,
     );
     router.push(role === "worker" ? `/guide?joined=${joined}` : "/review");
   };
@@ -149,13 +155,14 @@ export default function SignupPage() {
           />
           {codeError ? (
             <FieldError
-              ko="가입 코드가 맞지 않습니다. 관리자에게 다시 확인하세요."
-              vi="Mã không đúng. Hãy hỏi lại người quản lý."
+              ko={`가입 코드가 맞지 않습니다. ${ROLE_NAMES_BOTH.reviewer}에게 다시 확인하세요.`}
+              vi={`Mã không đúng. Hãy hỏi lại ${ROLE_NAMES_BOTH.reviewerVi}.`}
             />
           ) : (
             <small className="hint-line">
-              관리자(교육원은 강사)에게 받은 코드 ·{" "}
-              <span className="vi">Mã do người quản lý cấp</span>
+              {/* 로그인 전이라 어느 기관인지 몰라 '관리자(강사)'로 함께 쓴다(용어집 v1.0) */}
+              {ROLE_NAMES_BOTH.reviewer}에게 받은 코드 ·{" "}
+              <span className="vi">Mã do {ROLE_NAMES_BOTH.reviewerVi} cấp</span>
             </small>
           )}
         </div>
@@ -257,10 +264,10 @@ export default function SignupPage() {
               onChange={(event) => setAgree(event.target.checked)}
             />
             <span>
-              <b>AI 결과는 초안이며 관리자가 승인합니다.</b>
+              <b>AI 결과는 초안이며 {ROLE_NAMES_BOTH.reviewer}가 승인합니다.</b>
               <b>어르신·가족 실명을 쓰지 않습니다.</b>
               <span className="vi">
-                Kết quả AI là bản nháp, người quản lý duyệt. Không dùng tên thật.
+                Kết quả AI là bản nháp, {ROLE_NAMES_BOTH.reviewerVi} duyệt. Không dùng tên thật.
               </span>
             </span>
           </label>
@@ -276,10 +283,12 @@ export default function SignupPage() {
           {more && (
             <div style={{ fontSize: 13, color: "var(--color-sub)", display: "grid", gap: 6 }}>
               <p>
-                AI가 말한 내용을 항목별 초안으로 정리하고, 작성자가 확인한 뒤 관리자가 승인해야
-                기록이 끝나요. 말하지 않은 내용은 지어내지 않아요.
+                AI가 말한 내용을 항목별 초안으로 정리하고, {ROLE_NAMES_BOTH.worker}가 확인한 뒤{" "}
+                {ROLE_NAMES_BOTH.reviewer}가 승인해야 기록이 끝나요. 말하지 않은 내용은 지어내지
+                않아요.
                 <span className="vi" style={{ display: "block" }}>
-                  AI soạn bản nháp, người ghi chép kiểm tra, người quản lý duyệt.
+                  AI soạn bản nháp, {ROLE_NAMES_BOTH.workerVi} kiểm tra,{" "}
+                  {ROLE_NAMES_BOTH.reviewerVi} duyệt.
                 </span>
               </p>
               <p>

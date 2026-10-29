@@ -19,9 +19,10 @@ export type ActionError = {
 };
 
 const MESSAGES: Record<string, { ko: string; vi: string }> = {
+  // 여기서는 기관을 몰라 reviewer_only처럼 '관리자(강사)'로 함께 쓴다(이슈 #146)
   ai_not_configured: {
-    ko: "AI 기능이 아직 켜지지 않았어요. 관리자에게 알려 주세요.",
-    vi: "Tính năng AI chưa được bật. Hãy báo người quản lý.",
+    ko: "AI 기능이 아직 켜지지 않았어요. 관리자(강사)에게 알려 주세요.",
+    vi: "Tính năng AI chưa được bật. Hãy báo người quản lý (giảng viên).",
   },
   unconfirmed_items: {
     ko: "아직 확인하지 않은 항목이 있어요.",

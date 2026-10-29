@@ -196,7 +196,7 @@ function ReviewQueue() {
                             setClearing({
                               residentId: row.residentId,
                               careDate: row.careDate,
-                              done: "기록 없음 처리를 지웠어요. 작성자 기록 ‘작성 전’에 다시 보여요.",
+                              done: `기록 없음 처리를 지웠어요. ${names.worker} 기록 ‘작성 전’에 다시 보여요.`,
                             })
                           }
                         >
@@ -232,8 +232,8 @@ function ReviewQueue() {
           {overdueOpen && (
             <>
               <p className="missed-note">
-                7일이 지나 작성자가 더는 쓸 수 없는 날이에요. 작성자에게 사정을 묻고 사유를 남겨
-                주세요.
+                7일이 지나 {names.worker}가 더는 쓸 수 없는 날이에요. {names.worker}에게 사정을 묻고
+                사유를 남겨 주세요.
               </p>
               <ul className="missed-list">
                 {overdueRows.map((row) => {
@@ -290,7 +290,7 @@ function ReviewQueue() {
       <section className="panel">
         {rows.some(wasResent) && (
           <p className="table-legend">
-            <Icon name="refresh" /> 재전송: 되돌린 뒤 작성자가 고쳐서 다시 전송했어요.
+            <Icon name="refresh" /> 재전송: 되돌린 뒤 {names.worker}가 고쳐서 다시 전송했어요.
           </p>
         )}
         {rows.length === 0 ? (
@@ -432,6 +432,8 @@ function OverdueModal({
   const [reason, setReason] = useState<NoCareReason>("hospital");
   const [note, setNote] = useState("");
   const [error, setError] = useState(false);
+  // 교육용 기관이면 교육생·강사(이슈 #146)
+  const names = useRoleNames();
   return (
     <DeskModal open onClose={onClose} label="기록 없음으로 정리">
       <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>기록 없음으로 정리</h2>
@@ -468,7 +470,7 @@ function OverdueModal({
           setNote(event.target.value);
           setError(false);
         }}
-        placeholder="예: 작성자에게 확인함. 이날 병원 진료로 외출."
+        placeholder={`예: ${names.worker}에게 확인함. 이날 병원 진료로 외출.`}
       />
       {error && (
         <p className="fhint">
@@ -476,7 +478,7 @@ function OverdueModal({
         </p>
       )}
       <p className="info-note">
-        정리한 사람은 관리자 이름으로 남고, 잘못 정리했으면 지울 수 있어요.
+        정리한 사람은 {names.reviewer} 이름으로 남고, 잘못 정리했으면 지울 수 있어요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
         <button type="button" className="dbtn" onClick={onClose}>

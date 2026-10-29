@@ -12,12 +12,14 @@ import { BtnLabel } from "@/components/mobile/parts";
 import { MobileScreen } from "@/components/mobile/shell";
 import { TextInput } from "@/components/mobile/text-field";
 import { type SignInResult, signIn, supabaseConfigured } from "@/lib/auth/session";
+import { ROLE_NAMES_BOTH } from "@/lib/demo/roles";
 
+// 로그인 전이라 어느 기관인지 모르므로 '관리자(강사)'로 함께 쓴다(이슈 #146, 용어집 v1.0)
 const errors: Record<Exclude<SignInResult, { ok: true }>["reason"], { ko: string; vi: string }> = {
   wrong: { ko: "이메일 또는 비밀번호가 맞지 않습니다.", vi: "Email hoặc mật khẩu không đúng." },
   no_profile: {
-    ko: "계정 준비가 끝나지 않았습니다. 관리자에게 문의하세요.",
-    vi: "Tài khoản chưa sẵn sàng. Hãy hỏi người quản lý.",
+    ko: `계정 준비가 끝나지 않았습니다. ${ROLE_NAMES_BOTH.reviewer}에게 문의하세요.`,
+    vi: `Tài khoản chưa sẵn sàng. Hãy hỏi ${ROLE_NAMES_BOTH.reviewerVi}.`,
   },
   network: { ko: "인터넷 연결을 확인하세요.", vi: "Hãy kiểm tra kết nối Internet." },
 };
@@ -134,9 +136,9 @@ export default function LoginPage() {
         </div>
         {forgot && (
           <p className="gray-box" role="status">
-            관리자에게 비밀번호를 다시 정해 달라고 요청하세요.
+            {ROLE_NAMES_BOTH.reviewer}에게 비밀번호를 다시 정해 달라고 요청하세요.
             <span className="vi" style={{ display: "block" }}>
-              Hãy nhờ người quản lý đặt lại mật khẩu.
+              Hãy nhờ {ROLE_NAMES_BOTH.reviewerVi} đặt lại mật khẩu.
             </span>
           </p>
         )}

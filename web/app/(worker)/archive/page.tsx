@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { BottomSheet, BtnLabel } from "@/components/mobile/parts";
 import { type DateRange, RangePicker, rangeLabel } from "@/components/mobile/range-picker";
@@ -75,6 +75,8 @@ export default function ArchivePage() {
   const [noCare, setNoCare] = useState<MissedRecord | null>(null);
   const tabParam = search.get("tab");
   const tab: Tab = isTab(tabParam) ? tabParam : "missed";
+  // 교육용 기관이면 '강사에게 알려 주세요'(이슈 #146)
+  const names = useRoleNames();
 
   if (!demo) return <Loading tab="archive" />;
   const { db, today } = demo;
@@ -152,15 +154,15 @@ export default function ArchivePage() {
                 />
               ))}
               <p className="foot-note" style={{ margin: "4px 6px 0" }}>
-                기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 관리자에게 알려 주세요.
+                기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 {names.reviewer}에게 알려 주세요.
                 <span className="vi">
-                  Sau 7 ngày sẽ không thể viết. Khi đó hãy báo người quản lý.
+                  Sau 7 ngày sẽ không thể viết. Khi đó hãy báo {names.reviewerVi}.
                 </span>
               </p>
               <p className="foot-note" style={{ margin: "0 6px 16px" }}>
-                돌봄 날짜보다 늦게 전송한 기록은 관리자 화면에 ‘지연전송’으로 보여요.
+                돌봄 날짜보다 늦게 전송한 기록은 {names.reviewer} 화면에 ‘지연전송’으로 보여요.
                 <span className="vi">
-                  Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho người quản lý.
+                  Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho {names.reviewerVi}.
                 </span>
               </p>
             </div>
@@ -391,6 +393,7 @@ function NoCareSheet({
   const [reason, setReason] = useState<NoCareReason | null>(null);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const names = useRoleNames();
   const resident = row ? getResident(db, row.residentId) : undefined;
   const close = () => {
     setReason(null);
@@ -411,7 +414,7 @@ function NoCareSheet({
           ? "기타 사유를 적어 주세요."
           : next.error === "has_record"
             ? "이미 기록이 있는 날이에요."
-            : "7일이 지나 처리할 수 없어요. 관리자에게 알려 주세요.",
+            : `7일이 지나 처리할 수 없어요. ${names.reviewer}에게 알려 주세요.`,
       );
       return;
     }

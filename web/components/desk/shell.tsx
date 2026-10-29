@@ -14,10 +14,13 @@ import { kstDateOf } from "@/lib/demo/store";
 
 export type DeskNav = "review" | "approved" | "residents" | "settings";
 
-const navItems: { key: DeskNav; href: string; label: string; icon: IconName }[] = [
+// M4 메뉴 이름은 교육용 기관이면 '어르신·교육생'(이슈 #146)
+const navItems = (
+  worker: string,
+): { key: DeskNav; href: string; label: string; icon: IconName }[] => [
   { key: "review", href: "/review", label: "검토 대기", icon: "list" },
   { key: "approved", href: "/approved", label: "승인한 기록", icon: "check" },
-  { key: "residents", href: "/residents", label: "어르신·작성자", icon: "users" },
+  { key: "residents", href: "/residents", label: `어르신·${worker}`, icon: "users" },
   { key: "settings", href: "/settings", label: "설정", icon: "settings" },
 ];
 
@@ -38,7 +41,7 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
           </span>
         </div>
         <nav aria-label={`${names.reviewer} 메뉴`}>
-          {navItems.map((item) => (
+          {navItems(names.worker).map((item) => (
             <Link
               key={item.key}
               href={item.href}

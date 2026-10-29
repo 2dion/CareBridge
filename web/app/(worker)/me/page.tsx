@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { AppBar, FrameVi, Loading, MobileScreen } from "@/components/mobile/shell";
@@ -15,6 +15,8 @@ const fontLabel = { small: "작게", normal: "보통", large: "크게" } as cons
 export default function MePage() {
   const demo = useDemo();
   const router = useRouter();
+  // 교육용 기관이면 내 역할 배지가 '교육생'(이슈 #146)
+  const names = useRoleNames();
   if (!demo) return <Loading tab="me" />;
   const { db } = demo;
 
@@ -60,7 +62,7 @@ export default function MePage() {
         <Art name="robot-face" width={64} className="art" />
         <div>
           <b style={{ fontSize: 18 }}>{db.worker.name}</b>{" "}
-          <span className="badge badge-green">작성자</span>
+          <span className="badge badge-green">{names.worker}</span>
           <p style={{ fontSize: 14, color: "var(--color-sub)" }}>{db.worker.org}</p>
           <p style={{ fontSize: 13, color: "var(--color-muted)" }}>{db.worker.email}</p>
         </div>
