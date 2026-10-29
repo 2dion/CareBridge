@@ -89,7 +89,7 @@
         "value_ko": "어지럽다고 말씀하심",
         "value_native": "Ông nói bị chóng mặt",
         "evidence": "Hôm nay ông nói bị chóng mặt.",
-        "reason": "건강·안전 신호(현기증, 용어 T42). 작성자가 담당자에게 전화했다고 함 → 담당자 확인",
+        "reason": "건강·안전 신호(현기증, 용어 T42). 작성자가 관리자에게 전화했다고 함 → 관리자 확인",
         "detail": {},
         "health_signal": true,
         "evidence_ko": "오늘 어르신이 어지럽다고 하셨어요."
@@ -115,12 +115,12 @@
       {
         "item_key": "notes",
         "status": "observed",
-        "value_ko": "어지럽다고 말씀하셔서 담당자에게 전화로 알림. 점심 식사 준비, 세탁함. 점심 반 정도 드심.",
-        "value_native": "Ông nói bị chóng mặt nên đã gọi điện báo người phụ trách. Chuẩn bị bữa trưa, giặt đồ. Bữa trưa ăn khoảng một nửa.",
+        "value_ko": "어지럽다고 말씀하셔서 관리자에게 전화로 알림. 점심 식사 준비, 세탁함. 점심 반 정도 드심.",
+        "value_native": "Ông nói bị chóng mặt nên đã gọi điện báo người quản lý. Chuẩn bị bữa trưa, giặt đồ. Bữa trưa ăn khoảng một nửa.",
         "evidence": "Hôm nay ông nói bị chóng mặt. 박 사회복지사님께 전화로 말씀드렸어요. 점심 준비해 드리고 빨래했어요. 식사는 반 정도 드셨어요.",
         "reason": "",
         "detail": {},
-        "source_note": "직원 이름은 기록에 옮기지 않고 '담당자'로 씀(AI 규칙 쓰기 원칙 5). 근거는 원문 그대로라 이름이 있어도 됨"
+        "source_note": "직원 이름은 기록에 옮기지 않고 '관리자'로 씀(AI 규칙 쓰기 원칙 5). 근거는 원문 그대로라 이름이 있어도 됨"
       },
       {
         "item_key": "next_check",

@@ -86,7 +86,7 @@
         "value_ko": "새벽 5시경 화장실 가시다 침대 옆에서 넘어지심. 오른쪽 손목이 아프다고 하심",
         "value_native": "Khoảng 5 giờ sáng ngã cạnh giường khi đi vệ sinh. Ông/bà nói cổ tay phải bị đau",
         "evidence": "새벽 다섯 시쯤 화장실 가시다가 침대 옆에서 넘어지셨어요. 오른쪽 손목이 아프다고 하셨어요.",
-        "reason": "건강·안전 신호(낙상·통증, 용어 T29: 담당자에게 먼저 보고). 작성자가 간호인력에게 알렸다고 함 → 담당자 확인",
+        "reason": "건강·안전 신호(낙상·통증, 용어 T29: 관리자에게 먼저 보고). 작성자가 간호인력에게 알렸다고 함 → 관리자 확인",
         "detail": {},
         "health_signal": true
       },
@@ -132,7 +132,7 @@
   "review_flow_expected": {
     "needs_check_count": 1,
     "approve_blocked_until": "discomfort에 [확인함] 또는 [기록 안 함]",
-    "w3": "discomfort에 '담당자에게 바로 알리세요' 표시"
+    "w3": "discomfort에 '관리자에게 바로 알리세요' 표시"
   },
   "must_not_appear": [
     {

@@ -64,7 +64,7 @@ describe("submitRecord", () => {
     );
   });
 
-  it("returned 기록도 다시 보낼 수 있음", async () => {
+  it("수정 필요(returned) 기록도 다시 전송할 수 있음", async () => {
     const r = await submitRecord("rec-1", fakeDeps({ ...draft, status: "returned" }));
     expect(r.status).toBe(200);
   });

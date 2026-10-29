@@ -72,7 +72,7 @@
         "value_ko": "세면·옷 갈아입기 도움, 체위변경(오후 1회 늦어짐), 요루 주머니 비우기(횟수 확인 필요: \"두세 번\")",
         "value_native": "Hỗ trợ rửa mặt và thay quần áo, đổi tư thế (buổi chiều 1 lần bị muộn), đổ túi nước tiểu (cần xác nhận số lần: \"hai, ba lần\")",
         "evidence": "Sáng nay tôi rửa mặt và thay quần áo cho ông. Cứ hai tiếng tôi đổi tư thế cho ông, nhưng buổi chiều có một lần tôi làm hơi muộn.",
-        "reason": "① 체위변경(2시간마다) 칸은 2시간마다 제공한 경우에만 √ (유의사항 4). \"한 번 늦었다\"라 체크 여부를 담당자가 정함. ② \"두세 번\"은 화장실이용하기 횟수 하나로 정할 수 없음",
+        "reason": "① 체위변경(2시간마다) 칸은 2시간마다 제공한 경우에만 √ (유의사항 4). \"한 번 늦었다\"라 체크 여부를 관리자가 정함. ② \"두세 번\"은 화장실이용하기 횟수 하나로 정할 수 없음",
         "detail": {
           "checks": [
             "세면·구강청결·머리감기·몸단장·옷 갈아입기 도움 등",
@@ -94,7 +94,7 @@
         "value_ko": "점심 연하도움식(걸쭉하게 만든 식사) 섭취, 식사 종류·섭취량 확인 필요(\"반쯤\"). 식사 중 기침 2회",
         "value_native": "Bữa trưa ăn đồ ăn mềm cho người khó nuốt, cần xác nhận loại món và lượng ăn (\"khoảng một nửa\"). Ho 2 lần trong lúc ăn",
         "evidence": "Bữa trưa ông ăn đồ ăn xay sệt, ăn được khoảng một nửa. Trong lúc ăn ông ho hai lần.",
-        "reason": "① 연하도움식은 제16호 식사 종류(일반식 / 죽 / 유동식) 선택지에 없음. 기관 기준으로 담당자가 고름 (용어 T40). ② \"반쯤\"은 1/2이상인지 1/2미만인지 정할 수 없음",
+        "reason": "① 연하도움식은 제16호 식사 종류(일반식 / 죽 / 유동식) 선택지에 없음. 기관 기준으로 관리자가 고름 (용어 T40). ② \"반쯤\"은 1/2이상인지 1/2미만인지 정할 수 없음",
         "detail": {
           "meal_type": null,
           "meal_type_said": "연하도움식",
@@ -117,7 +117,7 @@
         "value_ko": "엉치 부위(등록된 욕창 부위)가 어제보다 더 붉어 보인다고 관찰함",
         "value_native": "Quan sát thấy vùng mông (chỗ loét tì đè đã đăng ký) có vẻ đỏ hơn hôm qua",
         "evidence": "Chỗ bị loét tì đè ở mông hình như đỏ hơn hôm qua.",
-        "reason": "\"어제보다 더\"는 비교 판단이라 이전 기록과 대조 필요. 피부 상태 변화라 간호인력 보고 여부 확인 (용어 T32: 관찰 표현 + 담당자에게 먼저 보고). 욕창 단계·악화 판정은 쓰지 않음",
+        "reason": "\"어제보다 더\"는 비교 판단이라 이전 기록과 대조 필요. 피부 상태 변화라 간호인력 보고 여부 확인 (용어 T32: 관찰 표현 + 관리자에게 먼저 보고). 욕창 단계·악화 판정은 쓰지 않음",
         "health_signal": true,
         "evidence_ko": "엉덩이 욕창 있는 데가 어제보다 더 빨개진 것 같아요."
       },
