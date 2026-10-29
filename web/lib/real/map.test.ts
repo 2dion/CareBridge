@@ -317,6 +317,21 @@ describe("mapRecord 이력(record_events)", () => {
     });
   });
 
+  // 이슈 #140: "확인함 ·"처럼 사람·시각이 비던 문제. 가장 최근 resolved 줄의 actor·created_at
+  it("[확인함]·[기록 안 함]을 누가 언제 골랐는지 resolved 줄에서 채운다", () => {
+    expect(mapped.items.find((entry) => entry.item_key === "sleep")).toMatchObject({
+      resolved_by: "박 관리자",
+      resolved_at: "2026-10-28T03:05:00Z",
+    });
+    expect(mapped.items.find((entry) => entry.item_key === "next_check")).toMatchObject({
+      resolved_by: "박 관리자",
+      resolved_at: "2026-10-28T03:10:00Z",
+    });
+    expect(mapped.items.find((entry) => entry.item_key === "meal")).not.toHaveProperty(
+      "resolved_by",
+    );
+  });
+
   it("[기록 안 함]으로 비운 항목도 고치기 전 내용을 이력에서 찾는다", () => {
     expect(mapped.items.find((entry) => entry.item_key === "next_check")?.before_ko).toBe(
       "혈압 다시 확인",

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addResident,
   approveRecord,
+  frozenOrder,
   markOverdueNoCare,
   processHistory,
   removeNoCareDay,
@@ -72,6 +73,32 @@ describe("관리자 규칙 (M1~M5)", () => {
     expect(omitted.resolution_note).toBe("원문으로 판단 불가");
     db = ok(resolveItem(db, record.id, item.item_key, null, "", NOW));
     expect(countUnresolved(db.records[record.id].items)).toBe(countUnresolved(record.items));
+  });
+
+  // 이슈 #140: [확인함]/[기록 안 함]을 골라도 연 때의 카드 순서를 지킨다
+  it("처리해도 화면을 연 때의 카드 순서가 그대로다", () => {
+    let db: DemoDb = createDemoDb(TODAY);
+    const record = reviewQueue(db).find((entry) => countUnresolved(entry.items) >= 2)!;
+    const keys = reviewOrder(record).map((item) => item.item_key);
+    const [first, second] = record.items
+      .filter((item) => item.status === "needs_check")
+      .map((item) => item.item_key);
+    db = ok(resolveItem(db, record.id, first, "confirmed_by_reviewer", "", NOW));
+    db = ok(resolveItem(db, record.id, second, "omitted", "원문에 없음", NOW));
+    const after = db.records[record.id];
+    // 새로 계산하면 처리한 항목이 뒤로 가지만, 연 때 순서로 늘어놓으면 그대로다
+    expect(reviewOrder(after).map((item) => item.item_key)).not.toEqual(keys);
+    expect(frozenOrder(after, keys).map((item) => item.item_key)).toEqual(keys);
+    expect(frozenOrder(after, keys).find((item) => item.item_key === first)).toMatchObject({
+      resolution: "confirmed_by_reviewer",
+      resolved_by: db.reviewer.name,
+      resolved_at: NOW,
+    });
+    // 모르는 항목은 뒤에 붙는다
+    expect(frozenOrder(after, keys.slice(1)).map((item) => item.item_key)).toEqual([
+      ...keys.slice(1),
+      keys[0],
+    ]);
   });
 
   it("관리자가 고치면 source=reviewer, 고치기 전 내용을 남긴다", () => {

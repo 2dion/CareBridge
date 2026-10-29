@@ -251,6 +251,12 @@ export function mapRecord(
                 typeof event.before?.value_ko === "string",
             )
         : undefined;
+    // 누가 언제 [확인함]/[기록 안 함]을 골랐는지: 그 항목의 가장 최근 resolved 줄(이슈 #140)
+    const lastResolved = item.resolution
+      ? [...events]
+          .reverse()
+          .find((event) => event.type === "resolved" && event.item_key === item.item_key)
+      : undefined;
     return {
       item_key: item.item_key,
       status: item.status,
@@ -265,6 +271,9 @@ export function mapRecord(
       ...(Object.keys(detail).length > 0 ? { detail } : {}),
       ...(item.resolution_note ? { resolution_note: item.resolution_note } : {}),
       ...(reviewerEdit ? { before_ko: reviewerEdit.before?.value_ko as string } : {}),
+      ...(lastResolved
+        ? { resolved_by: nameOf(lastResolved.actor_id), resolved_at: lastResolved.created_at }
+        : {}),
     };
   });
   const formFields = pickFormFields(row.form_fields);

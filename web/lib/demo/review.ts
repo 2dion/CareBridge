@@ -37,7 +37,8 @@ export function approvedRecords(db: DemoDb): DemoRecord[] {
     .sort((a, b) => (a.careDate === b.careDate ? 0 : a.careDate < b.careDate ? 1 : -1));
 }
 
-/** M2 묶음: 정하지 않은 확인 필요 → 고친 항목 → 관찰 → 언급 없음. 묶음 안은 기본 순서. */
+/** M2 묶음: 정하지 않은 확인 필요 → 고친 항목 → 관찰 → 언급 없음. 묶음 안은 기본 순서.
+ *  화면은 연 때 한 번만 계산하고(이슈 #140, 처리하면 카드가 움직여 누르려던 자리가 밀림), 그 뒤는 frozenOrder로 그 순서를 지킨다. */
 export function reviewOrder(record: DemoRecord) {
   const rank = (item: DemoRecord["items"][number]) => {
     if (item.status === "needs_check" && item.resolution === null) return 0;
@@ -49,6 +50,14 @@ export function reviewOrder(record: DemoRecord) {
     (a, b) =>
       rank(a) - rank(b) || displayOrder.indexOf(a.item_key) - displayOrder.indexOf(b.item_key),
   );
+}
+
+/** 화면을 연 때의 순서(keys)대로 지금 항목을 늘어놓는다. 그 뒤 생긴 항목은 뒤에 붙인다(이슈 #140). */
+export function frozenOrder(record: DemoRecord, keys: ItemKey[]) {
+  const byKey = new Map(record.items.map((item) => [item.item_key, item]));
+  const known = keys.flatMap((key) => byKey.get(key) ?? []);
+  const rest = reviewOrder(record).filter((item) => !keys.includes(item.item_key));
+  return [...known, ...rest];
 }
 
 const byDisplayOrder = (a: ItemKey, b: ItemKey) =>

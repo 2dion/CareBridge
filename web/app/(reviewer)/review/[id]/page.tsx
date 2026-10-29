@@ -12,6 +12,7 @@ import { Icon } from "@/components/mobile/icon";
 import {
   approveRecord,
   formFieldHint,
+  frozenOrder,
   mockAgentSteps,
   resolveItem,
   returnRecord,
@@ -44,9 +45,11 @@ const TOOL_NAMES: Record<string, string> = {
 const RETURN_LIMIT = 300;
 
 export default function ReviewRecordPage() {
+  const { id } = useParams<{ id: string }>();
   return (
     <DeskShell active="review">
-      <ReviewRecord />
+      {/* 기록이 바뀌면 새로 그려 카드 순서를 그 기록 기준으로 다시 잡는다(이슈 #140) */}
+      <ReviewRecord key={id} />
     </DeskShell>
   );
 }
@@ -87,6 +90,10 @@ function ReviewRecord() {
     { tool: string; key: string; name: string; reason: string; result: string }[]
   >([]);
   const realActions = demo.real?.actions;
+  // 카드 순서는 화면을 연 때 한 번만 정한다. [확인함]/[기록 안 함]을 골라도 카드가 움직이지 않는다(이슈 #140)
+  const [orderKeys] = useState<ItemKey[]>(() =>
+    record ? reviewOrder(record).map((item) => item.item_key) : [],
+  );
   // M2 'AI 작업 기록': agent_steps(관리자는 같은 기관 읽기)
   useEffect(() => {
     if (!realActions) return;
@@ -125,7 +132,7 @@ function ReviewRecord() {
   const unresolved = countUnresolved(record.items);
   const reviewable = record.status === "submitted";
   const late = lateDays(record) ?? 0;
-  const order = reviewOrder(record);
+  const order = frozenOrder(record, orderKeys);
   const summary = sourceSummary(record);
   const resolvedCount = record.items.filter(
     (item) => item.status === "needs_check" && item.resolution !== null,
@@ -537,9 +544,15 @@ function ReviewItem({
       {item.status === "needs_check" && item.resolution !== null && (
         <p className="resolved">
           <Icon name="check" />
-          {item.resolution === "omitted"
-            ? `기록 안 함 · ${item.resolved_by ?? ""} · ${item.resolution_note ?? ""}`
-            : `확인함 · ${item.resolved_by ?? ""}${item.resolved_at ? ` · ${kstTime(item.resolved_at)}` : ""}`}
+          {/* 누가·언제는 record_events의 resolved 줄에서 온다. 빈 값이면 구분점을 붙이지 않는다(이슈 #140) */}
+          {[
+            item.resolution === "omitted" ? "기록 안 함" : "확인함",
+            item.resolved_by,
+            item.resolved_at ? kstTime(item.resolved_at) : "",
+            item.resolution === "omitted" ? item.resolution_note : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
           {editable && (
             <button
               type="button"
