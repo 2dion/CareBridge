@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   addResident,
   approveRecord,
+  frozenOrder,
   markOverdueNoCare,
   processHistory,
   removeNoCareDay,
+  residentEditChanged,
+  residentHasRecords,
   resolveItem,
   returnRecord,
   reviewerEditItem,
@@ -72,6 +75,32 @@ describe("관리자 규칙 (M1~M5)", () => {
     expect(omitted.resolution_note).toBe("원문으로 판단 불가");
     db = ok(resolveItem(db, record.id, item.item_key, null, "", NOW));
     expect(countUnresolved(db.records[record.id].items)).toBe(countUnresolved(record.items));
+  });
+
+  // 이슈 #140: [확인함]/[기록 안 함]을 골라도 연 때의 카드 순서를 지킨다
+  it("처리해도 화면을 연 때의 카드 순서가 그대로다", () => {
+    let db: DemoDb = createDemoDb(TODAY);
+    const record = reviewQueue(db).find((entry) => countUnresolved(entry.items) >= 2)!;
+    const keys = reviewOrder(record).map((item) => item.item_key);
+    const [first, second] = record.items
+      .filter((item) => item.status === "needs_check")
+      .map((item) => item.item_key);
+    db = ok(resolveItem(db, record.id, first, "confirmed_by_reviewer", "", NOW));
+    db = ok(resolveItem(db, record.id, second, "omitted", "원문에 없음", NOW));
+    const after = db.records[record.id];
+    // 새로 계산하면 처리한 항목이 뒤로 가지만, 연 때 순서로 늘어놓으면 그대로다
+    expect(reviewOrder(after).map((item) => item.item_key)).not.toEqual(keys);
+    expect(frozenOrder(after, keys).map((item) => item.item_key)).toEqual(keys);
+    expect(frozenOrder(after, keys).find((item) => item.item_key === first)).toMatchObject({
+      resolution: "confirmed_by_reviewer",
+      resolved_by: db.reviewer.name,
+      resolved_at: NOW,
+    });
+    // 모르는 항목은 뒤에 붙는다
+    expect(frozenOrder(after, keys.slice(1)).map((item) => item.item_key)).toEqual([
+      ...keys.slice(1),
+      keys[0],
+    ]);
   });
 
   it("관리자가 고치면 source=reviewer, 고치기 전 내용을 남긴다", () => {
@@ -240,11 +269,42 @@ describe("관리자 규칙 (M1~M5)", () => {
     const added = next.residents.at(-1)!;
     expect(added.alias).toBe("정○○ 어르신");
     expect(listMissed(next, TODAY).some((row) => row.residentId === added.id)).toBe(false);
-    next = updateResident(next, added.id, {
-      visitDays: [1, 3],
-      visitTime: "10:00~13:00",
-      startDate: "2026-10-20",
-    });
+    next = ok(
+      updateResident(next, added.id, {
+        visitDays: [1, 3],
+        visitTime: "10:00~13:00",
+        startDate: "2026-10-20",
+      }),
+    );
     expect(listMissed(next, TODAY).filter((row) => row.residentId === added.id).length).toBe(2);
+  });
+
+  // 이슈 #96: [수정]으로 가명·급여 종류를 고치고, 바뀐 게 없으면 '저장했어요'를 띄우지 않는다
+  it("어르신 수정: 가명은 겹치면 안 되고, 기록 있는 어르신은 급여 종류를 못 바꾸며, 바뀐 칸을 가려낸다", () => {
+    const db = createDemoDb(TODAY);
+    const [first, second] = db.residents;
+    const base = {
+      visitDays: first.visitDays,
+      visitTime: first.visitTime,
+      startDate: first.startDate,
+    };
+    expect(updateResident(db, first.id, { ...base, alias: second.alias })).toEqual({
+      error: "duplicate",
+    });
+    expect(residentHasRecords(db, first.id)).toBe(true);
+    expect(
+      updateResident(db, first.id, {
+        ...base,
+        careType: first.careType === "home" ? "facility" : "home",
+      }),
+    ).toEqual({ error: "care_type_locked" });
+    const renamed = ok(updateResident(db, first.id, { ...base, alias: "최○○ 어르신" }));
+    expect(renamed.residents[0]).toMatchObject({ alias: "최○○ 어르신", initial: "최" });
+    expect(residentEditChanged(first, null, base)).toBe(false);
+    expect(residentEditChanged(first, null, { ...base, alias: first.alias })).toBe(false);
+    expect(residentEditChanged(first, null, { ...base, alias: "최○○ 어르신" })).toBe(true);
+    expect(residentEditChanged(first, ["w1"], { ...base, workerIds: ["w1"] })).toBe(false);
+    expect(residentEditChanged(first, ["w1"], { ...base, workerIds: ["w1", "w2"] })).toBe(true);
+    expect(residentEditChanged(first, null, { ...base, startDate: "2026-01-01" })).toBe(true);
   });
 });

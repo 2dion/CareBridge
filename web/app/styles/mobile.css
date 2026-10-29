@@ -34,6 +34,18 @@
   padding-bottom: 84px;
 }
 
+/* 교육용 기관의 '연습용 · 합성 사례' 띠(이슈 #125) */
+.m-app .training-band {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 12px;
+  background: #fff3cd;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7a5b00;
+  text-align: center;
+}
+
 .m-app .vi {
   color: var(--color-muted);
 }

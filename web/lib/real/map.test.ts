@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { processHistory, sourceSummary } from "../demo/review";
+import { residentWorkerNames } from "../demo/store";
 import { actionError, audioMime } from "./actions";
 import {
   activeJoinCodes,
@@ -9,6 +10,7 @@ import {
   type EventRow,
   inputModeOf,
   type ItemRow,
+  mapAssignments,
   mapRecord,
   mapResidents,
   type RecordRow,
@@ -57,17 +59,54 @@ describe("mapResidents", () => {
     const [resident] = mapResidents(
       [{ id: "res-1", alias: "이○○ 어르신", care_type: "home" }],
       [
-        { resident_id: "res-1", worker_id: "w1", visit_days: [1, 3], start_date: "2026-10-21" },
-        { resident_id: "res-1", worker_id: "w2", visit_days: [3, 5], start_date: "2026-10-10" },
+        {
+          resident_id: "res-1",
+          worker_id: "w1",
+          visit_days: [1, 3],
+          start_date: "2026-10-21",
+          schedule: "",
+        },
+        {
+          resident_id: "res-1",
+          worker_id: "w2",
+          visit_days: [3, 5],
+          start_date: "2026-10-10",
+          schedule: "14:00~17:00",
+        },
       ],
       "2026-10-28",
     );
+    // 표시용 방문 시간은 assignments.schedule에서 읽는다(이슈 #96)
     expect(resident).toMatchObject({
       initial: "이",
       careType: "home",
       visitDays: [1, 3, 5],
       startDate: "2026-10-10",
+      visitTime: "14:00~17:00",
     });
+  });
+
+  // 이슈 #95: M4는 담당 연결을 작성자마다 한 줄로 보인다
+  it("담당 연결 줄은 작성자마다 그대로 남긴다", () => {
+    expect(
+      mapAssignments([
+        {
+          resident_id: "res-1",
+          worker_id: "w1",
+          visit_days: null,
+          start_date: "2026-10-21",
+          schedule: " ",
+        },
+      ]),
+    ).toEqual([
+      {
+        residentId: "res-1",
+        workerId: "w1",
+        visitDays: null,
+        startDate: "2026-10-21",
+        visitTime: null,
+      },
+    ]);
   });
 
   it("시설은 매일(visitDays null)", () => {
@@ -347,6 +386,21 @@ describe("mapRecord 이력(record_events)", () => {
     });
   });
 
+  // 이슈 #140: "확인함 ·"처럼 사람·시각이 비던 문제. 가장 최근 resolved 줄의 actor·created_at
+  it("[확인함]·[기록 안 함]을 누가 언제 골랐는지 resolved 줄에서 채운다", () => {
+    expect(mapped.items.find((entry) => entry.item_key === "sleep")).toMatchObject({
+      resolved_by: "박 관리자",
+      resolved_at: "2026-10-28T03:05:00Z",
+    });
+    expect(mapped.items.find((entry) => entry.item_key === "next_check")).toMatchObject({
+      resolved_by: "박 관리자",
+      resolved_at: "2026-10-28T03:10:00Z",
+    });
+    expect(mapped.items.find((entry) => entry.item_key === "meal")).not.toHaveProperty(
+      "resolved_by",
+    );
+  });
+
   it("[기록 안 함]으로 비운 항목도 고치기 전 내용을 이력에서 찾는다", () => {
     expect(mapped.items.find((entry) => entry.item_key === "next_check")?.before_ko).toBe(
       "혈압 다시 확인",
@@ -397,6 +451,56 @@ describe("toDemoDb", () => {
     });
     expect(db.fontSize).toBe("large");
     expect(db.records["rec-1"].status).toBe("returned");
+    // 작성자 화면은 직원 목록을 두지 않는다
+    expect(db.staff).toBeUndefined();
+  });
+
+  it("관리자 화면은 직원 목록과 담당 연결 줄을 함께 둔다(이슈 #95)", () => {
+    const db = toDemoDb(
+      {
+        profile: {
+          id: "rv",
+          role: "reviewer",
+          name: "박 관리자",
+          email: "reviewer@example.com",
+          native_lang: "ko",
+          font_size: 2,
+          onboarded: true,
+          org_name: "데모 요양센터",
+        },
+        staff: [
+          { id: "w1", name: "마이", role: "worker" },
+          { id: "w2", name: "린", role: "worker" },
+        ],
+        residents: [{ id: "res-1", alias: "이○○ 어르신", care_type: "facility" }],
+        assignments: [
+          {
+            resident_id: "res-1",
+            worker_id: "w2",
+            visit_days: null,
+            start_date: "2026-10-01",
+            schedule: "",
+          },
+        ],
+        records: [],
+        items: [],
+        events: [],
+        jobs: [],
+        noCareDays: [],
+      },
+      "2026-10-28",
+    );
+    expect(db.staff?.map((person) => person.name)).toEqual(["마이", "린"]);
+    expect(db.assignments).toEqual([
+      {
+        residentId: "res-1",
+        workerId: "w2",
+        visitDays: null,
+        startDate: "2026-10-01",
+        visitTime: null,
+      },
+    ]);
+    expect(residentWorkerNames(db, "res-1")).toEqual(["린"]);
   });
 });
 

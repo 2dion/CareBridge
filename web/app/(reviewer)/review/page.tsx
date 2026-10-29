@@ -6,7 +6,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
 import { markOverdueNoCare, removeNoCareDay, reviewQueue, wasResent } from "@/lib/demo/review";
@@ -23,6 +23,7 @@ import {
   noCareReasonLabel,
   OVERDUE_FROM,
   OVERDUE_TO,
+  residentWorkerNames,
   timeRangeLabel,
 } from "@/lib/demo/store";
 
@@ -42,12 +43,41 @@ function ReviewQueue() {
   const demo = useDemo()!;
   const { db, today } = demo;
   const toast = useToast();
+  const names = useRoleNames();
+  // 작성자 걸러 보기: 실제 모드는 기관 작성자 전부(list_org_staff), Mock은 한 명(이슈 #95)
+  const workerNames = db.staff
+    ? db.staff.filter((person) => person.role === "worker").map((person) => person.name)
+    : [db.worker.name];
   const [worker, setWorker] = useState("all");
   const [dates, setDates] = useState<DateFilter>("7");
   const [care, setCare] = useState<CareFilter>("all");
   const [open, setOpen] = useState(true);
   const [overdueOpen, setOverdueOpen] = useState(true);
   const [marking, setMarking] = useState<{ residentId: string; careDate: string } | null>(null);
+  // [처리 지우기]는 한 번 더 묻고, 요청 중에는 다시 누를 수 없다(이슈 #136)
+  const [clearing, setClearing] = useState<{
+    residentId: string;
+    careDate: string;
+    /** 지운 뒤 안내 문구 */
+    done: string;
+  } | null>(null);
+  const [clearBusy, setClearBusy] = useState(false);
+  const clearNoCare = () => {
+    if (!clearing || clearBusy) return;
+    const { residentId, careDate, done } = clearing;
+    if (demo.real) {
+      setClearBusy(true);
+      void demo.real.actions.removeNoCare(residentId, careDate).then((result) => {
+        setClearBusy(false);
+        setClearing(null);
+        toast.show(result.ok ? done : result.ko);
+      });
+      return;
+    }
+    demo.update((current) => removeNoCareDay(current, residentId, careDate));
+    setClearing(null);
+    toast.show(done);
+  };
 
   const from = dates === "today" ? today : dates === "7" ? addDays(today, -7) : "0000-00-00";
   const rows = reviewQueue(db).filter((record) => {
@@ -68,6 +98,8 @@ function ReviewQueue() {
       residentId: day.residentId,
       careDate: day.careDate,
       kind: "no_care" as const,
+      workerId: undefined as string | undefined,
+      workerName: undefined as string | undefined,
       noCare: day,
     })),
   ].sort((a, b) => (a.careDate < b.careDate ? 1 : -1));
@@ -101,12 +133,16 @@ function ReviewQueue() {
       <div className="filters">
         <select
           className="select"
-          aria-label="작성자"
+          aria-label={names.worker}
           value={worker}
           onChange={(event) => setWorker(event.target.value)}
         >
-          <option value="all">작성자 · 전체</option>
-          <option value={db.worker.name}>작성자 · {db.worker.name}</option>
+          <option value="all">{names.worker} · 전체</option>
+          {workerNames.map((name) => (
+            <option key={name} value={name}>
+              {names.worker} · {name}
+            </option>
+          ))}
         </select>
         <select
           className="select"
@@ -143,28 +179,26 @@ function ReviewQueue() {
               {boxRows.map((row) => {
                 const resident = getResident(db, row.residentId);
                 return (
-                  <li key={`${row.residentId}-${row.careDate}-${row.kind}`}>
+                  <li key={`${row.residentId}-${row.careDate}-${row.kind}-${row.workerId ?? ""}`}>
                     <span>{monthDayWeek(row.careDate)}</span>
                     <b>{resident?.alias}</b>
-                    <span>{db.worker.name}</span>
+                    {/* 못 쓴 기록은 작성자마다 한 줄. 기록 없음 처리는 어르신 단위라 담당 작성자들을 보인다(이슈 #95) */}
+                    <span>
+                      {row.workerName ?? residentWorkerNames(db, row.residentId).join(", ")}
+                    </span>
                     {row.noCare ? (
                       <>
                         <b>{noCareText(row.noCare)}</b>
                         <button
                           type="button"
                           className="dbtn sm soft"
-                          onClick={() => {
-                            if (demo.real) {
-                              void demo.real.actions.removeNoCare(row.residentId, row.careDate);
-                            } else {
-                              demo.update((current) =>
-                                removeNoCareDay(current, row.residentId, row.careDate),
-                              );
-                            }
-                            toast.show(
-                              "기록 없음 처리를 지웠어요. 작성자 기록 ‘작성 전’에 다시 보여요.",
-                            );
-                          }}
+                          onClick={() =>
+                            setClearing({
+                              residentId: row.residentId,
+                              careDate: row.careDate,
+                              done: "기록 없음 처리를 지웠어요. 작성자 기록 ‘작성 전’에 다시 보여요.",
+                            })
+                          }
                         >
                           처리 지우기
                         </button>
@@ -208,29 +242,24 @@ function ReviewQueue() {
                     <li key={`${row.residentId}-${row.careDate}`}>
                       <span>{monthDayWeek(row.careDate)}</span>
                       <b>{resident?.alias}</b>
-                      <span>{db.worker.name}</span>
+                      <span>{residentWorkerNames(db, row.residentId).join(", ")}</span>
                       {row.noCare ? (
                         <>
                           <b>
                             {noCareText(row.noCare)}
-                            {row.noCare.createdBy !== db.worker.name &&
+                            {!workerNames.includes(row.noCare.createdBy) &&
                               ` · ${row.noCare.createdBy} 정리`}
                           </b>
                           <button
                             type="button"
                             className="dbtn sm soft"
-                            onClick={() => {
-                              if (demo.real) {
-                                void demo.real.actions.removeNoCare(row.residentId, row.careDate);
-                              } else {
-                                demo.update((current) =>
-                                  removeNoCareDay(current, row.residentId, row.careDate),
-                                );
-                              }
-                              toast.show(
-                                "기록 없음 처리를 지웠어요. 다시 기한 지난 빈 기록으로 보여요.",
-                              );
-                            }}
+                            onClick={() =>
+                              setClearing({
+                                residentId: row.residentId,
+                                careDate: row.careDate,
+                                done: "기록 없음 처리를 지웠어요. 다시 기한 지난 빈 기록으로 보여요.",
+                              })
+                            }
                           >
                             처리 지우기
                           </button>
@@ -274,7 +303,7 @@ function ReviewQueue() {
               <tr>
                 <th>어르신</th>
                 <th>급여</th>
-                <th>작성자</th>
+                <th>{names.worker}</th>
                 <th>방문·돌봄 시간</th>
                 <th>확인 필요</th>
                 <th>받은 시각</th>
@@ -331,6 +360,36 @@ function ReviewQueue() {
           </table>
         )}
       </section>
+      {clearing && (
+        <DeskModal
+          open
+          onClose={() => !clearBusy && setClearing(null)}
+          label="기록 없음 처리를 지울까요?"
+        >
+          <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>‘기록 없음’ 정리를 지울까요?</h2>
+          <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
+            {getResident(db, clearing.residentId)?.alias ?? ""} · {monthDayWeek(clearing.careDate)}
+          </p>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="dbtn"
+              disabled={clearBusy}
+              onClick={() => setClearing(null)}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="dbtn danger"
+              disabled={clearBusy}
+              onClick={clearNoCare}
+            >
+              {clearBusy ? "지우는 중" : "지우기"}
+            </button>
+          </div>
+        </DeskModal>
+      )}
       {marking && (
         <OverdueModal
           label={`${getResident(db, marking.residentId)?.alias ?? ""} · ${monthDayWeek(marking.careDate)}`}

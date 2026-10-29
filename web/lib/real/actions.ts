@@ -251,17 +251,101 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .eq("care_date", careDate);
       return after(dbError(error) ?? { ok: true as const });
     },
-    /** M4: 담당 연결의 방문 요일·담당 시작일(관리자, RLS). 방문 시간은 DB 칸이 없어 저장하지 않는다 */
+    /** M4 [수정](관리자, RLS). 어르신 정보(가명·급여 종류)는 바뀐 때만 residents를 고치고,
+     *  담당 연결은 작성자마다 한 줄(assignments unique(worker_id, resident_id))이라 고른 작성자만 남기고
+     *  빠진 작성자 줄은 지우고 새 작성자 줄은 넣는다(이슈 #95). 표시용 방문 시간은 schedule 칸(이슈 #96).
+     *  바뀐 줄이 없으면 changed: false */
     async updateResident(residentId: string, edit: ResidentEdit) {
-      const { error } = await supabase
+      let changed = false;
+      if (edit.alias !== undefined || edit.careType !== undefined) {
+        const { error } = await supabase
+          .from("residents")
+          .update({
+            ...(edit.alias !== undefined ? { alias: edit.alias } : {}),
+            ...(edit.careType !== undefined ? { care_type: edit.careType } : {}),
+          })
+          .eq("id", residentId);
+        if (error) return after(dbError(error) as ActionError);
+        changed = true;
+      }
+      const { data, error: readError } = await supabase
         .from("assignments")
-        .update({ visit_days: edit.visitDays, start_date: edit.startDate })
+        .select("worker_id, visit_days, start_date, schedule")
         .eq("resident_id", residentId);
-      return after(dbError(error) ?? { ok: true as const });
+      if (readError) return after(dbError(readError) as ActionError);
+      const rows = (data ?? []) as {
+        worker_id: string;
+        visit_days: number[] | null;
+        start_date: string;
+        schedule: string;
+      }[];
+      const wanted = edit.workerIds ?? rows.map((row) => row.worker_id);
+      const schedule = edit.visitTime ?? "";
+      const sameDays = (a: number[] | null, b: number[] | null) =>
+        JSON.stringify(a ? [...a].sort() : null) === JSON.stringify(b ? [...b].sort() : null);
+      const removed = rows.filter((row) => !wanted.includes(row.worker_id));
+      if (removed.length > 0) {
+        const { error } = await supabase
+          .from("assignments")
+          .delete()
+          .eq("resident_id", residentId)
+          .in(
+            "worker_id",
+            removed.map((row) => row.worker_id),
+          );
+        if (error) return after(dbError(error) as ActionError);
+        changed = true;
+      }
+      const upserts = wanted
+        .filter((workerId) => {
+          const row = rows.find((entry) => entry.worker_id === workerId);
+          return (
+            !row ||
+            !sameDays(row.visit_days, edit.visitDays) ||
+            row.start_date !== edit.startDate ||
+            (row.schedule ?? "") !== schedule
+          );
+        })
+        .map((workerId) => ({
+          resident_id: residentId,
+          worker_id: workerId,
+          visit_days: edit.visitDays,
+          start_date: edit.startDate,
+          schedule,
+        }));
+      if (upserts.length > 0) {
+        const { error } = await supabase
+          .from("assignments")
+          .upsert(upserts, { onConflict: "worker_id,resident_id" });
+        if (error) return after(dbError(error) as ActionError);
+        changed = true;
+      }
+      return after({ ok: true as const, changed });
     },
-    async addResident(alias: string, careType: "facility" | "home") {
-      const { error } = await supabase.from("residents").insert({ alias, care_type: careType });
-      return after(dbError(error) ?? { ok: true as const });
+    /** M4 어르신 추가: residents에 넣고(가명만, 원칙 9) 고른 작성자와 담당 연결을 만든다(이슈 #95) */
+    async addResident(
+      alias: string,
+      careType: "facility" | "home",
+      link: { workerIds: string[]; startDate: string } = { workerIds: [], startDate: "" },
+    ) {
+      const { data, error } = await supabase
+        .from("residents")
+        .insert({ alias, care_type: careType })
+        .select("id")
+        .single();
+      if (error || !data) return after(dbError(error) ?? actionError("create_failed"));
+      if (link.workerIds.length > 0) {
+        const { error: linkError } = await supabase.from("assignments").insert(
+          link.workerIds.map((workerId) => ({
+            resident_id: data.id as string,
+            worker_id: workerId,
+            visit_days: careType === "home" ? [] : null,
+            ...(link.startDate ? { start_date: link.startDate } : {}),
+          })),
+        );
+        if (linkError) return after(dbError(linkError) as ActionError);
+      }
+      return after({ ok: true as const, data: { id: data.id as string } });
     },
     async setProfile(fields: {
       fontSize?: FontSize;

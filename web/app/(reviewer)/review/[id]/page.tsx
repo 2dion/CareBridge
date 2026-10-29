@@ -6,12 +6,13 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
 import {
   approveRecord,
   formFieldHint,
+  frozenOrder,
   mockAgentSteps,
   resolveItem,
   returnRecord,
@@ -19,6 +20,7 @@ import {
   reviewOrder,
   sourceSummary,
 } from "@/lib/demo/review";
+import type { RoleNames } from "@/lib/demo/roles";
 import { countUnresolved, type ItemKey } from "@/lib/demo/state";
 import {
   canApproveRecord,
@@ -44,9 +46,11 @@ const TOOL_NAMES: Record<string, string> = {
 const RETURN_LIMIT = 300;
 
 export default function ReviewRecordPage() {
+  const { id } = useParams<{ id: string }>();
   return (
     <DeskShell active="review">
-      <ReviewRecord />
+      {/* 기록이 바뀌면 새로 그려 카드 순서를 그 기록 기준으로 다시 잡는다(이슈 #140) */}
+      <ReviewRecord key={id} />
     </DeskShell>
   );
 }
@@ -65,10 +69,10 @@ function evidenceHit(line: string, evidence: string) {
   return line.includes(key) || key.includes(line.replace(/[.?!]$/, ""));
 }
 
-function itemChip(item: RecordItem) {
+function itemChip(item: RecordItem, names: RoleNames) {
   if (item.status === "needs_check") return <span className="chip warn">확인 필요</span>;
-  if (item.source === "worker") return <span className="chip blue">작성자 수정</span>;
-  if (item.source === "reviewer") return <span className="chip blue">관리자 수정</span>;
+  if (item.source === "worker") return <span className="chip blue">{names.worker} 수정</span>;
+  if (item.source === "reviewer") return <span className="chip blue">{names.reviewer} 수정</span>;
   if (item.status === "observed") return <span className="chip green">관찰</span>;
   return <span className="chip gray">언급 없음</span>;
 }
@@ -79,14 +83,22 @@ function ReviewRecord() {
   const demo = useDemo()!;
   const { db, today } = demo;
   const toast = useToast();
+  const names = useRoleNames();
   const record = db.records[id];
   const [selected, setSelected] = useState<ItemKey | null>(null);
   const [returning, setReturning] = useState(false);
   const [returnError, setReturnError] = useState("");
+  // 승인은 되돌릴 수 없어 한 번 더 묻고, 승인·되돌리기 요청 중에는 버튼을 잠근다(이슈 #136)
+  const [confirmingApprove, setConfirmingApprove] = useState(false);
+  const [busy, setBusy] = useState<"approve" | "return" | null>(null);
   const [realSteps, setRealSteps] = useState<
     { tool: string; key: string; name: string; reason: string; result: string }[]
   >([]);
   const realActions = demo.real?.actions;
+  // 카드 순서는 화면을 연 때 한 번만 정한다. [확인함]/[기록 안 함]을 골라도 카드가 움직이지 않는다(이슈 #140)
+  const [orderKeys] = useState<ItemKey[]>(() =>
+    record ? reviewOrder(record).map((item) => item.item_key) : [],
+  );
   // M2 'AI 작업 기록': agent_steps(관리자는 같은 기관 읽기)
   useEffect(() => {
     if (!realActions) return;
@@ -125,12 +137,14 @@ function ReviewRecord() {
   const unresolved = countUnresolved(record.items);
   const reviewable = record.status === "submitted";
   const late = lateDays(record) ?? 0;
-  const order = reviewOrder(record);
+  const order = frozenOrder(record, orderKeys);
   const summary = sourceSummary(record);
   const resolvedCount = record.items.filter(
     (item) => item.status === "needs_check" && item.resolution !== null,
   ).length;
   const selectedItem = record.items.find((item) => item.item_key === selected);
+  // 관리자가 고친 항목은 옛 근거 문장을 '지금 근거'처럼 노랗게 칠하지 않는다(이슈 #134)
+  const highlight = selectedItem && selectedItem.source !== "reviewer" ? selectedItem : null;
   const native = record.transcript !== record.transcriptKo;
   const real = demo.real;
   const steps = real
@@ -139,9 +153,13 @@ function ReviewRecord() {
   const fail = (result: { ko: string }) => toast.show(result.ko);
 
   const approve = () => {
+    setConfirmingApprove(false);
+    if (busy) return;
     if (real) {
       // 서버가 다시 검사한다(원칙 3). 남은 '확인 필요'가 있으면 409와 항목 목록
+      setBusy("approve");
       void real.actions.approve(record.id).then((result) => {
+        setBusy(null);
         if (!result.ok) return fail(result);
         router.push(`/approved?id=${record.id}`);
       });
@@ -189,19 +207,24 @@ function ReviewRecord() {
               <Icon name="eye" />
               미리보기
             </Link>
-            <button type="button" className="dbtn danger" onClick={() => setReturning(true)}>
+            <button
+              type="button"
+              className="dbtn danger"
+              disabled={busy !== null}
+              onClick={() => setReturning(true)}
+            >
               <Icon name="undo" />
               되돌리기
             </button>
             <button
               type="button"
               className="dbtn primary"
-              disabled={!canApproveRecord(record)}
-              onClick={approve}
+              disabled={!canApproveRecord(record) || busy !== null}
+              onClick={() => setConfirmingApprove(true)}
               title={unresolved > 0 ? "확인 필요를 모두 정해야 승인할 수 있어요" : undefined}
             >
               <Icon name="check" />
-              승인
+              {busy === "approve" ? "승인하는 중" : "승인"}
             </button>
           </div>
         )}
@@ -224,9 +247,10 @@ function ReviewRecord() {
 
       <section className="panel summary">
         <span>
-          작성자 수정: {summary.worker.map((key) => itemLabel(key).ko).join(", ") || "없음"} ·
-          관리자 수정: {summary.reviewer.map((key) => itemLabel(key).ko).join(", ") || "없음"} · AI
-          그대로 {summary.aiCount}개
+          {names.worker} 수정: {summary.worker.map((key) => itemLabel(key).ko).join(", ") || "없음"}{" "}
+          · {names.reviewer} 수정:{" "}
+          {summary.reviewer.map((key) => itemLabel(key).ko).join(", ") || "없음"} · AI 그대로{" "}
+          {summary.aiCount}개
         </span>
         <span className={`checks ${unresolved === 0 ? "ok" : ""}`}>
           확인 필요 {unresolved} · 처리 완료 {resolvedCount}
@@ -241,7 +265,7 @@ function ReviewRecord() {
           {sentences(record.transcript).map((line, index) => (
             <p
               key={`o-${index}`}
-              className={`line ${selectedItem && evidenceHit(line, selectedItem.evidence) ? "hl" : ""}`}
+              className={`line ${highlight && evidenceHit(line, highlight.evidence) ? "hl" : ""}`}
             >
               {line}
             </p>
@@ -252,7 +276,7 @@ function ReviewRecord() {
             sentences(record.transcriptKo).map((line, index) => (
               <p
                 key={`k-${index}`}
-                className={`line ${selectedItem && evidenceHit(line, selectedItem.evidence) ? "hl" : ""}`}
+                className={`line ${highlight && evidenceHit(line, highlight.evidence) ? "hl" : ""}`}
               >
                 {line}
               </p>
@@ -264,9 +288,11 @@ function ReviewRecord() {
           )}
           <p className="hint-note">
             <Icon name="info" />
-            {selectedItem
-              ? `노란 줄 = 오른쪽에서 고른 항목(${itemLabel(selectedItem.item_key).ko})의 근거 문장`
-              : "오른쪽 항목을 누르면 근거 문장을 노랗게 보여 줘요"}
+            {selectedItem && !highlight
+              ? `${itemLabel(selectedItem.item_key).ko}은(는) 관리자가 고친 항목이라 고치기 전 근거를 칠하지 않아요`
+              : selectedItem
+                ? `노란 줄 = 오른쪽에서 고른 항목(${itemLabel(selectedItem.item_key).ko})의 근거 문장`
+                : "오른쪽 항목을 누르면 근거 문장을 노랗게 보여 줘요"}
           </p>
         </section>
 
@@ -332,22 +358,46 @@ function ReviewRecord() {
         </div>
       </div>
 
+      <DeskModal
+        open={confirmingApprove}
+        onClose={() => setConfirmingApprove(false)}
+        label="승인할까요?"
+      >
+        <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>승인할까요?</h2>
+        <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
+          승인하면 고칠 수 없어요.
+        </p>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button type="button" className="dbtn" onClick={() => setConfirmingApprove(false)}>
+            취소
+          </button>
+          <button type="button" className="dbtn primary" onClick={approve}>
+            <Icon name="check" />
+            승인
+          </button>
+        </div>
+      </DeskModal>
       <ReturnModal
         open={returning}
         record={record}
         error={returnError}
+        busy={busy === "return"}
         onClose={() => {
+          if (busy === "return") return;
           setReturning(false);
           setReturnError("");
         }}
         onReturn={(reason) => {
+          if (busy) return;
           const next = returnRecord(db, record.id, reason, now());
           if ("error" in next) return;
           if (real) {
             // 관리자는 한국어 사유만 보낸다(결정 2026-10-28-되돌림사유한국어).
             // 실패하면 창 안에 이유를 남긴다(이슈 #114: 창이 그대로 있고 아무 반응이 없던 문제)
             setReturnError("");
+            setBusy("return");
             void real.actions.returnRecord(record.id, reason).then((result) => {
+              setBusy(null);
               if (!result.ok) return setReturnError(result.ko);
               setReturning(false);
               router.push("/review");
@@ -388,6 +438,7 @@ function ReviewItem({
   const [note, setNote] = useState("");
   const [noteError, setNoteError] = useState(false);
   const label = itemLabel(item.item_key).ko;
+  const names = useRoleNames();
   const unresolved = item.status === "needs_check" && item.resolution === null;
   const isNotes = item.item_key === "notes";
   const showMinutes = item.item_key === "support" && record.formType === "12";
@@ -403,13 +454,21 @@ function ReviewItem({
     >
       <div className="ritem-head">
         <b>{label}</b>
-        {itemChip(item)}
+        {itemChip(item, names)}
       </div>
-      {item.status === "needs_check" && item.reason && (
+      {item.status === "needs_check" && item.reason && item.source !== "reviewer" && (
         <p className="reason">
           <Icon name="alert" />
           {item.reason}
         </p>
+      )}
+      {/* 관리자가 고친 항목의 이유·근거는 고친 문장과 맞지 않을 수 있어 '지금 이유'처럼 보이지 않는다(이슈 #134).
+          서버 PATCH는 value_ko만 바꾸고 reason·evidence는 그대로 둔다 */}
+      {item.status === "needs_check" && item.reason && item.source === "reviewer" && (
+        <details className="reason old" onClick={(event) => event.stopPropagation()}>
+          <summary>고치기 전 AI 판단</summary>
+          <p>{item.reason}</p>
+        </details>
       )}
       <textarea
         className="field"
@@ -537,9 +596,15 @@ function ReviewItem({
       {item.status === "needs_check" && item.resolution !== null && (
         <p className="resolved">
           <Icon name="check" />
-          {item.resolution === "omitted"
-            ? `기록 안 함 · ${item.resolved_by ?? ""} · ${item.resolution_note ?? ""}`
-            : `확인함 · ${item.resolved_by ?? ""}${item.resolved_at ? ` · ${kstTime(item.resolved_at)}` : ""}`}
+          {/* 누가·언제는 record_events의 resolved 줄에서 온다. 빈 값이면 구분점을 붙이지 않는다(이슈 #140) */}
+          {[
+            item.resolution === "omitted" ? "기록 안 함" : "확인함",
+            item.resolved_by,
+            item.resolved_at ? kstTime(item.resolved_at) : "",
+            item.resolution === "omitted" ? item.resolution_note : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
           {editable && (
             <button
               type="button"
@@ -564,6 +629,7 @@ function ReturnModal({
   onClose,
   onReturn,
   error: serverError = "",
+  busy = false,
 }: {
   open: boolean;
   record: DemoRecord;
@@ -571,7 +637,10 @@ function ReturnModal({
   onReturn: (reason: string) => void;
   /** 서버가 거절한 이유. 있으면 창 안에 보인다 */
   error?: string;
+  /** 요청 중이면 [되돌리기]를 다시 누를 수 없다(이슈 #136) */
+  busy?: boolean;
 }) {
+  const names = useRoleNames();
   const [keys, setKeys] = useState<ItemKey[]>([]);
   const [reason, setReason] = useState("");
   const [error, setError] = useState(false);
@@ -628,16 +697,17 @@ function ReturnModal({
         </p>
       )}
       <p className="info-note">
-        되돌리면 승인 대기에서 빠지고, 작성자 오늘 화면에 주황 띠로 보여요. 작성자가 고친 항목은
-        관리자가 다시 확인해요.
+        되돌리면 승인 대기에서 빠지고, {names.worker} 오늘 화면에 주황 띠로 보여요. {names.worker}가
+        고친 항목은 {names.reviewer}가 다시 확인해요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-        <button type="button" className="dbtn" onClick={onClose}>
+        <button type="button" className="dbtn" disabled={busy} onClick={onClose}>
           취소
         </button>
         <button
           type="button"
           className="dbtn danger"
+          disabled={busy}
           onClick={() => {
             if (!reason.trim()) {
               setError(true);
@@ -650,7 +720,7 @@ function ReturnModal({
           }}
         >
           <Icon name="undo" />
-          되돌리기
+          {busy ? "되돌리는 중" : "되돌리기"}
         </button>
       </div>
     </DeskModal>

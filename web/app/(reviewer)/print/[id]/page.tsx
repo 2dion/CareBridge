@@ -69,10 +69,13 @@ export default function PrintPage() {
     try {
       // 실제 모드는 서버 인쇄 데이터(GET /api/records/:id/print, 승인한 기록만)로 칸을 채운다
       let source = record;
+      // 연습용 표시: 서버 인쇄 데이터의 is_training, 그 전에는 기관 값(이슈 #125)
+      let training = Boolean(demo.real?.isTraining);
       if (demo.real) {
         const printed = await callApi<PrintData>(`/api/records/${id}/print`, { method: "GET" });
         if (!printed.ok) throw new Error(printed.ko);
         source = applyPrintData(record, printed.data);
+        training = printed.data.is_training;
       }
       const [{ createRecordPdf }, templateResponse, fontResponse] = await Promise.all([
         import("@/lib/print/pdf"),
@@ -92,6 +95,7 @@ export default function PrintPage() {
         alias: resident?.alias ?? "",
         org: db.worker.org,
         notesArea,
+        training,
       });
       if (current !== request.current) return;
       const url = URL.createObjectURL(
@@ -181,8 +185,8 @@ export default function PrintPage() {
             )}
             <p className="info-note">
               기록에 없는 정보와 서명은 비워 둡니다. 칸보다 긴 내용은 같은 법정 양식에 이어 쓰며
-              자르지 않습니다. PDF에 합성 사례{record.status !== "approved" ? "·승인 전" : ""}{" "}
-              표시가 들어갑니다.
+              자르지 않습니다. PDF에 {demo.real?.isTraining ? "연습용·" : ""}합성 사례
+              {record.status !== "approved" ? "·승인 전" : ""} 표시가 들어갑니다.
             </p>
             <button
               type="button"

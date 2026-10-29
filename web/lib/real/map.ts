@@ -2,6 +2,7 @@
 // 근거: 문서/설계/데이터구조-v1.6.4.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
 import type { ItemKey, ItemStatus, RecordStatus, Resolution } from "../demo/state";
 import type {
+  Assignment,
   DemoDb,
   DemoRecord,
   DraftState,
@@ -31,6 +32,8 @@ export type AssignmentRow = {
   worker_id: string;
   visit_days: number[] | null;
   start_date: string;
+  /** 표시용 방문 시간(예: "14:00~17:00"). 계산에 쓰지 않는다(데이터구조 v1.6.4 assignments.schedule) */
+  schedule: string;
 };
 export type RecordRow = {
   id: string;
@@ -120,7 +123,7 @@ export const FONT_VALUE: Record<FontSize, number> = { small: 1, normal: 2, large
 
 const hhmm = (time: string | null) => (time ? time.slice(0, 5) : null);
 
-/** 담당 연결이 여럿이면(관리자 화면) 가장 이른 시작일과 방문 요일 합집합을 쓴다 */
+/** 담당 연결이 여럿이면(관리자 화면) 가장 이른 시작일과 방문 요일 합집합을 쓴다. 방문 시간은 표시용 schedule */
 export function mapResidents(
   residents: ResidentRow[],
   assignments: AssignmentRow[],
@@ -140,13 +143,24 @@ export function mapResidents(
         initial: [...row.alias][0] ?? "",
         careType: row.care_type,
         visitDays: days && days.length > 0 ? days : row.care_type === "home" ? [] : null,
-        visitTime: null,
+        visitTime: links.map((a) => a.schedule?.trim()).find(Boolean) ?? null,
         // 실제 기록에서는 쓰지 않는 값(Mock 합성 사례 번호)
         caseId: row.care_type === "home" ? "S-H01" : "S-F01",
         startDate,
       } satisfies Resident;
     })
     .sort((a, b) => a.alias.localeCompare(b.alias, "ko"));
+}
+
+/** 담당 연결 줄 그대로(M4가 작성자마다 보이고 고친다, 이슈 #95) */
+export function mapAssignments(rows: AssignmentRow[]): Assignment[] {
+  return rows.map((row) => ({
+    residentId: row.resident_id,
+    workerId: row.worker_id,
+    visitDays: row.visit_days,
+    startDate: row.start_date,
+    visitTime: row.schedule?.trim() || null,
+  }));
 }
 
 /** 정리 중·실패는 기록 전체 녹음 작업(audio_jobs)의 마지막 상태로 본다 */
@@ -260,6 +274,12 @@ export function mapRecord(
                 typeof event.before?.value_ko === "string",
             )
         : undefined;
+    // 누가 언제 [확인함]/[기록 안 함]을 골랐는지: 그 항목의 가장 최근 resolved 줄(이슈 #140)
+    const lastResolved = item.resolution
+      ? [...events]
+          .reverse()
+          .find((event) => event.type === "resolved" && event.item_key === item.item_key)
+      : undefined;
     return {
       item_key: item.item_key,
       status: item.status,
@@ -274,6 +294,9 @@ export function mapRecord(
       ...(Object.keys(detail).length > 0 ? { detail } : {}),
       ...(item.resolution_note ? { resolution_note: item.resolution_note } : {}),
       ...(reviewerEdit ? { before_ko: reviewerEdit.before?.value_ko as string } : {}),
+      ...(lastResolved
+        ? { resolved_by: nameOf(lastResolved.actor_id), resolved_at: lastResolved.created_at }
+        : {}),
     };
   });
   const formFields = pickFormFields(row.form_fields);
@@ -390,5 +413,7 @@ export function toDemoDb(rows: RealRows, today: string): DemoDb {
     residents: mapResidents(rows.residents, rows.assignments, today),
     records: Object.fromEntries(rows.records.map((row) => [row.id, mapRecord(row, rows, nameOf)])),
     noCareDays: mapNoCare(rows.noCareDays, nameOf),
+    // 관리자만 직원 목록을 읽는다(list_org_staff). 작성자 화면은 비워 Mock과 같은 모양
+    ...(isWorker ? {} : { staff: rows.staff, assignments: mapAssignments(rows.assignments) }),
   };
 }

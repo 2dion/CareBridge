@@ -5,7 +5,8 @@
 // 종 버튼은 두지 않는다(10/28 알림표시 결정): 수정 필요 띠와 하는 일이 같다.
 import Link from "next/link";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
+import type { RoleNames } from "@/lib/demo/roles";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { Loading, MobileScreen, StatusBadge } from "@/components/mobile/shell";
@@ -21,7 +22,11 @@ import {
 
 type CardAction = { ko: string; vi: string; href: string; primary: boolean };
 
-function cardGuide(resident: Resident, record?: DemoRecord): { ko: string; vi: string } {
+function cardGuide(
+  resident: Resident,
+  names: RoleNames,
+  record?: DemoRecord,
+): { ko: string; vi: string } {
   if (!record || record.draftState === "empty") {
     return resident.careType === "home"
       ? { ko: "오늘 방문 예정", vi: "Hôm nay có lịch thăm." }
@@ -31,9 +36,12 @@ function cardGuide(resident: Resident, record?: DemoRecord): { ko: string; vi: s
     case "draft":
       return { ko: "쓰던 기록이 있어요", vi: "Có bản ghi đang viết dở." };
     case "submitted":
-      return { ko: "관리자가 확인하고 있어요", vi: "Người quản lý đang xem." };
+      return { ko: `${names.reviewer}가 확인하고 있어요`, vi: `${names.reviewerVi} đang xem.` };
     case "returned":
-      return { ko: "관리자가 수정을 요청했어요", vi: "Người quản lý đã yêu cầu chỉnh sửa." };
+      return {
+        ko: `${names.reviewer}가 수정을 요청했어요`,
+        vi: `${names.reviewerVi} đã yêu cầu chỉnh sửa.`,
+      };
     case "approved":
       return { ko: "오늘 기록을 확인할 수 있어요.", vi: "Bản ghi hôm nay đã được duyệt." };
   }
@@ -66,6 +74,7 @@ function cardAction(resident: Resident, today: string, record?: DemoRecord): Car
 
 export default function TodayPage() {
   const demo = useDemo();
+  const names = useRoleNames();
   if (!demo) return <Loading tab="today" />;
   const { db, today } = demo;
   const cards = todayCards(db, today);
@@ -115,7 +124,7 @@ export default function TodayPage() {
           </>
         )}
         {cards.map(({ resident, record }) => {
-          const guide = cardGuide(resident, record);
+          const guide = cardGuide(resident, names, record);
           const action = cardAction(resident, today, record);
           const status = !record || record.draftState === "empty" ? "not_started" : record.status;
           return (

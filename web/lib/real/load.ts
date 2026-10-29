@@ -82,7 +82,9 @@ export async function loadRealDb(
     reviewer ? rows<StaffRow>(supabase.rpc("list_org_staff")) : Promise.resolve([]),
     rows<ResidentRow>(supabase.from("residents").select("id, alias, care_type")),
     rows<AssignmentRow>(
-      supabase.from("assignments").select("resident_id, worker_id, visit_days, start_date"),
+      supabase
+        .from("assignments")
+        .select("resident_id, worker_id, visit_days, start_date, schedule"),
     ),
     rows<RecordRow>(
       supabase
@@ -95,6 +97,7 @@ export async function loadRealDb(
       supabase.from("no_care_days").select("resident_id, care_date, reason, note, created_by"),
     ),
     rows<{
+      worker_id: string;
       resident_id: string;
       care_date: string;
       kind: "missing" | "draft";
@@ -141,12 +144,16 @@ export async function loadRealDb(
     { profile, staff, residents, assignments, records, items, events, jobs, noCareDays },
     today,
   );
+  // 못 쓴 기록은 작성자마다 한 줄이다(assignments 기준). 이름을 붙여 M1이 작성자별로 보인다(이슈 #95)
+  const staffNames = new Map(staff.map((person) => [person.id, person.name]));
   const missed: MissedRecord[] = missedRows
     .map((row) => ({
       residentId: row.resident_id,
       careDate: row.care_date,
       kind: row.kind,
       ...(row.record_id ? { recordId: row.record_id } : {}),
+      workerId: row.worker_id,
+      workerName: staffNames.get(row.worker_id) ?? (reviewer ? "" : profile.name),
     }))
     .sort(byDateDesc);
   const overdue: OverdueDay[] = overdueRows

@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { signOut } from "@/lib/auth/session";
 import { reviewQueue } from "@/lib/demo/review";
+import { TRAINING_BAND } from "@/lib/demo/roles";
 import { kstDateOf } from "@/lib/demo/store";
 
 export type DeskNav = "review" | "approved" | "residents" | "settings";
@@ -25,14 +26,18 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
   const demo = useDemo();
   const waiting = demo ? reviewQueue(demo.db).length : 0;
   const name = demo?.db.reviewer.name ?? "";
+  // 교육용 기관이면 '강사'로 보이고 위에 '연습용' 띠(이슈 #125)
+  const names = useRoleNames();
   return (
     <div className="d-app">
       <aside className="side-nav">
         <div className="brand">
           <b>CareBridge</b>
-          <span>{demo?.db.worker.org ?? "데모 요양센터"} · 관리자</span>
+          <span>
+            {demo?.db.worker.org ?? "데모 요양센터"} · {names.reviewer}
+          </span>
         </div>
-        <nav aria-label="관리자 메뉴">
+        <nav aria-label={`${names.reviewer} 메뉴`}>
           {navItems.map((item) => (
             <Link
               key={item.key}
@@ -50,7 +55,7 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
           <span className="mini-avatar">{name.slice(0, 1)}</span>
           <div>
             <b>{name}</b>
-            <small>관리자</small>
+            <small>{names.reviewer}</small>
           </div>
         </div>
         <button
@@ -65,7 +70,14 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
           로그아웃
         </button>
       </aside>
-      <main className="main">{demo ? children : <p className="sr-only">불러오는 중</p>}</main>
+      <main className="main">
+        {names.training && (
+          <p className="training-band" role="note">
+            {TRAINING_BAND}
+          </p>
+        )}
+        {demo ? children : <p className="sr-only">불러오는 중</p>}
+      </main>
     </div>
   );
 }

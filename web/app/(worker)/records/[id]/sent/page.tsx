@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen } from "@/components/mobile/shell";
@@ -13,6 +13,7 @@ import { getResident, lateDays, monthDay } from "@/lib/demo/store";
 export default function SentPage() {
   const { id } = useParams<{ id: string }>();
   const demo = useDemo();
+  const names = useRoleNames();
   const record = demo?.db.records[id];
   const resident = demo && record ? getResident(demo.db, record.residentId) : undefined;
   if (!demo || !record || !resident) return <Loading tab="today" />;
@@ -36,10 +37,10 @@ export default function SentPage() {
           {resident.alias} · {monthDay(record.careDate)}
         </b>
         <p style={{ marginTop: 8, fontSize: 15, color: "var(--color-sub)" }}>
-          확인한 기록을 관리자에게 전송했어요. 관리자가 승인하면 끝나요.
+          확인한 기록을 {names.reviewer}에게 전송했어요. {names.reviewer}가 승인하면 끝나요.
         </p>
         <span className="vi" style={{ fontSize: 14 }}>
-          Đã gửi bản ghi cho người quản lý. Khi được duyệt là xong.
+          Đã gửi bản ghi cho {names.reviewerVi}. Khi được duyệt là xong.
         </span>
         {late !== null && late > 0 && (
           <p style={{ marginTop: 8, fontSize: 13, color: "var(--color-warn-text)" }}>

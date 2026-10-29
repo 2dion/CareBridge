@@ -124,6 +124,18 @@
   color: var(--color-sub);
 }
 
+/* 교육용 기관의 '연습용 · 합성 사례' 띠(이슈 #125). 인쇄에는 PDF가 따로 찍는다 */
+.d-app .training-band {
+  margin: 0 0 16px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #fff3cd;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a5b00;
+  text-align: center;
+}
+
 .d-app .main {
   flex: 1;
   min-width: 0;
@@ -540,6 +552,22 @@
 .d-app .reason .icon {
   width: 16px;
   height: 16px;
+}
+
+/* 관리자가 고친 항목의 옛 AI 판단: 접어 두고 흐리게(이슈 #134) */
+.d-app details.reason.old {
+  display: block;
+  color: var(--color-muted);
+}
+
+.d-app details.reason.old summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.d-app details.reason.old p {
+  margin: 4px 0 0;
+  font-size: 12px;
 }
 
 .d-app textarea.field,

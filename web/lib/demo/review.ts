@@ -37,7 +37,8 @@ export function approvedRecords(db: DemoDb): DemoRecord[] {
     .sort((a, b) => (a.careDate === b.careDate ? 0 : a.careDate < b.careDate ? 1 : -1));
 }
 
-/** M2 묶음: 정하지 않은 확인 필요 → 고친 항목 → 관찰 → 언급 없음. 묶음 안은 기본 순서. */
+/** M2 묶음: 정하지 않은 확인 필요 → 고친 항목 → 관찰 → 언급 없음. 묶음 안은 기본 순서.
+ *  화면은 연 때 한 번만 계산하고(이슈 #140, 처리하면 카드가 움직여 누르려던 자리가 밀림), 그 뒤는 frozenOrder로 그 순서를 지킨다. */
 export function reviewOrder(record: DemoRecord) {
   const rank = (item: DemoRecord["items"][number]) => {
     if (item.status === "needs_check" && item.resolution === null) return 0;
@@ -49,6 +50,14 @@ export function reviewOrder(record: DemoRecord) {
     (a, b) =>
       rank(a) - rank(b) || displayOrder.indexOf(a.item_key) - displayOrder.indexOf(b.item_key),
   );
+}
+
+/** 화면을 연 때의 순서(keys)대로 지금 항목을 늘어놓는다. 그 뒤 생긴 항목은 뒤에 붙인다(이슈 #140). */
+export function frozenOrder(record: DemoRecord, keys: ItemKey[]) {
+  const byKey = new Map(record.items.map((item) => [item.item_key, item]));
+  const known = keys.flatMap((key) => byKey.get(key) ?? []);
+  const rest = reviewOrder(record).filter((item) => !keys.includes(item.item_key));
+  return [...known, ...rest];
 }
 
 const byDisplayOrder = (a: ItemKey, b: ItemKey) =>
@@ -345,15 +354,76 @@ export function removeNoCareDay(db: DemoDb, residentId: string, careDate: string
   };
 }
 
-export type ResidentEdit = Pick<Resident, "visitDays" | "visitTime" | "startDate">;
+/** M4 [수정]: 담당 연결(방문 요일·표시용 방문 시간·담당 시작일)과 어르신 정보(가명·급여 종류, 이슈 #96).
+ *  alias·careType·workerIds는 바뀐 때만 넣는다. 실제 모드의 workerIds는 담당 작성자 id 목록(이슈 #95) */
+export type ResidentEdit = Pick<Resident, "visitDays" | "visitTime" | "startDate"> & {
+  alias?: string;
+  careType?: Resident["careType"];
+  workerIds?: string[];
+};
 
-export function updateResident(db: DemoDb, residentId: string, edit: ResidentEdit): DemoDb {
+/** 기록이 하나라도 있는 어르신은 급여 종류(서식)를 바꿀 수 없다(이슈 #96) */
+export function residentHasRecords(db: DemoDb, residentId: string): boolean {
+  return Object.values(db.records).some((record) => record.residentId === residentId);
+}
+
+export function updateResident(
+  db: DemoDb,
+  residentId: string,
+  edit: ResidentEdit,
+): DemoDb | { error: "duplicate" | "care_type_locked" } {
+  const { workerIds: _workerIds, ...fields } = edit;
+  void _workerIds; // Mock은 작성자가 한 명이라 담당 연결 줄을 따로 두지 않는다
+  if (
+    fields.alias !== undefined &&
+    db.residents.some((resident) => resident.id !== residentId && resident.alias === fields.alias)
+  ) {
+    return { error: "duplicate" };
+  }
+  const current = db.residents.find((resident) => resident.id === residentId);
+  if (
+    fields.careType !== undefined &&
+    current &&
+    fields.careType !== current.careType &&
+    residentHasRecords(db, residentId)
+  ) {
+    return { error: "care_type_locked" };
+  }
   return {
     ...db,
     residents: db.residents.map((resident) =>
-      resident.id === residentId ? { ...resident, ...edit } : resident,
+      resident.id === residentId
+        ? {
+            ...resident,
+            ...fields,
+            ...(fields.alias !== undefined ? { initial: [...fields.alias][0] ?? "" } : {}),
+          }
+        : resident,
     ),
   };
+}
+
+/** 바뀐 칸이 하나라도 있는지. 없으면 '저장했어요'를 띄우지 않는다(이슈 #96) */
+export function residentEditChanged(
+  resident: Resident,
+  currentWorkerIds: string[] | null,
+  edit: ResidentEdit,
+): boolean {
+  const sameDays =
+    JSON.stringify(resident.visitDays ? [...resident.visitDays].sort() : null) ===
+    JSON.stringify(edit.visitDays ? [...edit.visitDays].sort() : null);
+  const sameWorkers =
+    edit.workerIds === undefined ||
+    currentWorkerIds === null ||
+    JSON.stringify([...currentWorkerIds].sort()) === JSON.stringify([...edit.workerIds].sort());
+  return !(
+    sameDays &&
+    sameWorkers &&
+    (resident.visitTime ?? null) === (edit.visitTime ?? null) &&
+    resident.startDate === edit.startDate &&
+    (edit.alias === undefined || edit.alias === resident.alias) &&
+    (edit.careType === undefined || edit.careType === resident.careType)
+  );
 }
 
 /** 공식 기록지 칸 안내(데이터구조 v1.6.2 '서식 칸 대응' 표). */

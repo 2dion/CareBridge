@@ -3,7 +3,7 @@
 // M5(설정): 기관 정보(읽기만), 작성자용 가입 코드 복사, AI 사용 원칙.
 // 가입 코드는 실제 모드에서 기관의 join_codes(active)를 RLS로 읽기만 한다. 만들거나 끄는 것은 팀장이 DB에서 한다(로그인가입 결정 6).
 // 관리자용 코드는 화면에 보이지 않는다(화면 v1.3 '가입 코드 보기'). 코드 값을 화면 코드에 두지 않는다(이슈 #119).
-import { useDemo } from "@/components/demo/demo-provider";
+import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskShell, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
 
@@ -30,7 +30,8 @@ function Settings() {
     .join(" · ");
   // 실제 모드: 기관의 켜진 작성자용 코드(보통 1개). Mock 모드: 코드가 없어 자리만 보인다
   const workerCodes = real ? real.joinCodes.filter((entry) => entry.role === "worker") : [];
-  const writer = real?.isTraining ? "작성자(교육생)" : "작성자";
+  // 교육용 기관이면 '교육생'(이슈 #125, 용어집 v1.0)
+  const writer = useRoleNames().worker;
   const copy = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -91,7 +92,7 @@ function Settings() {
               ? "Supabase에 연결하면 기관의 가입 코드(join_codes)를 여기서 읽어요. Mock 모드에는 실제 코드가 없어요."
               : workerCodes.length === 0
                 ? "이 기관에 켜진 작성자용 코드가 없어요. 팀장에게 요청하세요."
-                : `새 ${writer}는 이 코드로 직접 가입해요. 코드를 만들거나 끄는 것은 팀장이 합니다. 관리자용 코드는 화면에 보이지 않아요.`}
+                : `새 ${writer}은(는) 이 코드로 직접 가입해요. 코드를 만들거나 끄는 것은 팀장이 합니다. ${real.isTraining ? "강사" : "관리자"}용 코드는 화면에 보이지 않아요.`}
           </p>
         </section>
       </div>
