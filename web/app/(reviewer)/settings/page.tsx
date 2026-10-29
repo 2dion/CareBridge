@@ -6,9 +6,11 @@
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskShell, useToast } from "@/components/desk/shell";
 import { Icon } from "@/components/mobile/icon";
+import type { RoleNames } from "@/lib/demo/roles";
 
-const principles = [
-  "AI 결과는 초안입니다. 작성자가 확인하고 관리자가 승인합니다.",
+// 교육용 기관이면 교육생·강사(이슈 #146)
+const buildPrinciples = (names: RoleNames) => [
+  `AI 결과는 초안입니다. ${names.worker}가 확인하고 ${names.reviewer}가 승인합니다.`,
   "원문에 없는 내용은 지어내지 않습니다. 없으면 ‘언급 없음’, 애매하면 ‘확인 필요’로 남깁니다.",
   "‘확인 필요’를 모두 정해야 승인할 수 있습니다.",
   "어르신·가족 실명을 기록에 쓰지 않습니다.",
@@ -30,8 +32,10 @@ function Settings() {
     .join(" · ");
   // 실제 모드: 기관의 켜진 작성자용 코드(보통 1개). Mock 모드: 코드가 없어 자리만 보인다
   const workerCodes = real ? real.joinCodes.filter((entry) => entry.role === "worker") : [];
-  // 교육용 기관이면 '교육생'(이슈 #125, 용어집 v1.0)
-  const writer = useRoleNames().worker;
+  // 교육용 기관이면 교육생·강사(이슈 #125·#146, 용어집 v1.0)
+  const names = useRoleNames();
+  const writer = names.worker;
+  const principles = buildPrinciples(names);
   const copy = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -91,8 +95,8 @@ function Settings() {
             {!real
               ? "Supabase에 연결하면 기관의 가입 코드(join_codes)를 여기서 읽어요. Mock 모드에는 실제 코드가 없어요."
               : workerCodes.length === 0
-                ? "이 기관에 켜진 작성자용 코드가 없어요. 팀장에게 요청하세요."
-                : `새 ${writer}은(는) 이 코드로 직접 가입해요. 코드를 만들거나 끄는 것은 팀장이 합니다. ${real.isTraining ? "강사" : "관리자"}용 코드는 화면에 보이지 않아요.`}
+                ? `이 기관에 켜진 ${writer}용 코드가 없어요. 팀장에게 요청하세요.`
+                : `새 ${writer}은(는) 이 코드로 직접 가입해요. 코드를 만들거나 끄는 것은 팀장이 합니다. ${names.reviewer}용 코드는 화면에 보이지 않아요.`}
           </p>
         </section>
       </div>

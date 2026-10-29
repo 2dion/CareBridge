@@ -1,10 +1,15 @@
 "use client";
 
 // W5 · 개인정보 안내. 읽고 판단하는 안내라 병기.
+import { useRoleNames } from "@/components/demo/demo-provider";
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
+import type { RoleNames } from "@/lib/demo/roles";
 
-const sections: { icon: IconName; ko: string; vi: string; body: string; bodyVi: string }[] = [
+// 교육용 기관이면 문의 상대가 '강사'(이슈 #146)
+const buildSections = (
+  names: RoleNames,
+): { icon: IconName; ko: string; vi: string; body: string; bodyVi: string }[] => [
   {
     icon: "user",
     ko: "모으는 정보",
@@ -30,12 +35,13 @@ const sections: { icon: IconName; ko: string; vi: string; body: string; bodyVi: 
     icon: "headset",
     ko: "문의",
     vi: "Liên hệ",
-    body: "궁금한 점은 관리자에게 물어보세요.",
-    bodyVi: "Hãy hỏi người quản lý nếu có thắc mắc.",
+    body: `궁금한 점은 ${names.reviewer}에게 물어보세요.`,
+    bodyVi: `Hãy hỏi ${names.reviewerVi} nếu có thắc mắc.`,
   },
 ];
 
 export default function PrivacyPage() {
+  const sections = buildSections(useRoleNames());
   return (
     <MobileScreen tab="me">
       <AppBar title="개인정보 안내" vi="Thông tin quyền riêng tư" back="/me" />
