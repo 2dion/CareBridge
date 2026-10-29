@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { careTypeOf } from "@/lib/records/form-type";
+
 import { getBlockedNames } from "./blocked-names";
 import { ITEM_KEYS, validateDraft, type DraftItem, type ValidateContext } from "./validate-draft";
 
@@ -51,7 +53,7 @@ export async function saveValidatedDraft(
   const context: ValidateContext = {
     nativeLang: profile.native_lang === "ko" ? "ko" : "vi",
     transcript: record.transcript,
-    careType: record.form_type === "12" ? "home" : "facility",
+    careType: careTypeOf(record.form_type),
     blockedNames: await getBlockedNames(serverClient, recordId, auth.user.id),
   };
   if (record.visit_start && record.visit_end) {

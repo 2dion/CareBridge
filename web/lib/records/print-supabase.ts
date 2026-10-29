@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+import { toFormType } from "./form-type";
 import type { PrintDeps, PrintItem, PrintRecordRow } from "./print";
 import { readCurrentUser } from "./transition-supabase";
 
@@ -22,9 +23,14 @@ export async function createPrintDeps(): Promise<PrintDeps> {
       if (!data) return null;
       const { organizations, ...record } = data as unknown as Omit<
         PrintRecordRow,
-        "is_training"
-      > & { organizations: { is_training: boolean } | null };
-      return { ...record, is_training: Boolean(organizations?.is_training) };
+        "is_training" | "form_type"
+      > & { form_type: unknown; organizations: { is_training: boolean } | null };
+      // DB의 form_type은 smallint라 숫자로 온다. 계약은 "16" / "12" 글자
+      return {
+        ...record,
+        form_type: toFormType(record.form_type),
+        is_training: Boolean(organizations?.is_training),
+      };
     },
     async listItems(recordId) {
       const { data, error } = await supabase
