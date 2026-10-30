@@ -3,6 +3,17 @@
 export type RoleNames = {
   /** 작성자 / 교육생 */
   worker: string;
+  /**
+   * 조사를 붙인 이름. '교육생'은 받침이 있어 '{worker}가'처럼 붙이면 틀린다(이슈 #178).
+   * 작성자가 / 교육생이
+   */
+  workerSubject: string;
+  /** 작성자를 / 교육생을 */
+  workerObject: string;
+  /** 작성자는 / 교육생은 */
+  workerTopic: string;
+  /** 작성자로 / 교육생으로 */
+  workerAs: string;
   /** người ghi chép / học viên (용어집: 작성자의 베트남어는 따로 정하지 않았고, 교육생은 học viên) */
   workerVi: string;
   /** 관리자 / 강사 */
@@ -17,6 +28,10 @@ export function roleNames(training: boolean): RoleNames {
   return training
     ? {
         worker: "교육생",
+        workerSubject: "교육생이",
+        workerObject: "교육생을",
+        workerTopic: "교육생은",
+        workerAs: "교육생으로",
         workerVi: "học viên",
         reviewer: "강사",
         reviewerVi: "giảng viên",
@@ -24,6 +39,10 @@ export function roleNames(training: boolean): RoleNames {
       }
     : {
         worker: "작성자",
+        workerSubject: "작성자가",
+        workerObject: "작성자를",
+        workerTopic: "작성자는",
+        workerAs: "작성자로",
         workerVi: "người ghi chép",
         reviewer: "관리자",
         reviewerVi: "người quản lý",

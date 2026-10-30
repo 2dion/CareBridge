@@ -5,6 +5,7 @@
 // 건강·안전 안내 문구는 모델에 맡기지 않고 서버가 낱말 검사로 붙인다(질문 언어와 상관없이).
 
 import type { NativeLang, Role } from "@/lib/auth/signup";
+import { type RoleNames, roleNames } from "@/lib/demo/roles";
 import { isNotKorean } from "@/lib/records/item-patch";
 import type { ApiResult } from "@/lib/records/transition";
 
@@ -20,7 +21,13 @@ export type GlossaryTerm = {
 export type HelperAnswer = { ko: string; vi: string; source: string | null; found: boolean };
 
 export type HelperDeps = {
-  currentUser(): Promise<{ id: string; role: Role; nativeLang: NativeLang } | null>;
+  currentUser(): Promise<{
+    id: string;
+    role: Role;
+    nativeLang: NativeLang;
+    /** 교육용 기관(organizations.is_training)이면 고정 안내에 '강사'를 쓴다(이슈 #180) */
+    isTraining?: boolean;
+  } | null>;
   searchManual(question: string): Promise<ManualSection[]>;
   searchGlossary(question: string): Promise<GlossaryTerm[]>;
   /** 한글이 없는 질문을 한국어로 옮긴다(가벼운 모델 한 번). 키가 없으면 null */
@@ -31,19 +38,30 @@ export type HelperDeps = {
 
 export const MAX_QUESTION_CHARS = 500;
 
-// 교재에서 찾지 못하면 상식으로 채우지 않는다(W6 2번)
-export const NOT_FOUND: HelperAnswer = {
-  ko: "교재에서 찾지 못했어요. 관리자에게 물어보세요.",
-  vi: "Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi người quản lý.",
-  source: null,
-  found: false,
-};
+// 교재에서 찾지 못하면 상식으로 채우지 않는다(W6 2번).
+// 묻는 곳은 기관에 맞춘 이름: 일반 기관 관리자(người quản lý), 교육용 기관 강사(giảng viên)(이슈 #180)
+export function notFoundAnswer(names: RoleNames = roleNames(false)): HelperAnswer {
+  return {
+    ko: `교재에서 찾지 못했어요. ${names.reviewer}에게 물어보세요.`,
+    vi: `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${names.reviewerVi}.`,
+    source: null,
+    found: false,
+  };
+}
 
-// 건강·안전 질문이면 교재 답보다 먼저 보고 안내(W6 3번). 용어집 v1.0: 관리자 = người quản lý
-export const SAFETY_NOTICE = {
-  ko: "관리자에게 바로 보고하세요.",
-  vi: "Hãy báo ngay cho người quản lý.",
-};
+/** 일반 기관 기준 문구(관리자) */
+export const NOT_FOUND: HelperAnswer = notFoundAnswer();
+
+// 건강·안전 질문이면 교재 답보다 먼저 보고 안내(W6 3번). 용어집 v1.0: 관리자 = người quản lý, 강사 = giảng viên
+export function safetyNotice(names: RoleNames = roleNames(false)) {
+  return {
+    ko: `${names.reviewer}에게 바로 보고하세요.`,
+    vi: `Hãy báo ngay cho ${names.reviewerVi}.`,
+  };
+}
+
+/** 일반 기관 기준 문구(관리자) */
+export const SAFETY_NOTICE = safetyNotice();
 
 // 낙상·호흡·의식·통증·출혈·투약 사고. 한국어와 베트남어 낱말을 모두 본다(원문 질문과 번역한 질문 둘 다 검사).
 export const SAFETY_KEYWORDS = {
@@ -94,14 +112,15 @@ export function isSafetyQuestion(...texts: string[]) {
 }
 
 /** 안전 안내 문구를 ko·vi 맨 앞에 붙인다. 모델이 이미 썼으면 두 번 붙이지 않는다. vi가 비어 있으면 그대로 둔다. */
-export function withSafetyNotice(answer: HelperAnswer): HelperAnswer {
-  const ko = answer.ko.includes(SAFETY_NOTICE.ko)
-    ? answer.ko
-    : `${SAFETY_NOTICE.ko} ${answer.ko}`.trim();
+export function withSafetyNotice(
+  answer: HelperAnswer,
+  notice: { ko: string; vi: string } = SAFETY_NOTICE,
+): HelperAnswer {
+  const ko = answer.ko.includes(notice.ko) ? answer.ko : `${notice.ko} ${answer.ko}`.trim();
   const vi =
-    answer.vi === "" || answer.vi.includes(SAFETY_NOTICE.vi)
+    answer.vi === "" || answer.vi.includes(notice.vi)
       ? answer.vi
-      : `${SAFETY_NOTICE.vi} ${answer.vi}`.trim();
+      : `${notice.vi} ${answer.vi}`.trim();
   return { ...answer, ko, vi };
 }
 
@@ -183,16 +202,22 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
     : question;
   // 안전 안내는 모델 답과 상관없이 서버가 붙인다(W6 3번). 원문과 번역 둘 다 검사한다.
   const safety = isSafetyQuestion(question, questionKo);
-  const finish = (answer: HelperAnswer): ApiResult => ({
-    status: 200,
-    body: localized(safety ? withSafetyNotice(answer) : answer, user.nativeLang),
-  });
+  // 교육용 기관이면 고정 안내의 '관리자'를 '강사'로(이슈 #180)
+  const names = roleNames(Boolean(user.isTraining));
+  const notFound = notFoundAnswer(names);
+  const finish = (answer: HelperAnswer): ApiResult => {
+    const base = answer.found ? answer : notFound;
+    return {
+      status: 200,
+      body: localized(safety ? withSafetyNotice(base, safetyNotice(names)) : base, user.nativeLang),
+    };
+  };
 
   const [sections, terms] = await Promise.all([
     deps.searchManual(questionKo),
     deps.searchGlossary(questionKo),
   ]);
-  if (sections.length === 0 && terms.length === 0) return finish(NOT_FOUND);
+  if (sections.length === 0 && terms.length === 0) return finish(notFound);
 
   const system = helperSystemPrompt(user.nativeLang);
   const message = helperUserMessage(questionKo, sections, terms, question);

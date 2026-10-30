@@ -233,8 +233,8 @@ function ReviewQueue() {
           {overdueOpen && (
             <>
               <p className="missed-note">
-                7일이 지나 {names.worker}가 더는 쓸 수 없는 날이에요. {names.worker}에게 사정을 묻고
-                사유를 남겨 주세요.
+                7일이 지나 {names.workerSubject} 더는 쓸 수 없는 날이에요. {names.worker}에게 사정을
+                묻고 사유를 남겨 주세요.
               </p>
               <ul className="missed-list">
                 {overdueRows.map((row) => {
@@ -291,7 +291,7 @@ function ReviewQueue() {
       <section className="panel">
         {rows.some(wasResent) && (
           <p className="table-legend">
-            <Icon name="refresh" /> 재전송: 되돌린 뒤 {names.worker}가 고쳐서 다시 전송했어요.
+            <Icon name="refresh" /> 재전송: 되돌린 뒤 {names.workerSubject} 고쳐서 다시 전송했어요.
           </p>
         )}
         {rows.length === 0 ? (

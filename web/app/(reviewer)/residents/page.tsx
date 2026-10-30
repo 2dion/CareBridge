@@ -90,7 +90,7 @@ function Residents() {
       <header className="page-head">
         <div>
           <h1>어르신·{names.worker}</h1>
-          <p>어르신을 추가하고 담당 {names.worker}를 연결해요.</p>
+          <p>어르신을 추가하고 담당 {names.workerObject} 연결해요.</p>
         </div>
         {tab === "residents" && (
           <div className="actions">
@@ -224,7 +224,7 @@ function Residents() {
             </tbody>
           </table>
           <p className="info-note" style={{ margin: 16 }}>
-            {names.worker}는 설정의 가입 코드로 직접 가입해요. 담당 연결은 어르신 탭의 [수정]에서
+            {names.workerTopic} 설정의 가입 코드로 직접 가입해요. 담당 연결은 어르신 탭의 [수정]에서
             바꿔요.
             {!db.staff && " 시연(Mock)에는 작성자가 한 명이에요."}
           </p>

@@ -10,7 +10,7 @@ import type { RoleNames } from "@/lib/demo/roles";
 
 // 교육용 기관이면 교육생·강사(이슈 #146)
 const buildPrinciples = (names: RoleNames) => [
-  `AI 결과는 초안입니다. ${names.worker}가 확인하고 ${names.reviewer}가 승인합니다.`,
+  `AI 결과는 초안입니다. ${names.workerSubject} 확인하고 ${names.reviewer}가 승인합니다.`,
   "원문에 없는 내용은 지어내지 않습니다. 없으면 ‘언급 없음’, 애매하면 ‘확인 필요’로 남깁니다.",
   "‘확인 필요’를 모두 정해야 승인할 수 있습니다.",
   "어르신·가족 실명을 기록에 쓰지 않습니다.",
