@@ -435,7 +435,7 @@ export const formFieldHint: Record<"16" | "12", Record<ItemKey, string>> = {
     sleep: "별지 제16호 · 신체활동지원 특이사항",
     discomfort: "별지 제16호 · 신체활동지원 특이사항",
     cognition: "별지 제16호 · 인지관리 및 의사소통 특이사항",
-    medication: "별지 제16호 · 신체활동지원 특이사항 (요양보호사가 관찰한 내용)",
+    medication: "별지 제16호 · 신체활동지원 특이사항 (직접 관찰한 내용)",
     notes: "별지 제16호 · 영역별 특이사항",
     next_check: "서식 칸 없음 · 기관 내부 메모",
   },
@@ -475,6 +475,16 @@ export function addResident(
 }
 
 /** M2 ‘AI 작업 기록’ Mock(실제로는 agent_steps 표). 서식에 맞춰 문구만 바꾼다. */
+/**
+ * M2 'AI 작업 기록' 접힘 제목. 도구를 쓴 기록이 없으면 빈 괄호 대신 '없음'(이슈 #179).
+ * loaded가 false면(실제 모드에서 아직 읽는 중) 개수를 말하지 않는다.
+ */
+export function aiLogSummary(steps: { name: string }[], loaded: boolean): string {
+  if (!loaded) return "AI 작업 기록 · 불러오는 중";
+  if (steps.length === 0) return "AI 작업 기록 없음";
+  return `AI 작업 기록 · 도구 ${steps.length}번 사용 (${steps.map((step) => step.name).join(" → ")})`;
+}
+
 export function mockAgentSteps(record: DemoRecord) {
   if (record.formType === "16") return demoAgentSteps;
   return demoAgentSteps.map((step) =>

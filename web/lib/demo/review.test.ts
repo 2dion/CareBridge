@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addResident,
+  aiLogSummary,
   approveRecord,
   frozenOrder,
   markOverdueNoCare,
@@ -306,5 +307,20 @@ describe("관리자 규칙 (M1~M5)", () => {
     expect(residentEditChanged(first, ["w1"], { ...base, workerIds: ["w1"] })).toBe(false);
     expect(residentEditChanged(first, ["w1"], { ...base, workerIds: ["w1", "w2"] })).toBe(true);
     expect(residentEditChanged(first, null, { ...base, startDate: "2026-01-01" })).toBe(true);
+  });
+});
+
+describe("aiLogSummary — M2 AI 작업 기록 제목(이슈 #179)", () => {
+  it("도구를 쓴 기록이 없으면 빈 괄호 대신 '없음'", () => {
+    expect(aiLogSummary([], true)).toBe("AI 작업 기록 없음");
+    expect(aiLogSummary([], true)).not.toContain("()");
+  });
+  it("도구 이름을 순서대로 이어 보인다", () => {
+    expect(aiLogSummary([{ name: "원문 읽기" }, { name: "초안 저장" }], true)).toBe(
+      "AI 작업 기록 · 도구 2번 사용 (원문 읽기 → 초안 저장)",
+    );
+  });
+  it("읽는 중에는 개수·'없음'을 말하지 않는다", () => {
+    expect(aiLogSummary([], false)).toBe("AI 작업 기록 · 불러오는 중");
   });
 });

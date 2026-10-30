@@ -30,6 +30,7 @@ import {
   timeRangeLabel,
   visitMinutes,
 } from "@/lib/demo/store";
+import { capitalizeVi } from "@/lib/records/item-badge";
 
 const NOTES_LIMIT = 200;
 /** 재가 서식 칸 숫자: 입력이 이만큼 멈추면 저장한다 */
@@ -318,7 +319,7 @@ export default function DraftPage() {
           <p className="foot-note">
             ‘확인 필요’가 남아 있어도 보낼 수 있어요. {names.reviewer}가 정해요.
             <span className="vi">
-              Vẫn gửi được khi còn mục cần kiểm tra. {names.reviewerVi} sẽ quyết định.
+              Vẫn gửi được khi còn mục cần kiểm tra. {capitalizeVi(names.reviewerVi)} sẽ quyết định.
             </span>
           </p>
         )}
@@ -471,7 +472,7 @@ function ItemCard({
         <span style={{ fontSize: 12, color: "var(--color-warn-text)" }}>
           {names.reviewer}가 고쳤어요. 맞는지 확인해 주세요.
           <span className="vi" style={{ display: "block" }}>
-            {names.reviewerVi} đã sửa. Hãy kiểm tra lại.
+            {capitalizeVi(names.reviewerVi)} đã sửa. Hãy kiểm tra lại.
           </span>
         </span>
       )}

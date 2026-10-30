@@ -36,9 +36,8 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
       <aside className="side-nav">
         <div className="brand">
           <b>CareBridge</b>
-          <span>
-            {demo?.db.worker.org ?? "데모 요양센터"} · {names.reviewer}
-          </span>
+          {/* 기관을 읽기 전에는 비워 둔다. 다른 기관 이름이 잠깐 보이지 않게(이슈 #179) */}
+          <span>{demo ? `${demo.db.worker.org} · ${names.reviewer}` : ""}</span>
         </div>
         <nav aria-label={`${names.reviewer} 메뉴`}>
           {navItems(names.worker).map((item) => (
@@ -58,7 +57,7 @@ export function DeskShell({ active, children }: { active: DeskNav | null; childr
           <span className="mini-avatar">{name.slice(0, 1)}</span>
           <div>
             <b>{name}</b>
-            <small>{names.reviewer}</small>
+            <small>{demo ? names.reviewer : ""}</small>
           </div>
         </div>
         <button

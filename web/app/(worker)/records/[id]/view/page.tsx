@@ -10,7 +10,7 @@ import { Listen } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
 import type { ItemKey } from "@/lib/demo/state";
 import { displayOrder, getResident, itemLabel, kstTime, lateDays } from "@/lib/demo/store";
-import { itemBadge, withNote } from "@/lib/records/item-badge";
+import { capitalizeVi, itemBadge, withNote } from "@/lib/records/item-badge";
 
 const badgeClass = { orange: "badge-orange", green: "badge-green", gray: "badge-gray" } as const;
 
@@ -73,7 +73,7 @@ export default function RecordViewPage() {
           </p>
           <span className="vi">
             {approved
-              ? `${names.reviewerVi} đã phê duyệt bản ghi.`
+              ? `${capitalizeVi(names.reviewerVi)} đã phê duyệt bản ghi.`
               : `Đang chờ ${names.reviewerVi} xem xét.`}
           </span>
         </div>
