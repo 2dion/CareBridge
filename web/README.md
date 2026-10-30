@@ -65,9 +65,7 @@ PR 전에 `npm run check`가 통과해야 합니다. GitHub Actions "web 검사"
 
 Vercel 프로젝트 설정에서 **Root Directory = `web`**, **Framework Preset = Next.js**로 둡니다. 환경 변수는 위 표와 `.env.example`의 이름 그대로 넣고, Production은 `USE_MOCK_AI=false`여야 합니다(아니면 `/api/health`가 문제로 알림). 녹음 정리용 `CRON_SECRET`은 Vercel과 GitHub 저장소 Secrets에 같은 값으로 둡니다(`.github/workflows/audio-cleanup.yml`, 10/28).
 
-무료 티어의 배포 횟수를 조절하기 위해 모든 브랜치의 Git 자동 배포를 끕니다(`vercel.json`의 `git.deploymentEnabled: false`). main에 합쳐도 자동 배포하지 않습니다. 합치기 전 확인은 로컬과 GitHub Actions "web 검사"로 합니다. 오래된 작업 브랜치는 최신 main을 합쳐 이 설정도 맞춥니다.
-
-필요한 시점에만 Vercel 대시보드 **Deployments → Create Deployment**에서 `main`을 지정해 최신 변경을 수동 배포합니다. 미리보기가 필요하면 해당 작업 브랜치를 지정합니다. 기존 배포의 Redeploy와 최신 main 배포는 구분합니다.
+모든 브랜치를 자동 배포합니다(`vercel.json`의 `git.deploymentEnabled: true`, 10/31 다시 켬). main에 합치면 운영 사이트가, 다른 브랜치에 올리면 미리보기 배포가 생깁니다. 무료 요금제는 하루 배포 100번, 동시 빌드 1개라서 한도에 걸리면 main 배포가 막힐 수 있습니다. 그때는 다음 날 Vercel 대시보드 **Deployments → Create Deployment**에서 `main`을 지정해 수동 배포합니다. 기존 배포의 Redeploy와 최신 main 배포는 구분합니다.
 
 **Pause Project**는 운영 사이트의 서비스를 멈추는 별도 설정입니다. 자동 배포 중단과 다르며, 사이트를 다시 열 때는 **Settings → General → Resume Project**를 선택합니다. 자동 배포 설정을 바꿨다고 Pause를 해제하거나 수동 배포하지 않습니다.
 
