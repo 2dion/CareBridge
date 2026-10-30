@@ -8,9 +8,10 @@
 -- 하는 일
 --   1. 데모 요양센터·데모 교육원의 기록·기록 없음 처리를 모두 지움(승인된 기록 포함)
 --   2. 합성 어르신 8명을 더하고(이미 있으면 그대로), 담당 연결의 시작일·방문 요일을 맞춤
---   3. 기록 14건을 실제 화면과 같은 순서(만들기 → AI 정리 → [맞아요] → 전송 → [확인함]·승인 또는 되돌리기)로 넣고,
+--   3. 교육생 계정 이름을 가명 '응옥'으로(화면에 '교육생 교육생'이 보이지 않게)
+--   4. 기록 14건을 실제 화면과 같은 순서(만들기 → AI 정리 → [맞아요] → 전송 → [확인함]·승인 또는 되돌리기)로 넣고,
 --      이력 시각을 돌봄 날짜에 맞게 옮김
---   4. 시나리오 1·2·3 어르신(김○○·이○○·최○○)의 '오늘' 기록은 비워 둠(시연 때 새로 씀)
+--   5. 시나리오 1·2·3 어르신(김○○·이○○·최○○)의 '오늘' 기록은 비워 둠(시연 때 새로 씀)
 --
 -- 채워지는 모양 (오늘 = 실행한 날, 한국 날짜)
 --   검토 대기 6: 확인 필요 있는 것(한○○·정○○), 확인 필요 0(윤○○), 지연전송(서○○, 3일 전 돌봄을 어제 전송),
@@ -46,6 +47,10 @@ where org_id in ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a00
 alter table public.records enable trigger records_before_delete;
 delete from public.no_care_days
 where org_id in ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000002');
+
+-- 교육생 계정 이름: 역할 이름('교육생')과 같으면 화면에 "교육생 교육생"으로 보여 가명으로(#181, 실명 아님)
+update public.profiles set name = '응옥'
+where id = (select trainee from demo_ctx) and name = '교육생';
 
 -- ── 2. 합성 어르신과 담당 연결 ────────────────────────────
 -- 이름은 data/cases/ 합성 사례의 가명. 방문 요일은 data/README.md '재가 합성 어르신 방문 요일'.
@@ -107,7 +112,9 @@ create function pg_temp.act(p_uid uuid) returns void language sql as $$
     case when p_uid is null then '' else json_build_object('sub', p_uid, 'role', 'authenticated')::text end, true)
 $$;
 
--- 지금 단계에서 생긴 이력(시각 = 트랜잭션 시작 시각)을 정한 시각으로 옮김. 미래 시각은 지금 직전으로.
+-- 지금 단계에서 생긴 이력(시각 = 트랜잭션 시작 시각)을 정한 시각으로 옮김.
+-- 모든 단계(전송·되돌림·다시 전송·승인)를 돌봄 날 저녁 안에 두어, 언제 돌려도 미래 시각이 생기지 않음(#181).
+-- 지연전송만 어제 오전. least()는 혹시 모를 미래 시각을 막는 안전장치.
 create function pg_temp.stamp(p_rec uuid, p_ts timestamptz) returns timestamptz language plpgsql as $$
 declare ts timestamptz := least(p_ts, now() - interval '2 minutes');
 begin
@@ -128,7 +135,6 @@ declare
   c demo_ctx%rowtype;
   wk uuid; rv uuid; res uuid; rec uuid;
   t_created timestamptz; t_sub timestamptz; t_appr timestamptz;
-  day1 date := p_date + 1;
 begin
   select * into c from demo_ctx;
   wk := case p_who when 'worker' then c.worker else c.trainee end;
@@ -169,7 +175,7 @@ begin
     perform pg_temp.act(rv);
     update public.records set status = 'returned', return_reason = p_reason, return_reason_native = p_reason_native
     where id = rec;
-    perform pg_temp.stamp(rec, pg_temp.kst(day1, '10:00'));
+    perform pg_temp.stamp(rec, pg_temp.kst(p_date, '18:00'));
     if p_flow = 'resent' then  -- 작성자가 배변 칸을 고쳐 다시 전송 (제공 지원은 [확인함]이 풀림)
       perform pg_temp.act(wk);
       update public.record_items
@@ -178,9 +184,9 @@ begin
           status = 'observed', reason = ''
       where record_id = rec and item_key = 'support';
       update public.records set form_fields = form_fields || '{"stool_accidents": 1, "urine_accidents": 2}' where id = rec;
-      perform pg_temp.stamp(rec, pg_temp.kst(day1, '13:00'));
+      perform pg_temp.stamp(rec, pg_temp.kst(p_date, '19:00'));
       update public.records set status = 'submitted' where id = rec;
-      t_sub := pg_temp.stamp(rec, pg_temp.kst(day1, '13:10'));
+      t_sub := pg_temp.stamp(rec, pg_temp.kst(p_date, '19:10'));
     end if;
   end if;
 
@@ -188,9 +194,9 @@ begin
     perform pg_temp.act(rv);
     update public.record_items set resolution = 'confirmed_by_reviewer'
     where record_id = rec and status = 'needs_check';
-    perform pg_temp.stamp(rec, pg_temp.kst(day1, '09:30'));
+    perform pg_temp.stamp(rec, pg_temp.kst(p_date, '18:00'));
     update public.records set status = 'approved' where id = rec;
-    t_appr := pg_temp.stamp(rec, pg_temp.kst(day1, '09:35'));
+    t_appr := pg_temp.stamp(rec, pg_temp.kst(p_date, '18:05'));
   end if;
 
   insert into demo_plan values (rec, t_created,

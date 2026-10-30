@@ -75,8 +75,18 @@ RECORDS = [
     ("choi", "trainee", "today - 1", f02, items_of(f02), "submitted", None),
 ]
 
+def for_trainer(items):
+    """교육용 기관 기록은 관리자 대신 강사 (용어집, #181)."""
+    if not items:
+        return items
+    swap = lambda v: v.replace("관리자", "강사").replace("người quản lý", "giảng viên") if isinstance(v, str) else v
+    return [{k: swap(v) for k, v in i.items()} for i in items]
+
+
 parts = []
 for res, who, when, case, items, flow, ret in RECORDS:
+    if who == "trainee":
+        items = for_trainer(items)
     vs, ve = visit(case)
     transcript = f01_text if case is f01 else case["transcript"]
     ff = dict(case["draft"]["form_fields"])
