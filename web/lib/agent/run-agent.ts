@@ -1,5 +1,5 @@
 // ② 기록 검토 준비 Agent: Claude가 도구 4개를 골라 부르고, 서버가 도구를 실행한다.
-// 근거: 문서/설계/ai규칙-v1.1.1.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
+// 근거: 문서/설계/ai규칙-v1.1.2.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
 //       문서/설계/데이터구조-v1.6.4.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
@@ -124,7 +124,7 @@ export const DRAFT_SCHEMA = {
   required: ["transcript_ko", "items", "form_fields"],
 } as const;
 
-// AI 규칙 v1.1.1 '도구 정의 (초안)'
+// AI 규칙 v1.1.2 '도구 정의 (초안)'
 export const AGENT_TOOLS = [
   {
     name: "get_form_spec",
@@ -184,7 +184,7 @@ export const AGENT_TOOLS = [
   },
 ] as const;
 
-// AI 규칙 v1.1.1 '프롬프트 초안'. 어르신 조건은 DB에 칸이 없어 급여 종류만 넣는다.
+// AI 규칙 v1.1.2 '프롬프트 초안'. 어르신 조건은 DB에 칸이 없어 급여 종류만 넣는다.
 export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
   return `너는 요양기관의 돌봄 기록 초안을 준비하는 Agent다.
 외국인 요양보호사가 돌봄을 마친 뒤 말한 메모를 받아쓴 글을 보고,

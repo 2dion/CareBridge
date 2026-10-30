@@ -1,5 +1,5 @@
 // 기록 검증 (Agent 도구 ③ validate_draft). AI 판단이 아니라 서버 코드 검사다.
-// 근거: 문서/설계/ai규칙-v1.1.1.md '서버 검사와 예외 처리' 검사 1~6,
+// 근거: 문서/설계/ai규칙-v1.1.2.md '서버 검사와 예외 처리' 검사 1~6,
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
 
@@ -195,19 +195,27 @@ export const QUESTION_PHRASES = [
   "확인 요청",
   "확인할 것",
   "용어 확인",
-  "불명확",
-  "불분명",
+] as const;
+
+// '불명확'·'불분명'은 AI의 의문("~인지 불명확")일 때만 확인 요청이다. "발음이 불분명하심"처럼
+// 원문에서 관찰한 증상을 적은 말은 정상 기록이라 걸지 않는다 (이슈 #177).
+const DOUBT_PATTERNS = [
+  /지\s*불(?:명확|분명)/,
+  /불(?:명확|분명)(?:함|하다|합니다)?\s*[(（]/,
 ] as const;
 
 export const hasQuestionPhrase = (text: string): boolean =>
-  QUESTION_PHRASES.some((phrase) => text.includes(phrase));
+  QUESTION_PHRASES.some((phrase) => text.includes(phrase)) ||
+  DOUBT_PATTERNS.some((pattern) => pattern.test(text));
 
-// 확인 요청이 든 문장을 기록 내용에서 뺀다. 괄호 안 확인 요청("(섭취량 확인 필요)")은 괄호째 빼고,
-// 나머지는 문장(., !, ?, 줄바꿈) 단위로 뺀다. kept는 남은 기록 내용, removed는 뺀 문장이다.
+// 확인 요청이 든 부분을 기록 내용에서 뺀다. 괄호 안 확인 요청("(섭취량 확인 필요)")은 괄호째 빼고,
+// 나머지는 쉼표로 나눈 토막 단위로 뺀다("점심 절반 드심, 양 확인 필요" → "점심 절반 드심").
+// 토막이 하나뿐이면 그 문장(., !, ?, 줄바꿈)을 뺀다. 숫자 안의 점("1.5")에서는 문장을 자르지 않는다.
+// kept는 남은 기록 내용, removed는 뺀 부분이다.
 export function stripQuestionSentences(text: string): { kept: string; removed: string } {
   const removed: string[] = [];
   const kept: string[] = [];
-  for (const sentence of text.match(/[^.!?\n]+[.!?]*/g) ?? []) {
+  for (const sentence of text.match(/(?:[^.!?\n]|(?<=\d)\.(?=\d))+[.!?]*/g) ?? []) {
     const trimmed = sentence.trim();
     if (!trimmed) continue;
     if (!hasQuestionPhrase(trimmed)) {
@@ -224,6 +232,15 @@ export function stripQuestionSentences(text: string): { kept: string; removed: s
     if (parens.length > 0 && !hasQuestionPhrase(withoutParens)) {
       kept.push(withoutParens);
       removed.push(...parens);
+      continue;
+    }
+    // 쉼표로 나눈 토막 중 확인 요청이 없는 토막은 남긴다
+    const body = withoutParens.replace(/[.!?]+$/, "");
+    const clauses = body.split(/\s*[,，;；]\s*/).filter(Boolean);
+    const clean = clauses.filter((clause) => !hasQuestionPhrase(clause));
+    if (clauses.length > 1 && clean.length > 0) {
+      kept.push(`${clean.join(", ")}${/[.!?]$/.test(trimmed) ? trimmed.slice(-1) : ""}`);
+      removed.push(...parens, ...clauses.filter((clause) => hasQuestionPhrase(clause)));
     } else {
       removed.push(trimmed);
     }
@@ -493,7 +510,7 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
       lower("형식 오류");
     }
 
-    // AI가 처음부터 '확인 필요'로 둔 항목: 이유와 근거가 있어야 한다 (AI 규칙 v1.1.1 '상태 판정 기준').
+    // AI가 처음부터 '확인 필요'로 둔 항목: 이유와 근거가 있어야 한다 (AI 규칙 v1.1.2 '상태 판정 기준').
     // 서버가 낮춘 항목은 downgrade가 이유를 채우므로 여기서 보지 않는다.
     if (item.status === "needs_check") {
       if (!item.reason.trim()) {
@@ -540,7 +557,12 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 
     // 검사 8: 기록 내용(value_ko)에 AI의 확인 요청 문장이 있으면 빼서 reason으로 옮긴다 (이슈 #117).
     // 내용은 원문을 기록체로 정리한 것만 남고, 확인할 까닭은 reason에만 둔다. 항목은 '확인 필요'가 된다.
-    if (item.status !== "not_mentioned" && hasQuestionPhrase(item.value_ko)) {
+    // 다음 확인사항(next_check)은 내용 자체가 "혈압 확인 필요" 같은 할 일이라 검사하지 않는다 (이슈 #177).
+    if (
+      item.status !== "not_mentioned" &&
+      key !== "next_check" &&
+      hasQuestionPhrase(item.value_ko)
+    ) {
       const { kept, removed } = stripQuestionSentences(item.value_ko);
       problems.push({
         code: "question_in_value",
@@ -660,7 +682,7 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 }
 
 // 끝까지 맞는 초안이 없을 때(검사 1 실패, Agent 상한 도달 등) 9개 모두 '확인 필요'로 둔 초안.
-// AI 규칙 v1.1.1 '멈춤 규칙' 3번, 검사 1. 검사 1 실패 때도 원문은 보여 주므로 transcriptKo를 넘긴다.
+// AI 규칙 v1.1.2 '멈춤 규칙' 3번, 검사 1. 검사 1 실패 때도 원문은 보여 주므로 transcriptKo를 넘긴다.
 export function allNeedsCheckDraft(
   reason: string,
   transcriptKo = "",

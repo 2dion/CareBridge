@@ -1,6 +1,6 @@
 // 재가 제공 지원 재검사: 작성자가 W3에서 지원별 분(support.detail.minutes)이나 방문 시점을 고친 뒤와
 // 전송(submit) 직전에 검사 5(지원별 제공시간 합 ≤ 방문 시간)를 다시 해 '확인 필요'와 이유를 맞춘다 (이슈 #116).
-// 근거: 문서/설계/ai규칙-v1.1.1.md '서버 검사와 예외 처리' 검사 5, 문서/결정/2026-10-29-초안검사보강.md
+// 근거: 문서/설계/ai규칙-v1.1.2.md '서버 검사와 예외 처리' 검사 5, 문서/결정/2026-10-29-초안검사보강.md
 // 검사 자체는 Agent 초안 검증과 같은 코드(validate-draft.ts checkSupportMinutes)다.
 // reason·reason_native는 서버만 쓰는 칸이라 저장은 service_role 전용 save_ai_item(check)으로 한다.
 // DB 호출은 SupportCheckDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
