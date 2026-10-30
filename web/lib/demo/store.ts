@@ -710,16 +710,31 @@ export function lateDays(record: DemoRecord): number | null {
   return Math.max(0, diffDays(kstDateOf(record.firstSubmittedAt), record.careDate));
 }
 
-/** W3 묶음: 확인 필요 → 아직 확인 안 함 → 끝남. 묶음 안은 displayOrder. */
-export function groupItems(items: RecordItem[]) {
+/** W3 수정 요청은 사유 맨 앞의 항목 이름만 읽는다. 저장 칸·확인 상태는 바꾸지 않는다. */
+export function requestedItemKeys(record: Pick<DemoRecord, "status" | "returnReason">): ItemKey[] {
+  if (record.status !== "returned") return [];
+  const prefix = /^\s*\[([^\]]*)\]/u.exec(record.returnReason);
+  if (!prefix) return [];
+  const labels = new Set(prefix[1].split(",").map((label) => label.trim()));
+  return displayOrder.filter((key) => labels.has(itemLabel(key).ko));
+}
+
+/** W3 묶음: 수정 요청 → 확인 필요 → 확인 전 → 확인 완료. 묶음 안은 displayOrder. */
+export function groupItems(
+  items: RecordItem[],
+  record?: Pick<DemoRecord, "status" | "returnReason">,
+) {
   const sorted = [...items].sort(
     (a, b) => displayOrder.indexOf(a.item_key) - displayOrder.indexOf(b.item_key),
   );
   const done = (item: RecordItem) => item.confirmed_by_worker || item.source === "worker";
+  const requested = new Set(record ? requestedItemKeys(record) : []);
+  const remaining = sorted.filter((item) => !requested.has(item.item_key));
   return {
-    needsCheck: sorted.filter((item) => item.status === "needs_check" && !done(item)),
-    pending: sorted.filter((item) => item.status !== "needs_check" && !done(item)),
-    done: sorted.filter(done),
+    requested: sorted.filter((item) => requested.has(item.item_key)),
+    needsCheck: remaining.filter((item) => item.status === "needs_check" && !done(item)),
+    pending: remaining.filter((item) => item.status !== "needs_check" && !done(item)),
+    done: remaining.filter(done),
   };
 }
 

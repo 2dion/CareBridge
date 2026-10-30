@@ -5,7 +5,7 @@ import { redirectFor, roleHome } from "./role-gate";
 describe("역할별 화면 막기 (이슈 #114)", () => {
   it("역할의 첫 화면", () => {
     expect(roleHome("worker")).toBe("/today");
-    expect(roleHome("reviewer")).toBe("/review");
+    expect(roleHome("reviewer")).toBe("/overview");
   });
 
   it("작성자·교육생이 M 화면을 열면 /today로", () => {
@@ -13,7 +13,7 @@ describe("역할별 화면 막기 (이슈 #114)", () => {
   });
 
   it("관리자·강사가 W 화면을 열면 /review로", () => {
-    expect(redirectFor("worker", "reviewer")).toBe("/review");
+    expect(redirectFor("worker", "reviewer")).toBe("/overview");
   });
 
   it("맞는 역할이면 그대로", () => {

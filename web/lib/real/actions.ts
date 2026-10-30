@@ -25,7 +25,7 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
     vi: "Tính năng AI chưa được bật. Hãy báo người quản lý (giảng viên).",
   },
   unconfirmed_items: {
-    ko: "아직 확인하지 않은 항목이 있어요.",
+    ko: "확인 전 항목이 있어요.",
     vi: "Vẫn còn mục chưa kiểm tra.",
   },
   unresolved_needs_check: {

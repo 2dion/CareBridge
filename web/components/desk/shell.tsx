@@ -12,12 +12,13 @@ import { reviewQueue } from "@/lib/demo/review";
 import { TRAINING_BAND } from "@/lib/demo/roles";
 import { kstDateOf } from "@/lib/demo/store";
 
-export type DeskNav = "review" | "approved" | "residents" | "settings";
+export type DeskNav = "overview" | "review" | "approved" | "residents" | "settings";
 
 // M4 메뉴 이름은 교육용 기관이면 '어르신·교육생'(이슈 #146)
 const navItems = (
   worker: string,
 ): { key: DeskNav; href: string; label: string; icon: IconName }[] => [
+  { key: "overview", href: "/overview", label: "기록 현황", icon: "home" },
   { key: "review", href: "/review", label: "검토 대기", icon: "list" },
   { key: "approved", href: "/approved", label: "승인한 기록", icon: "check" },
   { key: "residents", href: "/residents", label: `어르신·${worker}`, icon: "users" },

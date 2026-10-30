@@ -9,6 +9,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { nowIso, useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
+import { useActionLock } from "@/components/mobile/use-action-lock";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
 import { AppBar, FrameVi, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
 import type { ItemStatus } from "@/lib/demo/state";
@@ -23,6 +24,7 @@ import {
   itemLabel,
   markDraftFailed,
   retryDraft,
+  requestedItemKeys,
   type RecordItem,
   setFormField,
   submitRecord,
@@ -60,6 +62,10 @@ export default function DraftPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [retried, setRetried] = useState(false);
+  const actionLock = useActionLock();
+  const pending = actionLock.pending;
+  const networkNotice = () =>
+    setToast("인터넷 연결을 확인하고 다시 시도해 주세요. Hãy kiểm tra kết nối mạng rồi thử lại.");
 
   const record = demo?.db.records[id];
   const processing = record?.draftState === "processing";
@@ -170,46 +176,67 @@ export default function DraftPage() {
           <button
             type="button"
             className="btn btn-primary"
+            disabled={pending !== null}
+            aria-busy={pending === "retry"}
             onClick={() => {
-              setStep(0);
-              setRetried(true);
-              if (demo.real) {
-                // 원문·입력 방법은 그대로 두고 저장된 원문으로 Agent를 다시 돌린다
-                void demo.real.actions.retryDraft(id);
-                return;
-              }
-              demo.update((db) => retryDraft(db, id, nowIso()));
-              router.replace(`/records/${id}`);
+              void actionLock
+                .run("retry", async () => {
+                  setStep(0);
+                  setRetried(true);
+                  if (demo.real) {
+                    // 원문·입력 방법을 보존한 채 다시 정리한다. 실패하면 같은 자리에서 재시도한다.
+                    const result = await demo.real.actions.retryDraft(id);
+                    if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+                    return;
+                  }
+                  demo.update((db) => retryDraft(db, id, nowIso()));
+                  router.replace(`/records/${id}`);
+                })
+                .catch(networkNotice);
             }}
           >
-            <BtnLabel ko="다시 시도" vi="Thử lại" />
+            <BtnLabel
+              ko={pending === "retry" ? "처리 중" : "다시 시도"}
+              vi={pending === "retry" ? "Đang xử lý" : "Thử lại"}
+            />
           </button>
           <Link className="btn btn-outline" href={`/records/${id}/write`}>
             <span className="label">글로 쓰기 · Viết trực tiếp</span>
           </Link>
         </section>
+        {(pending || toast) && (
+          <p className="toast" role="status">
+            {pending ? "처리 중이에요. · Đang xử lý." : toast}
+          </p>
+        )}
       </MobileScreen>
     );
   }
 
-  const groups = groupItems(record.items);
+  const groups = groupItems(record.items, record);
   // 실제 모드는 DB 제출 검사와 같게 9개 모두 확인 또는 작성자가 고친 것이어야 전송한다(unconfirmed_items)
   const canSend =
     canSubmitRecord(record) &&
     (!demo.real ||
       (record.items.length === 9 &&
         record.items.every((item) => item.confirmed_by_worker || item.source === "worker")));
-  const doneCount = groups.done.length;
+  // 수정 요청 묶음으로 옮긴 카드도 실제 확인 개수에는 포함한다.
+  const doneCount = record.items.filter(
+    (item) => item.confirmed_by_worker || item.source === "worker",
+  ).length;
   const total = record.items.length;
   const needsLeft = record.items.filter((item) => item.status === "needs_check").length;
 
   const real = demo.real;
   const act = (change: (db: DemoDb) => DemoDb) => demo.update(change);
   const confirm = (key: RecordItem["item_key"]) => {
-    if (!real) return act((db) => confirmItem(db, id, key, nowIso()));
-    void real.actions.patchItem(id, key, { confirmed_by_worker: true }).then((result) => {
-      if (!result.ok) setToast(`${result.ko} ${result.vi}`);
-    });
+    void actionLock
+      .run(`confirm:${key}`, async () => {
+        if (!real) return act((db) => confirmItem(db, id, key, nowIso()));
+        const result = await real.actions.patchItem(id, key, { confirmed_by_worker: true });
+        if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+      })
+      .catch(networkNotice);
   };
   const setField = async (key: CountField, value: number | null) => {
     if (!real) {
@@ -225,23 +252,30 @@ export default function DraftPage() {
     return result.ok;
   };
 
-  const send = async () => {
-    if (real) {
-      setConfirmOpen(false);
-      justSent.current = true;
-      const result = await real.actions.submit(id);
-      if (!result.ok) {
+  const send = () => {
+    void actionLock
+      .run("submit", async () => {
+        if (real) {
+          justSent.current = true;
+          const result = await real.actions.submit(id);
+          if (!result.ok) {
+            justSent.current = false;
+            setToast(`${result.ko} ${result.vi}`);
+            return;
+          }
+          setConfirmOpen(false);
+          router.push(`/records/${id}/sent`);
+          return;
+        }
+        justSent.current = true;
+        act((db) => submitRecord(db, id, nowIso()));
+        setConfirmOpen(false);
+        router.push(`/records/${id}/sent`);
+      })
+      .catch(() => {
         justSent.current = false;
-        setToast(`${result.ko} ${result.vi}`);
-        return;
-      }
-      router.push(`/records/${id}/sent`);
-      return;
-    }
-    justSent.current = true;
-    act((db) => submitRecord(db, id, nowIso()));
-    setConfirmOpen(false);
-    router.push(`/records/${id}/sent`);
+        networkNotice();
+      });
   };
 
   return (
@@ -292,28 +326,40 @@ export default function DraftPage() {
         )}
         {resident.careType === "home" && <HomeCareCard record={record} setField={setField} />}
         <ItemGroup
-          title="먼저 확인할 항목"
+          title="수정 요청 항목"
+          color="var(--color-warn)"
+          tone="orange"
+          items={groups.requested}
+          record={record}
+          onConfirm={confirm}
+          pending={pending}
+        />
+        <ItemGroup
+          title="확인 필요 항목"
           color="var(--color-warn)"
           tone="orange"
           items={groups.needsCheck}
           record={record}
           onConfirm={confirm}
+          pending={pending}
         />
         <ItemGroup
-          title="아직 확인하지 않은 항목"
+          title="확인 전 항목"
           color="var(--color-highlight)"
           tone="green"
           items={groups.pending}
           record={record}
           onConfirm={confirm}
+          pending={pending}
         />
         <ItemGroup
-          title="확인한 항목"
+          title="확인 완료 항목"
           color="var(--color-primary)"
           tone="green"
           items={groups.done}
           record={record}
           onConfirm={confirm}
+          pending={pending}
         />
         {needsLeft > 0 && (
           <p className="foot-note">
@@ -328,6 +374,7 @@ export default function DraftPage() {
         <button
           type="button"
           className="btn btn-outline btn-sm"
+          disabled={pending !== null}
           onClick={() => {
             setToast("임시 저장했어요.");
             window.setTimeout(() => router.push("/today"), 700);
@@ -338,7 +385,7 @@ export default function DraftPage() {
         <button
           type="button"
           className="btn btn-primary btn-sm"
-          disabled={!canSend}
+          disabled={!canSend || pending !== null}
           onClick={() => setConfirmOpen(true)}
         >
           <BtnLabel ko={`${names.reviewer}에게 전송`} vi={`Gửi ${names.reviewerVi}`} />
@@ -351,7 +398,9 @@ export default function DraftPage() {
       )}
       <Modal
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        onClose={() => {
+          if (!pending) setConfirmOpen(false);
+        }}
         label={`${names.reviewer}에게 전송할까요?`}
       >
         <span className="icon-bubble" style={{ width: 64, height: 64, borderRadius: 32 }}>
@@ -373,17 +422,31 @@ export default function DraftPage() {
           </p>
         )}
         <div className="btn-row" style={{ width: "100%", marginTop: 6 }}>
-          <button type="button" className="btn btn-outline" onClick={() => setConfirmOpen(false)}>
+          <button
+            type="button"
+            className="btn btn-outline"
+            disabled={pending !== null}
+            onClick={() => setConfirmOpen(false)}
+          >
             <BtnLabel ko="취소" vi="Hủy" />
           </button>
-          <button type="button" className="btn btn-primary" onClick={send}>
-            <BtnLabel ko="전송" vi="Gửi" />
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={pending !== null}
+            aria-busy={pending === "submit"}
+            onClick={send}
+          >
+            <BtnLabel
+              ko={pending === "submit" ? "전송 중" : "전송"}
+              vi={pending === "submit" ? "Đang gửi" : "Gửi"}
+            />
           </button>
         </div>
       </Modal>
-      {toast && (
+      {(pending || toast) && (
         <p className="toast" role="status">
-          {toast}
+          {pending ? "처리 중이에요. 잠시만 기다려 주세요. · Đang xử lý. Vui lòng đợi." : toast}
         </p>
       )}
     </MobileScreen>
@@ -397,6 +460,7 @@ function ItemGroup({
   items,
   record,
   onConfirm,
+  pending,
 }: {
   title: string;
   color: string;
@@ -404,6 +468,7 @@ function ItemGroup({
   items: RecordItem[];
   record: DemoRecord;
   onConfirm: (key: RecordItem["item_key"]) => void;
+  pending: string | null;
 }) {
   if (items.length === 0) return null;
   return (
@@ -414,7 +479,13 @@ function ItemGroup({
         <span className={`badge badge-${tone}`}>{items.length}개</span>
       </div>
       {items.map((item) => (
-        <ItemCard key={item.item_key} item={item} record={record} onConfirm={onConfirm} />
+        <ItemCard
+          key={item.item_key}
+          item={item}
+          record={record}
+          onConfirm={onConfirm}
+          pending={pending}
+        />
       ))}
     </>
   );
@@ -424,10 +495,12 @@ function ItemCard({
   item,
   record,
   onConfirm,
+  pending,
 }: {
   item: RecordItem;
   record: DemoRecord;
   onConfirm: (key: RecordItem["item_key"]) => void;
+  pending: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const names = useRoleNames();
@@ -437,10 +510,12 @@ function ItemCard({
   const badge = done
     ? { label: item.source === "worker" ? "고침" : "확인 완료", tone: "green" }
     : statusBadge[item.status];
+  const confirming = pending === `confirm:${item.item_key}`;
   const notesLength = item.item_key === "notes" ? [...item.value_ko].length : 0;
 
   return (
     <article
+      aria-busy={confirming}
       className={`review card ${done ? "done" : item.status === "needs_check" ? "warn" : ""}`}
     >
       <div className="review-head">
@@ -450,6 +525,9 @@ function ItemCard({
           </span>
         )}
         <b>{label.ko}</b>
+        {requestedItemKeys(record).includes(item.item_key) && (
+          <span className="badge badge-orange">수정 요청</span>
+        )}
         {item.source === "ai" && !item.confirmed_by_worker && item.status !== "not_mentioned" && (
           <span className="ai-mark">AI 초안</span>
         )}
@@ -525,28 +603,50 @@ function ItemCard({
           // 전송은 9개 항목이 모두 확인(맞아요)되거나 작성자가 고친 것이어야 한다(DB 제출 검사, 10/28).
           // ‘확인 필요’도 [맞아요]로 확인하고 보낼 수 있고, 남은 판단은 관리자가 한다.
           <div className="btn-row">
-            <Link className="btn btn-primary btn-sm" href={editHref}>
+            <Link
+              className="btn btn-primary btn-sm"
+              href={editHref}
+              aria-disabled={pending !== null}
+              onClick={(event) => {
+                if (pending) event.preventDefault();
+              }}
+            >
               <BtnLabel ko="수정하기" vi="Sửa" />
             </Link>
             <button
               type="button"
               className="btn btn-outline btn-sm"
+              disabled={pending !== null}
               onClick={() => onConfirm(item.item_key)}
             >
-              <BtnLabel ko="맞아요" vi="Đúng" />
+              <BtnLabel
+                ko={confirming ? "확인 중" : "맞아요"}
+                vi={confirming ? "Đang kiểm tra" : "Đúng"}
+              />
             </button>
           </div>
         ) : item.status === "not_mentioned" ? (
           <div className="btn-row">
-            <Link className="btn btn-primary btn-sm" href={editHref}>
+            <Link
+              className="btn btn-primary btn-sm"
+              href={editHref}
+              aria-disabled={pending !== null}
+              onClick={(event) => {
+                if (pending) event.preventDefault();
+              }}
+            >
               <BtnLabel ko="보태기" vi="Bổ sung" />
             </Link>
             <button
               type="button"
               className="btn btn-outline btn-sm"
+              disabled={pending !== null}
               onClick={() => onConfirm(item.item_key)}
             >
-              <BtnLabel ko="없음이 맞아요" vi="Đúng là không có" />
+              <BtnLabel
+                ko={confirming ? "확인 중" : "없음이 맞아요"}
+                vi={confirming ? "Đang kiểm tra" : "Đúng là không có"}
+              />
             </button>
           </div>
         ) : (
@@ -554,17 +654,36 @@ function ItemCard({
             <button
               type="button"
               className="btn btn-primary btn-sm"
+              disabled={pending !== null}
               onClick={() => onConfirm(item.item_key)}
             >
-              <BtnLabel ko="맞아요" vi="Đúng" />
+              <BtnLabel
+                ko={confirming ? "확인 중" : "맞아요"}
+                vi={confirming ? "Đang kiểm tra" : "Đúng"}
+              />
             </button>
-            <Link className="btn btn-outline btn-sm" href={editHref}>
+            <Link
+              className="btn btn-outline btn-sm"
+              href={editHref}
+              aria-disabled={pending !== null}
+              onClick={(event) => {
+                if (pending) event.preventDefault();
+              }}
+            >
               <BtnLabel ko="달라요" vi="Không đúng" />
             </Link>
           </div>
         ))}
       {done && (
-        <Link className="text-link" href={editHref} style={{ textAlign: "left", marginTop: 6 }}>
+        <Link
+          className="text-link"
+          href={editHref}
+          aria-disabled={pending !== null}
+          onClick={(event) => {
+            if (pending) event.preventDefault();
+          }}
+          style={{ textAlign: "left", marginTop: 6 }}
+        >
           다시 고치기
         </Link>
       )}

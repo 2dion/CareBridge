@@ -3,7 +3,7 @@
 // W2 · 녹음: 준비 → 녹음 → 정지하면 바로 올림 → W3 ‘정리 중’.
 // 녹음은 탭 메모리에만 두고, 올리지 못하면 [다시 올리기](2026-10-27-녹음임시보관 결정).
 // 말하기·글쓰기는 기록 시작 화면에서 하나만 고른다(10/27 팀장). 여기서 글쓰기로 넘어가는 길은 마이크를 못 쓸 때만.
-// 녹음 화면 안내는 내가 말하는 곳이라 한국어만(병기 원칙 ①), 마이크 권한·오류 안내는 병기(②).
+// 앱이 제공하는 녹음 안내는 한국어·베트남어 병기(#102). 작성자가 말한 원문은 번역하지 않는다.
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -263,6 +263,9 @@ export default function VoicePage() {
       </div>
       <section className="sheet card" style={{ marginBottom: 14 }}>
         <h2 style={{ fontSize: 20 }}>준비되면 녹음을 시작해 주세요.</h2>
+        <span className="vi" style={{ display: "block" }}>
+          Khi sẵn sàng, hãy bắt đầu ghi âm.
+        </span>
         <div className="hint-list">
           <div className="hint">
             <span className="icon-bubble sm">
@@ -274,6 +277,9 @@ export default function VoicePage() {
                 <br />
                 편하게 말해 주세요.
               </b>
+              <span className="vi" style={{ display: "block" }}>
+                Hãy kể thoải mái về việc đã hỗ trợ, bữa ăn, giấc ngủ và những thay đổi hôm nay.
+              </span>
             </div>
           </div>
           <div className="hint">
@@ -286,6 +292,9 @@ export default function VoicePage() {
                 <br />
                 확인할 곳을 알려 드려요.
               </b>
+              <span className="vi" style={{ display: "block" }}>
+                AI tạo bản nháp theo từng mục và chỉ ra chỗ cần kiểm tra.
+              </span>
             </div>
           </div>
           {/* 한 녹음에 두 언어를 섞으면 받아쓰기가 한쪽 말을 빼거나 잘못 옮긴다(결정 2026-10-30-녹음한언어, 이슈 #187) */}
