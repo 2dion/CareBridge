@@ -8,9 +8,10 @@
 -- 하는 일
 --   1. 데모 요양센터·데모 교육원의 기록·기록 없음 처리를 모두 지움(승인된 기록 포함)
 --   2. 합성 어르신 8명을 더하고(이미 있으면 그대로), 담당 연결의 시작일·방문 요일을 맞춤
---   3. 기록 14건을 실제 화면과 같은 순서(만들기 → AI 정리 → [맞아요] → 전송 → [확인함]·승인 또는 되돌리기)로 넣고,
+--   3. 교육생 계정 이름을 가명 '응옥'으로(화면에 '교육생 교육생'이 보이지 않게)
+--   4. 기록 14건을 실제 화면과 같은 순서(만들기 → AI 정리 → [맞아요] → 전송 → [확인함]·승인 또는 되돌리기)로 넣고,
 --      이력 시각을 돌봄 날짜에 맞게 옮김
---   4. 시나리오 1·2·3 어르신(김○○·이○○·최○○)의 '오늘' 기록은 비워 둠(시연 때 새로 씀)
+--   5. 시나리오 1·2·3 어르신(김○○·이○○·최○○)의 '오늘' 기록은 비워 둠(시연 때 새로 씀)
 --
 -- 채워지는 모양 (오늘 = 실행한 날, 한국 날짜)
 --   검토 대기 6: 확인 필요 있는 것(한○○·정○○), 확인 필요 0(윤○○), 지연전송(서○○, 3일 전 돌봄을 어제 전송),
@@ -46,6 +47,10 @@ where org_id in ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a00
 alter table public.records enable trigger records_before_delete;
 delete from public.no_care_days
 where org_id in ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000002');
+
+-- 교육생 계정 이름: 역할 이름('교육생')과 같으면 화면에 "교육생 교육생"으로 보여 가명으로(#181, 실명 아님)
+update public.profiles set name = '응옥'
+where id = (select trainee from demo_ctx) and name = '교육생';
 
 -- ── 2. 합성 어르신과 담당 연결 ────────────────────────────
 -- 이름은 data/cases/ 합성 사례의 가명. 방문 요일은 data/README.md '재가 합성 어르신 방문 요일'.
@@ -107,7 +112,9 @@ create function pg_temp.act(p_uid uuid) returns void language sql as $$
     case when p_uid is null then '' else json_build_object('sub', p_uid, 'role', 'authenticated')::text end, true)
 $$;
 
--- 지금 단계에서 생긴 이력(시각 = 트랜잭션 시작 시각)을 정한 시각으로 옮김. 미래 시각은 지금 직전으로.
+-- 지금 단계에서 생긴 이력(시각 = 트랜잭션 시작 시각)을 정한 시각으로 옮김.
+-- 모든 단계(전송·되돌림·다시 전송·승인)를 돌봄 날 저녁 안에 두어, 언제 돌려도 미래 시각이 생기지 않음(#181).
+-- 지연전송만 어제 오전. least()는 혹시 모를 미래 시각을 막는 안전장치.
 create function pg_temp.stamp(p_rec uuid, p_ts timestamptz) returns timestamptz language plpgsql as $$
 declare ts timestamptz := least(p_ts, now() - interval '2 minutes');
 begin
@@ -128,7 +135,6 @@ declare
   c demo_ctx%rowtype;
   wk uuid; rv uuid; res uuid; rec uuid;
   t_created timestamptz; t_sub timestamptz; t_appr timestamptz;
-  day1 date := p_date + 1;
 begin
   select * into c from demo_ctx;
   wk := case p_who when 'worker' then c.worker else c.trainee end;
@@ -169,7 +175,7 @@ begin
     perform pg_temp.act(rv);
     update public.records set status = 'returned', return_reason = p_reason, return_reason_native = p_reason_native
     where id = rec;
-    perform pg_temp.stamp(rec, pg_temp.kst(day1, '10:00'));
+    perform pg_temp.stamp(rec, pg_temp.kst(p_date, '18:00'));
     if p_flow = 'resent' then  -- 작성자가 배변 칸을 고쳐 다시 전송 (제공 지원은 [확인함]이 풀림)
       perform pg_temp.act(wk);
       update public.record_items
@@ -178,9 +184,9 @@ begin
           status = 'observed', reason = ''
       where record_id = rec and item_key = 'support';
       update public.records set form_fields = form_fields || '{"stool_accidents": 1, "urine_accidents": 2}' where id = rec;
-      perform pg_temp.stamp(rec, pg_temp.kst(day1, '13:00'));
+      perform pg_temp.stamp(rec, pg_temp.kst(p_date, '19:00'));
       update public.records set status = 'submitted' where id = rec;
-      t_sub := pg_temp.stamp(rec, pg_temp.kst(day1, '13:10'));
+      t_sub := pg_temp.stamp(rec, pg_temp.kst(p_date, '19:10'));
     end if;
   end if;
 
@@ -188,9 +194,9 @@ begin
     perform pg_temp.act(rv);
     update public.record_items set resolution = 'confirmed_by_reviewer'
     where record_id = rec and status = 'needs_check';
-    perform pg_temp.stamp(rec, pg_temp.kst(day1, '09:30'));
+    perform pg_temp.stamp(rec, pg_temp.kst(p_date, '18:00'));
     update public.records set status = 'approved' where id = rec;
-    t_appr := pg_temp.stamp(rec, pg_temp.kst(day1, '09:35'));
+    t_appr := pg_temp.stamp(rec, pg_temp.kst(p_date, '18:05'));
   end if;
 
   insert into demo_plan values (rec, t_created,
@@ -228,7 +234,7 @@ do $$ declare today date := (select today from demo_ctx); begin
   perform pg_temp.demo_record('choi', 'trainee', today - 2, 'Sáng nay tôi rửa mặt và thay quần áo cho bà. Cứ hai tiếng tôi đổi tư thế cho bà một lần. Bữa trưa bà ăn cháo, ăn được một ít. Hôm nay tôi thay tã cho bà ba lần. Bà nói tối qua bà ngủ không ngon. Bà nói đầu gối bên phải bị đau. Sau bữa trưa tôi thấy bà uống thuốc. Ngày mai chắc phải xem lại đầu gối của bà.', '아침에 세수해 드리고 옷 갈아입혀 드렸어요. 두 시간마다 자세 바꿔 드렸어요. 점심은 죽으로 조금 드셨어요. 오늘 기저귀는 세 번 갈아 드렸어요. 어젯밤에 잠을 잘 못 주무셨다고 하셨어요. 오른쪽 무릎이 아프다고 하셨어요. 점심 드시고 약 드시는 거 봤어요. 내일 무릎 다시 봐야 할 것 같아요.',
     $j$[{"item_key": "visit_time", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}, {"item_key": "support", "value_ko": "세면·옷 갈아입기 도움, 체위변경(2시간마다), 기저귀 교환 3회", "value_native": "Hỗ trợ rửa mặt và thay quần áo, đổi tư thế (mỗi 2 giờ), thay tã 3 lần", "status": "observed", "evidence": "Sáng nay tôi rửa mặt và thay quần áo cho bà. Cứ hai tiếng tôi đổi tư thế cho bà một lần.", "reason": "", "detail": {"checks": ["세면·구강청결·머리감기·몸단장·옷 갈아입기 도움 등", "체위변경(2시간마다)", "화장실이용하기(기저귀 교환)"], "toilet_count": 3}}, {"item_key": "meal", "value_ko": "점심 죽을 조금 드심", "value_native": "Bữa trưa ăn cháo, ăn được một ít", "status": "needs_check", "evidence": "Bữa trưa bà ăn cháo, ăn được một ít.", "reason": "\"조금\"은 제16호 섭취량(1 / 1/2이상 / 1/2미만) 중 하나로 정할 수 없음", "detail": {"meal_type": "죽"}}, {"item_key": "sleep", "value_ko": "어젯밤 잠을 잘 못 주무셨다고 말씀하심(본인 진술)", "value_native": "Bà nói tối qua bà ngủ không ngon", "status": "observed", "evidence": "Bà nói tối qua bà ngủ không ngon.", "reason": "", "detail": {}}, {"item_key": "discomfort", "value_ko": "오른쪽 무릎이 아프다고 말씀하심", "value_native": "Bà nói đầu gối bên phải bị đau", "status": "observed", "evidence": "Bà nói đầu gối bên phải bị đau.", "reason": "", "detail": {}}, {"item_key": "medication", "value_ko": "점심 식사 후 약 드시는 것 확인함", "value_native": "Đã thấy bà uống thuốc sau bữa trưa", "status": "observed", "evidence": "Sau bữa trưa tôi thấy bà uống thuốc.", "reason": "", "detail": {}}, {"item_key": "cognition", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}, {"item_key": "notes", "value_ko": "점심 죽 섭취. 어젯밤 잠을 잘 못 주무셨다고 하심. 오른쪽 무릎 통증 호소하심. 점심 식사 후 복약 확인함.", "value_native": "Bữa trưa ăn cháo. Bà nói tối qua ngủ không ngon. Bà kêu đau đầu gối phải. Đã xác nhận bà uống thuốc sau bữa trưa.", "status": "observed", "evidence": "Bữa trưa bà ăn cháo, ăn được một ít. Hôm nay tôi thay tã cho bà ba lần. Bà nói tối qua bà ngủ không ngon. Bà nói đầu gối bên phải bị đau. Sau bữa trưa tôi thấy bà uống thuốc.", "reason": "", "detail": {}}, {"item_key": "next_check", "value_ko": "내일 오른쪽 무릎 상태 다시 확인", "value_native": "Ngày mai kiểm tra lại đầu gối phải", "status": "observed", "evidence": "Ngày mai chắc phải xem lại đầu gối của bà.", "reason": "", "detail": {}}]$j$::jsonb, $j${}$j$::jsonb, null, null, 'approved', null, null, 'S-F05');
   perform pg_temp.demo_record('choi', 'trainee', today - 1, 'Sáng nay tôi rửa mặt và thay quần áo cho ông. Cứ hai tiếng tôi đổi tư thế cho ông, nhưng buổi chiều có một lần tôi làm hơi muộn. Chỗ bị loét tì đè ở mông hình như đỏ hơn hôm qua. Bữa trưa ông ăn đồ ăn xay sệt, ăn được khoảng một nửa. Trong lúc ăn ông ho hai lần. Tôi đổ túi nước tiểu ở bụng cho ông hai, ba lần. Màu nước tiểu giống như mọi khi. Hôm nay ông nhận ra tôi và cười.', '오늘 아침에 세수해 드리고 옷 갈아입혀 드렸어요. 자세는 두 시간마다 바꿔 드렸는데, 오후에 한 번은 조금 늦었어요. 엉덩이 욕창 있는 데가 어제보다 더 빨개진 것 같아요. 점심은 걸쭉하게 만든 거 반쯤 드셨어요. 드시다가 기침을 두 번 하셨어요. 배에 있는 소변 주머니는 두세 번 비워 드렸어요. 소변 색은 평소랑 비슷했어요. 오늘은 저를 알아보시고 웃으셨어요.',
-    $j$[{"item_key": "visit_time", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}, {"item_key": "support", "value_ko": "세면·옷 갈아입기 도움, 체위변경(오후 1회 늦어짐), 요루 주머니 두세 번 비움", "value_native": "Hỗ trợ rửa mặt và thay quần áo, đổi tư thế (buổi chiều 1 lần bị muộn), đổ túi nước tiểu hai, ba lần", "status": "needs_check", "evidence": "Sáng nay tôi rửa mặt và thay quần áo cho ông. Cứ hai tiếng tôi đổi tư thế cho ông, nhưng buổi chiều có một lần tôi làm hơi muộn.", "reason": "① 체위변경(2시간마다) 칸은 2시간마다 제공한 경우에만 √ (유의사항 4). \"한 번 늦었다\"라 체크 여부를 관리자가 정함. ② \"두세 번\"은 화장실이용하기 횟수 하나로 정할 수 없음", "detail": {"checks": ["세면·구강청결·머리감기·몸단장·옷 갈아입기 도움 등", "체위변경(2시간마다)", "화장실이용하기(기저귀 교환)"], "reposition_delayed": 1}}, {"item_key": "meal", "value_ko": "점심 연하도움식(걸쭉하게 만든 식사)을 반쯤 드심. 식사 중 기침 2회", "value_native": "Bữa trưa ăn khoảng một nửa đồ ăn mềm cho người khó nuốt. Ho 2 lần trong lúc ăn", "status": "needs_check", "evidence": "Bữa trưa ông ăn đồ ăn xay sệt, ăn được khoảng một nửa. Trong lúc ăn ông ho hai lần.", "reason": "① 연하도움식은 제16호 식사 종류(일반식 / 죽 / 유동식) 선택지에 없음. 기관 기준으로 관리자가 고름 (용어 T40). ② \"반쯤\"은 1/2이상인지 1/2미만인지 정할 수 없음", "detail": {"meal_type_said": "연하도움식", "cough_during_meal": 2}}, {"item_key": "sleep", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}, {"item_key": "discomfort", "value_ko": "엉치 부위(등록된 욕창 부위)가 어제보다 더 붉어 보인다고 관찰함", "value_native": "Quan sát thấy vùng mông (chỗ loét tì đè đã đăng ký) có vẻ đỏ hơn hôm qua", "status": "needs_check", "evidence": "Chỗ bị loét tì đè ở mông hình như đỏ hơn hôm qua.", "reason": "\"어제보다 더\"는 비교 판단이라 이전 기록과 대조 필요. 피부 상태 변화라 간호인력 보고 여부 확인 (용어 T32: 관찰 표현 + 관리자에게 먼저 보고). 욕창 단계·악화 판정은 쓰지 않음", "detail": {}}, {"item_key": "medication", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}, {"item_key": "cognition", "value_ko": "작성자를 알아보시고 웃으심", "value_native": "Ông nhận ra người chăm sóc và cười", "status": "observed", "evidence": "Hôm nay ông nhận ra tôi và cười.", "reason": "", "detail": {}}, {"item_key": "notes", "value_ko": "체위변경 오후 1회 늦어짐. 엉치 부위(등록된 욕창 부위)가 어제보다 붉어 보임. 점심 연하도움식 섭취, 식사 중 기침 2회. 요루 주머니 비움, 소변 색 평소와 비슷하다고 함.", "value_native": "Đổi tư thế buổi chiều 1 lần bị muộn. Vùng mông (chỗ loét tì đè đã đăng ký) có vẻ đỏ hơn hôm qua. Bữa trưa ăn đồ ăn mềm, ho 2 lần trong lúc ăn. Đã đổ túi nước tiểu, màu nước tiểu giống mọi khi.", "status": "observed", "evidence": "Cứ hai tiếng tôi đổi tư thế cho ông, nhưng buổi chiều có một lần tôi làm hơi muộn. Chỗ bị loét tì đè ở mông hình như đỏ hơn hôm qua. Bữa trưa ông ăn đồ ăn xay sệt, ăn được khoảng một nửa. Trong lúc ăn ông ho hai lần. Tôi đổ túi nước tiểu ở bụng cho ông hai, ba lần. Màu nước tiểu giống như mọi khi.", "reason": "", "detail": {}}, {"item_key": "next_check", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}]$j$::jsonb, $j${}$j$::jsonb, null, null, 'submitted', null, null, 'S-F02');
+    $j$[{"item_key": "visit_time", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}, {"item_key": "support", "value_ko": "세면·옷 갈아입기 도움, 체위변경(오후 1회 늦어짐), 요루 주머니 두세 번 비움", "value_native": "Hỗ trợ rửa mặt và thay quần áo, đổi tư thế (buổi chiều 1 lần bị muộn), đổ túi nước tiểu hai, ba lần", "status": "needs_check", "evidence": "Sáng nay tôi rửa mặt và thay quần áo cho ông. Cứ hai tiếng tôi đổi tư thế cho ông, nhưng buổi chiều có một lần tôi làm hơi muộn.", "reason": "① 체위변경(2시간마다) 칸은 2시간마다 제공한 경우에만 √ (유의사항 4). \"한 번 늦었다\"라 체크 여부를 강사가 정함. ② \"두세 번\"은 화장실이용하기 횟수 하나로 정할 수 없음", "detail": {"checks": ["세면·구강청결·머리감기·몸단장·옷 갈아입기 도움 등", "체위변경(2시간마다)", "화장실이용하기(기저귀 교환)"], "reposition_delayed": 1}}, {"item_key": "meal", "value_ko": "점심 연하도움식(걸쭉하게 만든 식사)을 반쯤 드심. 식사 중 기침 2회", "value_native": "Bữa trưa ăn khoảng một nửa đồ ăn mềm cho người khó nuốt. Ho 2 lần trong lúc ăn", "status": "needs_check", "evidence": "Bữa trưa ông ăn đồ ăn xay sệt, ăn được khoảng một nửa. Trong lúc ăn ông ho hai lần.", "reason": "① 연하도움식은 제16호 식사 종류(일반식 / 죽 / 유동식) 선택지에 없음. 기관 기준으로 강사가 고름 (용어 T40). ② \"반쯤\"은 1/2이상인지 1/2미만인지 정할 수 없음", "detail": {"meal_type_said": "연하도움식", "cough_during_meal": 2}}, {"item_key": "sleep", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}, {"item_key": "discomfort", "value_ko": "엉치 부위(등록된 욕창 부위)가 어제보다 더 붉어 보인다고 관찰함", "value_native": "Quan sát thấy vùng mông (chỗ loét tì đè đã đăng ký) có vẻ đỏ hơn hôm qua", "status": "needs_check", "evidence": "Chỗ bị loét tì đè ở mông hình như đỏ hơn hôm qua.", "reason": "\"어제보다 더\"는 비교 판단이라 이전 기록과 대조 필요. 피부 상태 변화라 간호인력 보고 여부 확인 (용어 T32: 관찰 표현 + 강사에게 먼저 보고). 욕창 단계·악화 판정은 쓰지 않음", "detail": {}}, {"item_key": "medication", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}, {"item_key": "cognition", "value_ko": "작성자를 알아보시고 웃으심", "value_native": "Ông nhận ra người chăm sóc và cười", "status": "observed", "evidence": "Hôm nay ông nhận ra tôi và cười.", "reason": "", "detail": {}}, {"item_key": "notes", "value_ko": "체위변경 오후 1회 늦어짐. 엉치 부위(등록된 욕창 부위)가 어제보다 붉어 보임. 점심 연하도움식 섭취, 식사 중 기침 2회. 요루 주머니 비움, 소변 색 평소와 비슷하다고 함.", "value_native": "Đổi tư thế buổi chiều 1 lần bị muộn. Vùng mông (chỗ loét tì đè đã đăng ký) có vẻ đỏ hơn hôm qua. Bữa trưa ăn đồ ăn mềm, ho 2 lần trong lúc ăn. Đã đổ túi nước tiểu, màu nước tiểu giống mọi khi.", "status": "observed", "evidence": "Cứ hai tiếng tôi đổi tư thế cho ông, nhưng buổi chiều có một lần tôi làm hơi muộn. Chỗ bị loét tì đè ở mông hình như đỏ hơn hôm qua. Bữa trưa ông ăn đồ ăn xay sệt, ăn được khoảng một nửa. Trong lúc ăn ông ho hai lần. Tôi đổ túi nước tiểu ở bụng cho ông hai, ba lần. Màu nước tiểu giống như mọi khi.", "reason": "", "detail": {}}, {"item_key": "next_check", "value_ko": "", "value_native": "", "status": "not_mentioned", "evidence": "", "reason": "", "detail": {}}]$j$::jsonb, $j${}$j$::jsonb, null, null, 'submitted', null, null, 'S-F02');
 end $$;
 
 -- 기록 없음 처리 1건: 오○○ 지난 7일 안 방문일(승인 기록 날 앞) — 방문 취소

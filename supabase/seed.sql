@@ -32,7 +32,7 @@ begin
     select * from (values
       ('worker@carebridge.test',   '마이',          'worker',   'vi', '00000000-0000-4000-a000-000000000001'::uuid),
       ('reviewer@carebridge.test', '박 사회복지사', 'reviewer', 'ko', '00000000-0000-4000-a000-000000000001'::uuid),
-      ('trainee@carebridge.test',  '교육생',        'worker',   'vi', '00000000-0000-4000-a000-000000000002'::uuid),
+      ('trainee@carebridge.test',  '응옥',          'worker',   'vi', '00000000-0000-4000-a000-000000000002'::uuid),
       ('trainer@carebridge.test',  '강사',          'reviewer', 'ko', '00000000-0000-4000-a000-000000000002'::uuid)
     ) as t(email, name, role, native_lang, org_id)
   loop
