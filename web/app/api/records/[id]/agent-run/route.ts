@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // POST /api/records/:id/agent-run: 작성자가 [다시 시도] 또는 [글로 쓰기] 뒤 부름(W3).
 // 입력: (글로 쓰기면) text. 출력: end_reason(draft_returned / auto_stopped / failed), items(9개), form_fields.
-// 근거: 문서/설계/데이터구조-v1.6.4.md '공통 계약', 문서/설계/ai규칙-v1.1.1.md '② 기록 검토 준비 Agent'
+// 근거: 문서/설계/데이터구조-v1.6.4.md '공통 계약', 문서/설계/ai규칙-v1.1.2.md '② 기록 검토 준비 Agent'
 export const maxDuration = 300; // Claude 응답 최대 4번
 
 const STATUS: Record<AgentRunError["code"], number> = {

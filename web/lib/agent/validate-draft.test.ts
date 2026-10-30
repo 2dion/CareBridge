@@ -12,6 +12,7 @@ import {
   minutesBetween,
   REASONS,
   reasonTranslation,
+  hasQuestionPhrase,
   stripQuestionSentences,
   sumSupportMinutes,
   validateDraft,
@@ -331,7 +332,7 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
   });
 });
 
-describe("상태별 빈칸 규칙 (AI 규칙 v1.1.1 '상태 판정 기준')", () => {
+describe("상태별 빈칸 규칙 (AI 규칙 v1.1.2 '상태 판정 기준')", () => {
   it("'확인 필요'인데 이유가 비면 알리고 기본 이유를 채움", () => {
     const draft = withItem(scenarioOneDraft(), "meal", { reason: "" });
     const result = validateDraft(draft, FACILITY);
@@ -594,6 +595,56 @@ describe("검사 8: 기록 내용의 확인 요청 문장 (이슈 #117)", () => 
     ]);
     expect(sleep?.value_ko).toBe("");
     expect(sleep?.value_native).toBe("");
+  });
+
+  // 이슈 #177: 정상 기록 문장이 지워지던 것. 근거 문장이 원문에 있어야 다른 검사에 안 낮춰진다
+  const TRANSCRIPT_177 = `${TRANSCRIPT} 내일 오전에 혈압 확인이 필요해요. 말씀하실 때 발음이 불분명했어요.`;
+  const CTX_177: ValidateContext = { transcript: TRANSCRIPT_177, careType: "facility" };
+
+  it("다음 확인사항(next_check)의 '확인 필요' 내용은 그대로 둠", () => {
+    const draft = withItem(scenarioOneDraft(), "next_check", {
+      value_ko: "내일 오전 혈압 확인 필요",
+      status: "observed",
+      evidence: "내일 오전에 혈압 확인이 필요해요.",
+    });
+    const result = validateDraft(draft, CTX_177);
+    const next = (result.fixed ?? draft).items.find((i) => i.item_key === "next_check");
+    expect(result.problems.map((p) => p.code)).not.toContain("question_in_value");
+    expect(next?.value_ko).toBe("내일 오전 혈압 확인 필요");
+    expect(next?.status).toBe("observed");
+  });
+
+  it("관찰한 증상 '발음이 불분명하심'은 걸리지 않고 '관찰'로 남음", () => {
+    const draft = withItem(scenarioOneDraft(), "discomfort", {
+      value_ko: "말씀하실 때 발음이 불분명하심",
+      status: "observed",
+      evidence: "말씀하실 때 발음이 불분명했어요.",
+    });
+    const result = validateDraft(draft, CTX_177);
+    const item = (result.fixed ?? draft).items.find((i) => i.item_key === "discomfort");
+    expect(result.problems.map((p) => p.code)).not.toContain("question_in_value");
+    expect(item?.value_ko).toBe("말씀하실 때 발음이 불분명하심");
+    expect(item?.status).toBe("observed");
+  });
+
+  it("AI의 의문 '~인지 불명확'은 여전히 걸림", () => {
+    expect(hasQuestionPhrase("반 그릇인지 불명확")).toBe(true);
+    expect(hasQuestionPhrase("섭취량 불명확(1/2 이상인지)")).toBe(true);
+    expect(hasQuestionPhrase("발음이 불분명하심")).toBe(false);
+  });
+
+  it("문장 끝 쉼표 뒤 확인 요청만 빼고 앞 내용은 남김", () => {
+    expect(stripQuestionSentences("점심 절반 드심, 섭취량 확인 필요.")).toEqual({
+      kept: "점심 절반 드심.",
+      removed: "섭취량 확인 필요",
+    });
+  });
+
+  it("숫자 안의 점(1.5)에서 문장을 자르지 않음", () => {
+    expect(stripQuestionSentences("물 1.5리터 드심. 양 확인 필요.")).toEqual({
+      kept: "물 1.5리터 드심.",
+      removed: "양 확인 필요.",
+    });
   });
 
   it("'확인'이라는 낱말만으로는 걸리지 않음 (예: 직접 확인함)", () => {

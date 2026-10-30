@@ -5,7 +5,7 @@ import { getAiMode, getAiModels } from "@/lib/config";
 
 import { getClaudeClient } from "./claude";
 
-// ④ 짧은 번역: 고친 항목 재번역(AI 규칙 v1.1.1). Agent 없이 가벼운 모델 한 번 호출.
+// ④ 짧은 번역: 고친 항목 재번역(AI 규칙 v1.1.2). Agent 없이 가벼운 모델 한 번 호출.
 // 정해진 JSON으로 받고, 형식이 틀리면 한 번 다시 요청한다(기술 선택 v1.1).
 // Mock 모드는 빈 문자열을 돌려준다. 빈칸은 번역 완료가 아니다(결정 2026-10-27-피그마상충점).
 // 도우미 질문 번역(translateQuestionKo)도 같은 방식이다(이슈 #122).
