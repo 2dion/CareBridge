@@ -1,5 +1,5 @@
 // 로그인한 사람 권한(RLS)으로 화면에 필요한 줄을 읽어 DemoDb 모양으로 바꾼다.
-// 근거: 문서/설계/데이터구조-v1.6.4.md '권한 규칙'·'공통 계약'(목록·상세는 Supabase에서 RLS로 바로 읽음, 못 쓴 기록·기한 지난 빈 기록은 DB 함수)
+// 근거: 문서/설계/데이터구조-v1.6.5.md '권한 규칙'·'공통 계약'(목록·상세는 Supabase에서 RLS로 바로 읽음, 못 쓴 기록·기한 지난 빈 기록은 DB 함수)
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { DemoDb, MissedRecord, OverdueDay } from "../demo/store";

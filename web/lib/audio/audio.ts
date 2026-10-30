@@ -1,5 +1,5 @@
 // 녹음 올리기: 1회용 업로드 주소로 Storage에 바로 올리고, 서버에는 storage_path만 보낸다.
-// 근거: 문서/결정/2026-10-21-녹음업로드.md, 문서/설계/데이터구조-v1.6.4.md '공통 계약' upload-url·audio
+// 근거: 문서/결정/2026-10-21-녹음업로드.md, 문서/설계/데이터구조-v1.6.5.md '공통 계약' upload-url·audio
 
 import { ITEM_KEYS, type ItemKey } from "@/lib/agent/validate-draft";
 
