@@ -240,8 +240,8 @@ function ReviewRecord() {
           {record.status === "approved"
             ? `승인한 기록이에요 (${record.approvedBy} · ${kstTime(record.approvedAt)}). `
             : record.status === "returned"
-              ? `${names.worker}에게 되돌린 기록이에요. ${names.worker}가 고쳐 다시 전송하면 검토 대기에 보여요. `
-              : `${names.worker}가 아직 전송하지 않은 기록이에요. `}
+              ? `${names.worker}에게 되돌린 기록이에요. ${names.workerSubject} 고쳐 다시 전송하면 검토 대기에 보여요. `
+              : `${names.workerSubject} 아직 전송하지 않은 기록이에요. `}
           {record.status === "approved" && (
             <Link className="text-link" href={`/approved?id=${record.id}`}>
               승인한 기록에서 보기
@@ -288,7 +288,7 @@ function ReviewRecord() {
             ))
           ) : (
             <p className="muted" style={{ fontSize: 13 }}>
-              {names.worker}가 한국어로 말해 번역이 필요 없습니다.
+              {names.workerSubject} 한국어로 말해 번역이 필요 없습니다.
             </p>
           )}
           <p className="hint-note">
@@ -652,7 +652,7 @@ function ReturnModal({
     <DeskModal open={open} onClose={onClose} label={`${names.worker}에게 되돌리기`}>
       <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>{names.worker}에게 되돌리기</h2>
       <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
-        {names.worker}가 고쳐서 다시 전송해요.
+        {names.workerSubject} 고쳐서 다시 전송해요.
       </p>
       <p className="flabel">다시 볼 항목 (고르면 사유 앞에 붙어요)</p>
       <div className="chips" style={{ marginBottom: 14 }}>
@@ -699,7 +699,8 @@ function ReturnModal({
         </p>
       )}
       <p className="info-note">
-        되돌리면 검토 대기에서 빠지고, {names.worker} 오늘 화면에 주황 띠로 보여요. {names.worker}가
+        되돌리면 검토 대기에서 빠지고, {names.worker} 오늘 화면에 주황 띠로 보여요.{" "}
+        {names.workerSubject}
         고친 항목은 {names.reviewer}가 다시 확인해요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>

@@ -19,7 +19,7 @@ const buildSteps = (names: RoleNames) => [
     bodyVi: "Sắp xếp theo mục. Không tự thêm điều chưa nói.",
   },
   {
-    ko: `${names.worker}가 확인해요`,
+    ko: `${names.workerSubject} 확인해요`,
     vi: `${capital(names.workerVi)} kiểm tra.`,
     body: "틀린 것은 고치고 빠진 것은 채워요.",
     bodyVi: "Sửa chỗ sai và bổ sung chỗ thiếu.",

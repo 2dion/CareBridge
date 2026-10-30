@@ -42,3 +42,56 @@ describe("베트남어 역할 이름을 문장 처음에 쓸 때(이슈 #179)", 
     expect(capitalizeVi(roleNames(true).reviewerVi)).toBe("Giảng viên");
   });
 });
+
+describe("조사를 붙인 작성자 이름(이슈 #178)", () => {
+  it("일반 기관: 작성자가·를·는·로", () => {
+    const names = roleNames(false);
+    expect([names.workerSubject, names.workerObject, names.workerTopic, names.workerAs]).toEqual([
+      "작성자가",
+      "작성자를",
+      "작성자는",
+      "작성자로",
+    ]);
+  });
+  it("교육용 기관: 받침이 있어 교육생이·을·은·으로", () => {
+    const names = roleNames(true);
+    expect([names.workerSubject, names.workerObject, names.workerTopic, names.workerAs]).toEqual([
+      "교육생이",
+      "교육생을",
+      "교육생은",
+      "교육생으로",
+    ]);
+  });
+  it("조사 붙은 이름은 앞 이름으로 시작한다", () => {
+    for (const training of [false, true]) {
+      const names = roleNames(training);
+      for (const value of [
+        names.workerSubject,
+        names.workerObject,
+        names.workerTopic,
+        names.workerAs,
+      ]) {
+        expect(value.startsWith(names.worker)).toBe(true);
+      }
+    }
+  });
+});
+
+// '{names.worker}가'처럼 받침에 따라 바뀌는 조사를 이름 뒤에 바로 붙이면 '교육생가'가 된다(이슈 #178).
+describe("화면 코드에 역할 이름 + 조사를 바로 붙이지 않는다", () => {
+  it("app·components에 names.worker 뒤 가·를·는·로·이·을·은이 없다", async () => {
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const found: string[] = [];
+    for (const dir of ["app", "components"]) {
+      for (const file of readdirSync(dir, { recursive: true }) as string[]) {
+        if (!/\.tsx?$/.test(file) || /\.test\./.test(file)) continue;
+        const text = readFileSync(join(dir, file), "utf8");
+        for (const match of text.matchAll(/names\.worker\}(가|를|는|로|이|을|은)/g)) {
+          found.push(`${dir}/${file}: ${match[0]}`);
+        }
+      }
+    }
+    expect(found).toEqual([]);
+  });
+});

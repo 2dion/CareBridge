@@ -130,7 +130,7 @@ export default function SignupPage() {
     }
     const names = roleNames(isTraining);
     const joined = encodeURIComponent(
-      `${orgName} · ${role === "worker" ? names.worker : names.reviewer}로 가입했습니다`,
+      `${orgName} · ${role === "worker" ? names.workerAs : `${names.reviewer}로`} 가입했습니다`,
     );
     router.push(role === "worker" ? `/guide?joined=${joined}` : "/review");
   };

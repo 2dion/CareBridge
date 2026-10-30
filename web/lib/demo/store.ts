@@ -878,7 +878,20 @@ export function minutesReason(total: number, visit: number) {
   };
 }
 
-/** 기록 검증 검사 5(support_minutes_exceed_visit): 제12호 지원별 분 합이 방문 시간보다 길면 ‘확인 필요’. 코드가 맡는다. */
+/** 코드(검사 5)가 붙이는 이유인지. 재검사 때 이 이유만 걷어 내고 다시 붙인다. */
+const MINUTES_REASON_KO = "지원별 제공시간 합(";
+const MINUTES_REASON_VI = "Tổng thời gian hỗ trợ (";
+const splitReasons = (text: string) =>
+  text
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+/**
+ * 기록 검증 검사 5(support_minutes_exceed_visit): 제12호 지원별 분 합이 방문 시간보다 길면 ‘확인 필요’. 코드가 맡는다.
+ * 실제 서버(records/support-check.ts)처럼 누가 쓴 항목이든 다시 검사하고(이슈 #182),
+ * 코드가 붙인 이유만 더하거나 걷어 낸다. AI가 쓴 다른 이유와 내용·출처는 그대로 둔다.
+ */
 function checkSupportMinutes(record: DemoRecord): DemoRecord {
   if (record.formType !== "12") return record;
   const visit = visitMinutes(record);
@@ -886,22 +899,35 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
   return {
     ...record,
     items: record.items.map((item) => {
-      if (item.item_key !== "support" || item.source !== "worker") return item;
+      if (item.item_key !== "support") return item;
+      const keptKo = splitReasons(item.reason).filter(
+        (part) => !part.startsWith(MINUTES_REASON_KO),
+      );
+      const keptVi = splitReasons(item.reason_native ?? "").filter(
+        (part) => !part.startsWith(MINUTES_REASON_VI),
+      );
       if (visit !== null && total > visit) {
+        const added = minutesReason(total, visit);
         return {
           ...item,
           status: "needs_check" as const,
-          ...minutesReason(total, visit),
+          reason: [...keptKo, added.reason].join("; "),
+          reason_native: [...keptVi, added.reason_native].join("; "),
         };
       }
-      return item.status === "needs_check"
-        ? {
-            ...item,
-            status: item.value_ko.trim() ? ("observed" as const) : ("not_mentioned" as const),
-            reason: "",
-            reason_native: "",
-          }
-        : item;
+      // 합이 맞음: 코드가 붙인 이유가 없었으면 손대지 않는다
+      if (keptKo.length === splitReasons(item.reason).length) return item;
+      return {
+        ...item,
+        status:
+          keptKo.length > 0
+            ? item.status
+            : item.value_ko.trim()
+              ? ("observed" as const)
+              : ("not_mentioned" as const),
+        reason: keptKo.join("; "),
+        reason_native: keptVi.join("; "),
+      };
     }),
   };
 }

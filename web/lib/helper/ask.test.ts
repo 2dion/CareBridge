@@ -6,11 +6,13 @@ import {
   helperUserMessage,
   isSafetyQuestion,
   NOT_FOUND,
+  notFoundAnswer,
   parseHelperAnswer,
   SAFETY_NOTICE,
   withSafetyNotice,
   type HelperDeps,
 } from "./ask";
+import { roleNames } from "@/lib/demo/roles";
 
 const section = { chapter: "10장", title: "식사 돕기", page: "120", body: "억지로 권하지 않는다." };
 const fallSection = {
@@ -250,5 +252,43 @@ describe("helperSystemPrompt / helperUserMessage", () => {
 describe("parseHelperAnswer", () => {
   it("found=false면 고정 문구", () => {
     expect(parseHelperAnswer('{"ko":"x","found":false}')).toEqual(NOT_FOUND);
+  });
+});
+
+describe("교육용 기관 고정 안내(이슈 #180)", () => {
+  const trainee = (nativeLang: "ko" | "vi") =>
+    vi.fn(async () => ({ id: "t1", role: "worker" as const, nativeLang, isTraining: true }));
+
+  it("교재에서 못 찾으면 '강사에게 물어보세요'", async () => {
+    const deps = fakeDeps({ searchManual: vi.fn(async () => []), currentUser: trainee("vi") });
+    const r = await askHelper({ question: "밥" }, deps);
+    expect(r.body.ko).toBe("교재에서 찾지 못했어요. 강사에게 물어보세요.");
+    expect(r.body.vi).toContain("giảng viên");
+    expect(JSON.stringify(r.body)).not.toMatch(/관리자|người quản lý/);
+  });
+
+  it("모델이 found=false로 답해도 '강사'", async () => {
+    const deps = fakeDeps({
+      currentUser: trainee("ko"),
+      askClaude: vi.fn(async () => '{"ko":"","vi":"","source":"","found":false}'),
+    });
+    const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
+    expect(r.body).toEqual({ ...notFoundAnswer(roleNames(true)), vi: "" });
+  });
+
+  it("건강·안전 질문은 '강사에게 바로 보고하세요'", async () => {
+    const deps = fakeDeps({ searchManual: vi.fn(async () => []), currentUser: trainee("vi") });
+    const r = await askHelper({ question: "어르신이 넘어지셨어요" }, deps);
+    expect(r.body.ko).toBe(
+      "강사에게 바로 보고하세요. 교재에서 찾지 못했어요. 강사에게 물어보세요.",
+    );
+    expect(String(r.body.vi).startsWith("Hãy báo ngay cho giảng viên.")).toBe(true);
+  });
+
+  it("일반 기관은 그대로 '관리자'", async () => {
+    const deps = fakeDeps({ searchManual: vi.fn(async () => []) });
+    const r = await askHelper({ question: "넘어지셨어요" }, deps);
+    expect(r.body.ko).toBe(`${SAFETY_NOTICE.ko} ${NOT_FOUND.ko}`);
+    expect(SAFETY_NOTICE.ko).toBe("관리자에게 바로 보고하세요.");
   });
 });

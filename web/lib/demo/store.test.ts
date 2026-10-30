@@ -254,3 +254,85 @@ describe("timeRangeLabel", () => {
     expect(timeRangeLabel("14:00:00~17:00:00")).toBe("오후 2:00 ~ 오후 5:00");
   });
 });
+
+// 이슈 #182: 지원별 분 합 재검사(검사 5)를 실제 서버(support-check.ts)처럼 한다.
+describe("Mock 재가 지원 합 재검사", () => {
+  const draft = () => {
+    const today = "2026-10-30";
+    const made = ensureRecord(createDemoDb(today), "lee", today, today, "t0");
+    if (!("db" in made)) throw new Error("기록을 만들지 못함");
+    const db = fillMockDraft(
+      markProcessing(made.db, made.id, "두 시부터 다섯 시까지", "t1"),
+      made.id,
+      "t2",
+    );
+    return { db, id: made.id };
+  };
+  const support = (db: ReturnType<typeof createDemoDb>, id: string) =>
+    db.records[id].items.find((item) => item.item_key === "support")!;
+  const visit = (db: ReturnType<typeof createDemoDb>, id: string) =>
+    db.records[id].items.find((item) => item.item_key === "visit_time")!;
+
+  it("작성자가 분을 늘려 합이 방문 시간을 넘으면 '확인 필요'", () => {
+    const { db, id } = draft();
+    const item = support(db, id);
+    const next = workerEditItem(
+      db,
+      id,
+      "support",
+      {
+        value_ko: item.value_ko,
+        detail: { ...item.detail, minutes: { physical: 200, emotional: 60 } },
+      },
+      "t3",
+    );
+    expect(support(next, id).status).toBe("needs_check");
+    expect(support(next, id).reason).toContain("260분");
+  });
+
+  it("AI가 넣은 분 그대로인데 방문 시간을 줄이면 '확인 필요'(실제 서버와 같음)", () => {
+    const { db, id } = draft();
+    expect(support(db, id).source).toBe("ai");
+    const next = workerEditItem(
+      db,
+      id,
+      "visit_time",
+      {
+        value_ko: "14:00~14:30 방문",
+        detail: { ...visit(db, id).detail, start: "14:00", end: "14:30" },
+      },
+      "t3",
+    );
+    expect(support(next, id).status).toBe("needs_check");
+    expect(support(next, id).reason).toContain("방문 시간(30분)");
+    // AI가 쓴 항목을 덮어쓰지 않는다: 내용·출처는 그대로
+    expect(support(next, id).source).toBe("ai");
+    expect(support(next, id).value_ko).toBe(support(db, id).value_ko);
+  });
+
+  it("방문 시간을 다시 늘리면 코드가 붙인 이유만 걷어 내고 '관찰'로", () => {
+    const { db, id } = draft();
+    const short = workerEditItem(
+      db,
+      id,
+      "visit_time",
+      {
+        value_ko: "14:00~14:30 방문",
+        detail: { ...visit(db, id).detail, start: "14:00", end: "14:30" },
+      },
+      "t3",
+    );
+    const back = workerEditItem(
+      short,
+      id,
+      "visit_time",
+      {
+        value_ko: "14:00~17:00 방문",
+        detail: { ...visit(short, id).detail, start: "14:00", end: "17:00" },
+      },
+      "t4",
+    );
+    expect(support(back, id).status).toBe("observed");
+    expect(support(back, id).reason).toBe("");
+  });
+});

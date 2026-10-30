@@ -30,7 +30,7 @@ export async function createHelperDeps(): Promise<HelperDeps> {
       if (!auth.user) return null;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role, native_lang")
+        .select("role, native_lang, organizations(is_training)")
         .eq("id", auth.user.id)
         .maybeSingle();
       if (!profile) return null;
@@ -38,6 +38,10 @@ export async function createHelperDeps(): Promise<HelperDeps> {
         id: auth.user.id,
         role: profile.role as Role,
         nativeLang: (profile.native_lang === "ko" ? "ko" : "vi") as NativeLang,
+        // 교육용 기관이면 고정 안내에 '강사'(이슈 #180)
+        isTraining: Boolean(
+          (profile.organizations as unknown as { is_training: boolean } | null)?.is_training,
+        ),
       };
     },
     async searchManual(question) {
