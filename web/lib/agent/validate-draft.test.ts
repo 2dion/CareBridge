@@ -332,7 +332,7 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
   });
 });
 
-describe("상태별 빈칸 규칙 (AI 규칙 v1.1.2 '상태 판정 기준')", () => {
+describe("상태별 빈칸 규칙 (AI 규칙 v1.1.3 '상태 판정 기준')", () => {
   it("'확인 필요'인데 이유가 비면 알리고 기본 이유를 채움", () => {
     const draft = withItem(scenarioOneDraft(), "meal", { reason: "" });
     const result = validateDraft(draft, FACILITY);
@@ -384,9 +384,13 @@ describe("시설 기록의 재가 전용 칸", () => {
     expect(result.fixed?.form_fields).toEqual({ other: "x" });
   });
 
-  it("재가 기록은 그대로 둠", () => {
+  it("재가 기록은 그대로 둠(원문에 비교 표현이 있으면)", () => {
     const draft = { ...scenarioOneDraft(), form_fields: { cognition_trend: "same" } };
-    const ctx: ValidateContext = { transcript: TRANSCRIPT, careType: "home", visitMinutes: 180 };
+    const ctx: ValidateContext = {
+      transcript: `${TRANSCRIPT} 평소처럼 웃으셨어요.`,
+      careType: "home",
+      visitMinutes: 180,
+    };
     expect(codes(draft, ctx)).toEqual([]);
   });
 });
