@@ -2909,3 +2909,34 @@ body:has(.m-app) {
 .m-app .btn .label.two small {
   display: block;
 }
+
+.m-app .consent-toggle {
+  align-self: flex-end;
+  text-align: right;
+}
+.m-app .consent-details {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.m-app .consent-details .vi,
+.m-app .consent-table .vi {
+  display: block;
+}
+.m-app .consent-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.m-app .consent-table th,
+.m-app .consent-table td {
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}
+.m-app .consent-table th {
+  width: 32%;
+}

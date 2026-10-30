@@ -363,6 +363,15 @@ export default function DraftPage() {
         <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
           Sau khi gửi, bạn không thể chỉnh sửa.
         </span>
+        {record.status === "returned" && (
+          <p style={{ fontSize: 17 }}>
+            고친 항목과 관련된 특이사항·다음 확인사항도 맞는지 봤나요?
+            <span className="vi" style={{ display: "block", fontSize: 13 }}>
+              Bạn đã xem lại ghi chú đặc biệt và mục cần kiểm tra tiếp theo liên quan đến mục đã sửa
+              chưa?
+            </span>
+          </p>
+        )}
         <div className="btn-row" style={{ width: "100%", marginTop: 6 }}>
           <button type="button" className="btn btn-outline" onClick={() => setConfirmOpen(false)}>
             <BtnLabel ko="취소" vi="Hủy" />
