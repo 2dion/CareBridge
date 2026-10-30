@@ -1,5 +1,5 @@
 // 실제 Supabase에서 읽은 줄을 화면이 쓰는 모양(DemoDb)으로 바꾼다. 화면 코드는 Mock과 같은 모양을 그대로 읽는다.
-// 근거: 문서/설계/데이터구조-v1.6.4.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
+// 근거: 문서/설계/데이터구조-v1.6.5.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
 import type { ItemKey, ItemStatus, RecordStatus, Resolution } from "../demo/state";
 import type {
   Assignment,
