@@ -1,5 +1,5 @@
 // 기록 검증 (Agent 도구 ③ validate_draft). AI 판단이 아니라 서버 코드 검사다.
-// 근거: 문서/설계/ai규칙-v1.1.3.md '서버 검사와 예외 처리' 검사 1~6,
+// 근거: 문서/설계/ai규칙-v1.1.4.md '서버 검사와 예외 처리' 검사 1~6,
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
 
@@ -76,7 +76,10 @@ export type ProblemCode =
   | "form_field_not_for_facility"
   | "invalid_intake"
   | "question_in_value"
-  | "real_name";
+  | "real_name"
+  | "form_field_without_evidence"
+  | "trend_without_comparison"
+  | "visible_sign_observed";
 
 export type Problem = {
   code: ProblemCode;
@@ -107,6 +110,8 @@ export const REASONS = {
   observedWithoutValue: "내용 없음",
   intakeUnknown: "섭취량을 정하지 못함",
   questionInValue: "기록 내용에 있던 확인 요청 문장을 이유로 옮김",
+  trendWithoutComparison: "비교 표현이 없어 인지기능 변화상태(호전·유지·악화)를 정할 수 없음",
+  visibleSign: "피부·몸에 보이는 변화(발적·상처·멍·부기 등)라 관리자가 확인",
 } as const;
 
 // 서버가 추가한 이유도 한국어와 번역을 함께 바꾼다. Agent가 준 번역은 그대로 보존한다.
@@ -122,6 +127,10 @@ export const REASONS_VI: Record<string, string> = {
   [REASONS.observedWithoutValue]: "Không có nội dung",
   [REASONS.intakeUnknown]: "Chưa xác định được lượng ăn",
   [REASONS.questionInValue]: "Câu yêu cầu xác nhận trong nội dung đã được chuyển sang lý do",
+  [REASONS.trendWithoutComparison]:
+    "Không có lời so sánh nên không xác định được thay đổi chức năng nhận thức (cải thiện/giữ nguyên/xấu đi)",
+  [REASONS.visibleSign]:
+    "Thay đổi nhìn thấy trên da/cơ thể (đỏ, vết thương, bầm, sưng...) nên người quản lý cần xác nhận",
   "형식 오류": "Định dạng không hợp lệ",
   "자동 정리 중단": "Đã dừng tự động sắp xếp nội dung",
 };
@@ -180,7 +189,104 @@ export const MIN_EVIDENCE_CHARS = 4;
 export function evidenceInTranscript(evidence: string, transcript: string): boolean {
   const needle = normalizeForMatch(evidence);
   if (needle === "") return false;
-  return normalizeForMatch(transcript).includes(needle);
+  const haystack = normalizeForMatch(transcript);
+  if (haystack.includes(needle)) return true;
+  // 근거가 원문의 떨어진 문장 여러 개를 이어 붙인 것이면("2번째 문장. 8번째 문장.") 문장마다 원문에 있는지 본다.
+  // 문장 하나라도 원문에 없으면 근거를 찾지 못한 것이다.
+  const parts = evidence
+    .split(/(?<=[.!?。])\s+|\n+/)
+    .map(normalizeForMatch)
+    .filter(Boolean);
+  return parts.length > 1 && parts.every((part) => haystack.includes(part));
+}
+
+// 검사 9: 재가 변화상태(호전·유지·악화)는 원문에 비교가 있을 때만 정한다(AI 규칙 쓰기 원칙 2, 프롬프트 규칙 4).
+// 프롬프트만으로는 AI가 '유지'(same)를 채워 인쇄에 체크되므로 서버가 거른다.
+export const COMPARISON_WORDS = [
+  "좋아지",
+  "좋아졌",
+  "나아지",
+  "나아졌",
+  "나빠지",
+  "나빠졌",
+  "호전",
+  "악화",
+  "전보다",
+  "어제보다",
+  "지난번보다",
+  "평소보다",
+  "평소와",
+  "평소처럼",
+  "평소랑",
+  "예전보다",
+  "여전",
+  "그대로",
+  "똑같",
+  "변함없",
+  "변화 없",
+  "달라지",
+  "달라졌",
+  "tốt hơn",
+  "kém hơn",
+  "xấu đi",
+  "như cũ",
+  "như mọi khi",
+  "vẫn như",
+  "không thay đổi",
+] as const;
+
+export const hasComparison = (text: string): boolean => {
+  const normalized = text.normalize("NFC").toLowerCase();
+  return COMPARISON_WORDS.some((word) => normalized.includes(word));
+};
+
+export const TREND_VALUES = ["improved", "same", "worse"] as const;
+const TREND_FIELDS = ["body_trend", "meal_trend", "cognition_trend"] as const;
+const ACCIDENT_FIELDS = ["stool_accidents", "urine_accidents"] as const;
+// 배변 실수 칸은 원문에 대변·소변·실수·기저귀 이야기가 있을 때만 둔다. 말하지 않은 0회를 지어내지 않는다.
+const ACCIDENT_WORDS = /대변|소변|배변|실수|실금|기저귀|tã|đại tiện|tiểu tiện|đi ngoài|són/i;
+
+// 검사 10: 불편감 표현에 피부·몸에 보이는 변화가 있으면 '확인 필요'(프롬프트 규칙 3 '상처'). 같은 말이 기록마다
+// 관찰·확인 필요로 갈리지 않게 서버가 정한다. "상처 없음"처럼 없다고 한 말은 걸지 않는다.
+export const VISIBLE_SIGN_WORDS = [
+  "발적",
+  "빨개",
+  "빨갛",
+  "붉",
+  "상처",
+  "멍",
+  "부기",
+  "붓기",
+  "부었",
+  "부어",
+  "부종",
+  "물집",
+  "까졌",
+  "벗겨",
+  "출혈",
+  "피가",
+  "đỏ",
+  "vết thương",
+  "bầm",
+  "sưng",
+  "phồng",
+  "chảy máu",
+] as const;
+
+export function hasVisibleSign(text: string): boolean {
+  const normalized = text.normalize("NFC").toLowerCase();
+  return VISIBLE_SIGN_WORDS.some((word) => {
+    let from = 0;
+    for (;;) {
+      const at = normalized.indexOf(word, from);
+      if (at < 0) return false;
+      // 바로 뒤(8글자 안)에 없다고 한 말이 있으면 넘어간다: "상처는 없다고 하심", "không có vết thương"은 앞을 본다
+      const after = normalized.slice(at + word.length, at + word.length + 8);
+      const before = normalized.slice(Math.max(0, at - 9), at);
+      if (!/없|아니|않/.test(after) && !/không( có)?\s*$/.test(before)) return true;
+      from = at + word.length;
+    }
+  });
 }
 
 // AI가 확인을 요청하는 말. 기록 내용(value_ko)은 공식 기록이라 이런 문장이 들어가면 안 되고, reason에만 둔다 (이슈 #117).
@@ -454,6 +560,32 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
     }
   }
 
+  // 검사 9: 재가 서식 칸(변화상태·배변 실수)은 원문에 근거가 있을 때만 둔다. 근거 없는 값은 빼고 알린다.
+  const sourceText = `${ctx.transcript}\n${transcriptKo}`;
+  const compared = hasComparison(sourceText);
+  if (ctx.careType === "home") {
+    const dropped: string[] = [];
+    for (const key of TREND_FIELDS) {
+      const value = formFields[key];
+      if (value === undefined || value === null || value === "") continue;
+      if (!compared || !(TREND_VALUES as readonly unknown[]).includes(value)) dropped.push(key);
+    }
+    for (const key of ACCIDENT_FIELDS) {
+      const value = formFields[key];
+      if (value === undefined || value === null || value === "") continue;
+      if (!ACCIDENT_WORDS.test(sourceText) || !isValidMinute(value)) dropped.push(key);
+    }
+    if (dropped.length > 0) {
+      problems.push({
+        code: "form_field_without_evidence",
+        message: `원문에 근거가 없는 서식 칸(${dropped.join(", ")})을 뺐습니다. 변화상태는 원문에 비교 표현이 있을 때만, 배변 실수 횟수는 원문에 말이 있을 때만 쓰세요.`,
+      });
+      formFields = Object.fromEntries(
+        Object.entries(formFields).filter(([key]) => !dropped.includes(key)),
+      );
+    }
+  }
+
   const byKey = new Map<ItemKey, DraftItem>();
   draft.items.forEach((raw, index) => {
     const parsed = parseItem(raw, index);
@@ -510,7 +642,7 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
       lower("형식 오류");
     }
 
-    // AI가 처음부터 '확인 필요'로 둔 항목: 이유와 근거가 있어야 한다 (AI 규칙 v1.1.2 '상태 판정 기준').
+    // AI가 처음부터 '확인 필요'로 둔 항목: 이유와 근거가 있어야 한다 (AI 규칙 v1.1.3 '상태 판정 기준').
     // 서버가 낮춘 항목은 downgrade가 이유를 채우므로 여기서 보지 않는다.
     if (item.status === "needs_check") {
       if (!item.reason.trim()) {
@@ -654,7 +786,56 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
     if (key === "support" && ctx.careType === "home") {
       const minutes = checkSupportMinutes(item.detail, visitMinutes);
       for (const problem of minutes.problems) problems.push({ ...problem, item_key: key });
+      // 서버가 합 이유를 붙이면 AI가 따로 쓴 같은 뜻의 이유는 뺀다(이유가 두 번 보이지 않게)
+      if (minutes.reasons.some((reason) => reason.startsWith(REASONS.supportMinutesExceed))) {
+        const keep = (text: string, same: RegExp) =>
+          text
+            .split(";")
+            .map((part) => part.trim())
+            .filter((part) => part && !same.test(part))
+            .join("; ");
+        item = {
+          ...item,
+          reason: keep(item.reason, /제공\s*시간.*(합|초과|넘)|합.*방문\s*시간/),
+          reason_native: keep(item.reason_native, /tổng thời gian/i),
+        };
+      }
       for (const reason of minutes.reasons) lower(reason);
+    }
+
+    // 검사 9(인지 변화): 재가 인지기능 변화상태는 비교가 있을 때만. 비교 없이 '관찰'이면 '확인 필요'로 두고
+    // detail.trend도 뺀다(관리자가 M2에서 정함). 시설(제16호)에는 변화상태 칸이 없어 보지 않는다.
+    if (key === "cognition" && ctx.careType === "home" && !compared) {
+      if (item.detail.trend !== undefined) {
+        const rest = Object.fromEntries(
+          Object.entries(item.detail).filter(([field]) => field !== "trend"),
+        );
+        item = { ...item, detail: rest };
+      }
+      if (item.status === "observed") {
+        problems.push({
+          code: "trend_without_comparison",
+          item_key: key,
+          message:
+            "원문에 비교 표현이 없어 인지기능 변화상태를 정할 수 없습니다. '확인 필요'로 두고 reason에 이유를 쓰세요.",
+        });
+        lower(REASONS.trendWithoutComparison);
+      }
+    }
+
+    // 검사 10: 불편감 표현에 피부·몸에 보이는 변화가 있는데 '관찰'이면 '확인 필요'
+    if (
+      key === "discomfort" &&
+      item.status === "observed" &&
+      hasVisibleSign(`${item.value_ko}\n${item.evidence}`)
+    ) {
+      problems.push({
+        code: "visible_sign_observed",
+        item_key: key,
+        message:
+          "피부·몸에 보이는 변화(발적·상처·멍·부기 등)는 '확인 필요'로 두고 reason에 이유를 쓰세요.",
+      });
+      lower(REASONS.visibleSign);
     }
 
     // 검사 6: 기록(한국어·모국어)에 실명이 있는지. 근거(evidence)는 원문이라 보지 않는다.
@@ -682,7 +863,7 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 }
 
 // 끝까지 맞는 초안이 없을 때(검사 1 실패, Agent 상한 도달 등) 9개 모두 '확인 필요'로 둔 초안.
-// AI 규칙 v1.1.2 '멈춤 규칙' 3번, 검사 1. 검사 1 실패 때도 원문은 보여 주므로 transcriptKo를 넘긴다.
+// AI 규칙 v1.1.3 '멈춤 규칙' 3번, 검사 1. 검사 1 실패 때도 원문은 보여 주므로 transcriptKo를 넘긴다.
 export function allNeedsCheckDraft(
   reason: string,
   transcriptKo = "",

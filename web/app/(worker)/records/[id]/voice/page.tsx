@@ -288,6 +288,18 @@ export default function VoicePage() {
               </b>
             </div>
           </div>
+          {/* 한 녹음에 두 언어를 섞으면 받아쓰기가 한쪽 말을 빼거나 잘못 옮긴다(결정 2026-10-30-녹음한언어, 이슈 #187) */}
+          <div className="hint">
+            <span className="icon-bubble sm">
+              <Icon name="info" />
+            </span>
+            <div>
+              <b>한국어나 모국어 중 하나로 말해 주세요.</b>
+              <span className="vi" style={{ display: "block" }}>
+                Hãy nói bằng một thứ tiếng: tiếng Hàn hoặc tiếng mẹ đẻ.
+              </span>
+            </div>
+          </div>
         </div>
         <button
           type="button"

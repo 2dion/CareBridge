@@ -1,5 +1,5 @@
 // ② 기록 검토 준비 Agent: Claude가 도구 4개를 골라 부르고, 서버가 도구를 실행한다.
-// 근거: 문서/설계/ai규칙-v1.1.3.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
+// 근거: 문서/설계/ai규칙-v1.1.4.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
 //       문서/설계/데이터구조-v1.6.6.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
@@ -124,7 +124,7 @@ export const DRAFT_SCHEMA = {
   required: ["transcript_ko", "items", "form_fields"],
 } as const;
 
-// AI 규칙 v1.1.2 '도구 정의 (초안)'
+// AI 규칙 v1.1.3 '도구 정의 (초안)'
 export const AGENT_TOOLS = [
   {
     name: "get_form_spec",
@@ -184,7 +184,7 @@ export const AGENT_TOOLS = [
   },
 ] as const;
 
-// AI 규칙 v1.1.2 '프롬프트 초안'. 어르신 조건은 DB에 칸이 없어 급여 종류만 넣는다.
+// AI 규칙 v1.1.3 '프롬프트 초안'. 어르신 조건은 DB에 칸이 없어 급여 종류만 넣는다.
 export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
   return `너는 요양기관의 돌봄 기록 초안을 준비하는 Agent다.
 외국인 요양보호사가 돌봄을 마친 뒤 말한 메모를 받아쓴 글을 보고,
@@ -215,7 +215,12 @@ export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
    "용어 검색 결과 없음"만으로 needs_check로 두지 않는다. 뜻을 짐작해야 하는 말만 needs_check다.
    받아쓴 글이 베트남어 등 모국어여도 같다. 수면·식사처럼 뜻이 분명하면 observed로 정리한다.
 4. 진단하지 말고 본 것만 쓴다. 호전/유지/악화는 원문에 비교가 있을 때만.
+   비교가 없으면 form_fields의 body_trend·meal_trend·cognition_trend와 cognition.detail.trend를 비우고,
+   재가 cognition은 needs_check로 둔다. 발적·상처·멍·부기처럼 피부·몸에 보이는 변화는 discomfort를 needs_check로 둔다.
+   복약은 직접 본 것은 "복약 확인함", 어르신·가족이 말한 것은 "드셨다고 하심"처럼 쓰고 observed로 둔다.
 5. value_ko는 한국어 기록체(~하심, ~드심), 교재 용어. value_native는 그 번역.
+   작성자 자신을 가리키는 말("저", "요양보호사", "작성자")은 value_ko·reason에 쓰지 않고 뺀다
+   (예: "저를 알아보시고" → "알아보시고 웃으며 인사하심").
    value_ko에는 원문을 정리한 기록 내용만 쓴다. "확인 필요", "용어 확인", "불명확",
    "~인지 확인해 주세요" 같은 확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다
    (서버가 걸러 내고 그 항목을 needs_check로 둔다).
@@ -233,6 +238,8 @@ export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
    지원별 분("목욕 80분, 청소랑 빨래 60분, 말벗 60분")은 support.detail.minutes의 키 6개
    (physical, cognitive_stimulation, daily_living_together, cognitive_management, emotional, housework)에
    정수로 넣고, value_ko에도 말한 지원을 모두 쓴다(가사 포함). 말하지 않은 숫자는 지어내지 않고 비운다.
+   배변 실수 횟수(stool_accidents·urine_accidents)는 원문에 대변·소변·실수·기저귀 이야기가 있을 때만 쓴다.
+   말하지 않았으면 0을 넣지 않고 뺀다.
 9. 서버 검사 결과를 이기려고 내용을 지어내지 않는다. 고칠 수 없으면 needs_check로 둔다.
 10. 도구 결과 밖의 설명 문장은 쓰지 않는다. 초안은 return_draft의 draft로만 낸다.`;
 }

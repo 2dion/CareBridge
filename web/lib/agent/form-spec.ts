@@ -22,7 +22,8 @@ const FACILITY: FormSpec = {
     meal: "신체활동지원 > 식사 종류·섭취량(1 / 1/2이상 / 1/2미만). detail.intake에 choices.intake의 저장 값(full / half_or_more / under_half) 중 하나. 섭취량을 정하지 못하면 intake를 넣지 않고 status=needs_check",
     sleep: "신체활동지원 특이사항",
     discomfort: "신체활동지원 특이사항",
-    medication: "요양보호사는 본 것만 신체활동지원 특이사항에. 간호 행위를 추정하지 않음",
+    medication:
+      "신체활동지원 특이사항. 직접 본 것은 '복약 확인함', 어르신·가족이 말한 것은 '드셨다고 하심'으로 쓰고 관찰. 간호 행위를 추정하지 않음",
     cognition: "인지관리 및 의사소통 특이사항 (호전·유지·악화 칸 없음)",
     notes:
       "영역별 특이사항 4칸(신체활동지원 / 인지관리 및 의사소통 / 건강 및 간호관리 / 기능회복훈련) 중 해당 영역",
@@ -49,19 +50,23 @@ const HOME: FormSpec = {
     meal: "신체활동지원 > 식사 도움(체크), 변화상태 > 식사기능. 섭취량 칸 없음 → 특이사항",
     sleep: "특이사항",
     discomfort: "변화상태 > 신체기능, 특이사항",
-    medication: "앞쪽 칸 없음 → 특이사항",
-    cognition: "변화상태 > 인지기능 호전/유지/악화. detail.trend",
+    medication:
+      "앞쪽 칸 없음 → 특이사항. 직접 본 것은 '복약 확인함', 어르신·가족이 말한 것은 '드셨다고 하심'으로 쓰고 관찰",
+    cognition:
+      "변화상태 > 인지기능 호전/유지/악화. detail.trend. 원문에 비교(전보다·평소처럼·좋아지·나빠지 등)가 없으면 trend를 비우고 needs_check",
     notes: "특이사항 1칸(확인 사항과 조치사항)",
     next_check: "칸 없음 (기관 내부 메모)",
   },
   form_fields: {
     total_minutes:
       "총시간(분). visit_time의 종료 − 시작을 계산해 정수로(14:00~17:00이면 180). 시각을 말하지 않았으면 빼기",
-    body_trend: "신체기능 변화상태",
-    meal_trend: "식사기능 변화상태",
-    cognition_trend: "인지기능 변화상태",
-    stool_accidents: "대변 실수 횟수(기저귀 사용 시 교환 횟수)",
-    urine_accidents: "소변 실수 횟수(기저귀 사용 시 교환 횟수)",
+    body_trend: "신체기능 변화상태. 원문에 비교가 있을 때만, 없으면 빼기",
+    meal_trend: "식사기능 변화상태. 원문에 비교가 있을 때만, 없으면 빼기",
+    cognition_trend: "인지기능 변화상태. 원문에 비교가 있을 때만, 없으면 빼기",
+    stool_accidents:
+      "대변 실수 횟수(기저귀 사용 시 교환 횟수). 원문에 말이 있을 때만, 없으면 0이 아니라 빼기",
+    urine_accidents:
+      "소변 실수 횟수(기저귀 사용 시 교환 횟수). 원문에 말이 있을 때만, 없으면 0이 아니라 빼기",
   },
   choices: {
     trend: ["improved", "same", "worse"],
