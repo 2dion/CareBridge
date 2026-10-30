@@ -4,39 +4,20 @@
 import { useRoleNames } from "@/components/demo/demo-provider";
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
+import { PRIVACY_SECTIONS } from "@/lib/privacy";
 import type { RoleNames } from "@/lib/demo/roles";
 
 // 교육용 기관이면 문의 상대가 '강사'(이슈 #146)
 const buildSections = (
   names: RoleNames,
 ): { icon: IconName; ko: string; vi: string; body: string; bodyVi: string }[] => [
-  {
-    icon: "user",
-    ko: "모으는 정보",
-    vi: "Thông tin thu thập",
-    body: "이름, 언어 설정, 기록 내용만 모아요. 어르신·가족 실명은 쓰지 않아요.",
-    bodyVi: "Chỉ tên, ngôn ngữ và nội dung ghi chép. Không dùng tên thật của người cao tuổi.",
-  },
-  {
-    icon: "doc",
-    ko: "쓰는 곳",
-    vi: "Mục đích sử dụng",
-    body: "돌봄 기록 초안 만들기와 번역에만 써요. 녹음은 글자로 바꾼 뒤 지워요.",
-    bodyVi: "Chỉ dùng để soạn bản nháp và dịch. Bản ghi âm bị xóa sau khi chuyển thành chữ.",
-  },
-  {
-    icon: "shield",
-    ko: "보관과 보호",
-    vi: "Lưu trữ và bảo vệ",
-    body: "우리 기관 사람만 볼 수 있게 나눠서 보관해요.",
-    bodyVi: "Chỉ người trong cơ sở của bạn mới xem được.",
-  },
+  ...PRIVACY_SECTIONS,
   {
     icon: "headset",
     ko: "문의",
     vi: "Liên hệ",
-    body: `궁금한 점은 ${names.reviewer}에게 물어보세요.`,
-    bodyVi: `Hãy hỏi ${names.reviewerVi} nếu có thắc mắc.`,
+    body: `궁금한 점은 ${names.reviewer}에게 직접 묻거나 기관 대표번호로 연락하세요.`,
+    bodyVi: `Hãy hỏi trực tiếp ${names.reviewerVi} hoặc gọi số điện thoại chính của cơ sở.`,
   },
 ];
 
