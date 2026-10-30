@@ -11,6 +11,7 @@ import { DeskModal, DeskShell, receivedLabel, useToast } from "@/components/desk
 import { Icon } from "@/components/mobile/icon";
 import { TextArea, TextInput } from "@/components/mobile/text-field";
 import {
+  aiLogSummary,
   approveRecord,
   formFieldHint,
   frozenOrder,
@@ -95,6 +96,8 @@ function ReviewRecord() {
   const [realSteps, setRealSteps] = useState<
     { tool: string; key: string; name: string; reason: string; result: string }[]
   >([]);
+  // 실제 모드에서 AI 작업 기록을 다 읽었는지. 읽기 전에 '없음'이 잠깐 보이지 않게(이슈 #179)
+  const [stepsLoaded, setStepsLoaded] = useState(false);
   const realActions = demo.real?.actions;
   // 카드 순서는 화면을 연 때 한 번만 정한다. [확인함]/[기록 안 함]을 골라도 카드가 움직이지 않는다(이슈 #140)
   const [orderKeys] = useState<ItemKey[]>(() =>
@@ -115,6 +118,7 @@ function ReviewRecord() {
           result: row.result_summary,
         })),
       );
+      setStepsLoaded(true);
     });
     return () => {
       alive = false;
@@ -344,10 +348,7 @@ function ReviewRecord() {
             />
           ))}
           <details className="panel ai-log">
-            <summary>
-              AI 작업 기록 · 도구 {steps.length}번 사용 (
-              {steps.map((step) => step.name).join(" → ")})
-            </summary>
+            <summary>{aiLogSummary(steps, !real || stepsLoaded)}</summary>
             <ol>
               {steps.map((step) => (
                 <li key={step.key}>
@@ -698,7 +699,7 @@ function ReturnModal({
         </p>
       )}
       <p className="info-note">
-        되돌리면 승인 대기에서 빠지고, {names.worker} 오늘 화면에 주황 띠로 보여요. {names.worker}가
+        되돌리면 검토 대기에서 빠지고, {names.worker} 오늘 화면에 주황 띠로 보여요. {names.worker}가
         고친 항목은 {names.reviewer}가 다시 확인해요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
