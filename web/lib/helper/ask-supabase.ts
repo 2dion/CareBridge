@@ -11,14 +11,20 @@ import type { GlossaryTerm, HelperDeps, ManualSection } from "./ask";
 // 교재 검색은 로그인한 사람 권한(manual_sections·glossary는 기관 공통 읽기). 상위 3절만 Claude에 건넨다(W6 1번).
 const MAX_SECTIONS = 3;
 
-/** 질문을 낱말로 나눠 하나라도 맞는 절을 찾는다(manual_sections.search는 simple 사전) */
+// 낱말 끝 조사. simple 사전은 조사를 떼지 않아 "신체활동지원이"가 "신체활동지원"과 맞지 않는다(이슈 #183).
+const KO_PARTICLE = /(이란|에는|에서|으로|이나|이랑|하고|은|는|이|가|을|를|에|의|도|로|란)$/u;
+
+/** 질문을 낱말로 나눠 하나라도 맞는 절을 찾는다(manual_sections.search는 simple 사전). 조사를 뗀 낱말도 함께 찾는다 */
 export function manualQuery(question: string) {
-  return question
+  const words = question
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)
     .filter((word) => word.length >= 2)
-    .slice(0, 10)
-    .join(" or ");
+    .slice(0, 10);
+  const stems = words
+    .map((word) => word.replace(KO_PARTICLE, ""))
+    .filter((stem) => stem.length >= 2);
+  return [...new Set([...words, ...stems])].join(" or ");
 }
 
 export async function createHelperDeps(): Promise<HelperDeps> {
