@@ -335,18 +335,30 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .select("id")
         .single();
       if (error || !data) return after(dbError(error) ?? actionError("create_failed"));
+      const warnings: string[] = [];
       if (link.workerIds.length > 0) {
-        const { error: linkError } = await supabase.from("assignments").insert(
-          link.workerIds.map((workerId) => ({
-            resident_id: data.id as string,
-            worker_id: workerId,
-            visit_days: careType === "home" ? [] : null,
-            ...(link.startDate ? { start_date: link.startDate } : {}),
-          })),
-        );
-        if (linkError) return after(dbError(linkError) as ActionError);
+        try {
+          const { error: linkError } = await supabase.from("assignments").insert(
+            link.workerIds.map((workerId) => ({
+              resident_id: data.id as string,
+              worker_id: workerId,
+              visit_days: careType === "home" ? [] : null,
+              ...(link.startDate ? { start_date: link.startDate } : {}),
+            })),
+          );
+          if (linkError)
+            warnings.push("담당 연결을 저장하지 못했어요. [수정]에서 다시 연결해 주세요.");
+        } catch {
+          warnings.push("담당 연결을 확인하지 못했어요. [수정]에서 확인해 주세요.");
+        }
       }
-      return after({ ok: true as const, data: { id: data.id as string } });
+      // 생성은 이미 완료됐다. 이후 실패를 생성 실패로 돌려 재등록하게 하지 않는다.
+      try {
+        await reload();
+      } catch {
+        warnings.push("목록을 다시 읽지 못했어요. 화면을 새로 고쳐 주세요.");
+      }
+      return { ok: true as const, data: { id: data.id as string }, warnings };
     },
     async setProfile(fields: {
       fontSize?: FontSize;

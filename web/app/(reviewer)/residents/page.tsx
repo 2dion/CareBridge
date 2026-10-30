@@ -302,11 +302,18 @@ function Residents() {
             });
             if (!result.ok) return result.ko;
             const uploaded = await saveResidentPhoto(result.data.id, photo);
-            await demo.real.reload();
+            const warnings = [...result.warnings];
+            if (uploaded.error)
+              warnings.push(`${uploaded.error} [수정]에서 사진을 다시 올려 주세요.`);
+            try {
+              await demo.real.reload();
+            } catch {
+              warnings.push("목록을 다시 읽지 못했어요. 화면을 새로 고쳐 주세요.");
+            }
             setAdding(false);
             toast.show(
-              uploaded.error
-                ? `어르신은 추가했어요. ${uploaded.error} [수정]에서 사진을 다시 올려 주세요.`
+              warnings.length
+                ? `어르신은 추가했어요. ${[...new Set(warnings)].join(" ")}`
                 : input.careType === "home"
                   ? "어르신을 추가했어요. [수정]에서 방문 요일을 정해 주세요."
                   : "어르신을 추가했어요.",
