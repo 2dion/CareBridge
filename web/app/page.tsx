@@ -23,7 +23,7 @@ export default function Home() {
   const workerHref = demo?.db.onboarded ? "/today" : "/guide";
   // 실제 모드: 로그인한 사람의 역할 화면으로 간다(역할은 가입 코드가 정함). 스플래시 시간이 남았으면 그만큼 기다린다
   const realRole = demo?.real?.role;
-  const roleHref = realRole === "reviewer" ? "/review" : workerHref;
+  const roleHref = realRole === "reviewer" ? "/overview" : workerHref;
   useEffect(() => {
     if (MOCK || !realRole) return;
     const timer = window.setTimeout(() => router.replace(roleHref), splashRemaining());
@@ -63,7 +63,7 @@ export default function Home() {
                 <span className="label">작성자로 시작</span>
                 <Icon name="next" />
               </Link>
-              <Link className="btn btn-outline" href="/review">
+              <Link className="btn btn-outline" href="/overview">
                 <span className="spacer" />
                 <span className="label">관리자로 시작</span>
                 <Icon name="next" />

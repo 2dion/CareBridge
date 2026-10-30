@@ -136,7 +136,7 @@ export default function SignupPage() {
     const joined = encodeURIComponent(
       `${orgName} · ${role === "worker" ? names.workerAs : `${names.reviewer}로`} 가입했습니다`,
     );
-    router.push(role === "worker" ? `/guide?joined=${joined}` : "/review");
+    router.push(role === "worker" ? `/guide?joined=${joined}` : "/overview");
   };
 
   const codeError = serverError === "invalid_code";

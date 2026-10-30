@@ -9,6 +9,7 @@ import { nowIso, useDemo } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { BtnLabel } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
+import { useActionLock } from "@/components/mobile/use-action-lock";
 import { TextArea } from "@/components/mobile/text-field";
 import { clock, useRecorder } from "@/components/mobile/use-recorder";
 import type { ItemKey } from "@/lib/demo/state";
@@ -44,7 +45,10 @@ export default function ItemEditPage() {
   const [minutes, setMinutes] = useState<Record<string, string> | null>(null);
   const [times, setTimes] = useState<{ start: string; end: string } | null>(null);
   const [notice, setNotice] = useState("");
-  const [busy, setBusy] = useState(false);
+  const actionLock = useActionLock();
+  const busy = actionLock.pending !== null;
+  const networkNotice = () =>
+    setNotice("인터넷 연결을 확인하고 다시 시도해 주세요. Hãy kiểm tra kết nối mạng rồi thử lại.");
   const status = demo?.db.records[id]?.status;
   const locked = status === "submitted" || status === "approved";
   useEffect(() => {
@@ -74,101 +78,108 @@ export default function ItemEditPage() {
   const showMinutes = home && key === "support";
   const showTimes = home && key === "visit_time";
   const changedDetail = minutes !== null || times !== null;
-  const canApply = !busy && (text.trim().length > 0 || changedDetail);
+  const canApply =
+    !busy && recorder.state !== "recording" && (text.trim().length > 0 || changedDetail);
 
   const apply = () => {
     if (!canApply) return;
-    let detail = item.detail;
-    if (showMinutes && minutes) {
-      const parsed = Object.fromEntries(
-        Object.entries(minutes)
-          .map(([k, v]) => [k, Math.max(0, Math.trunc(Number(v) || 0))] as const)
-          .filter(([, v]) => v > 0),
-      );
-      detail = { ...item.detail, minutes: parsed };
-    }
-    if (showTimes && times) detail = { ...item.detail, start: times.start, end: times.end };
-    const value =
-      text.trim() ||
-      (showTimes && times?.start && times.end ? `${times.start}~${times.end} 방문` : item.value_ko);
-    if (demo.real) {
-      const real = demo.real;
-      void (async () => {
-        // 방문 시작·종료는 records.visit_start·visit_end에 둔다
-        if (showTimes && times) {
-          const saved = await real.actions.setVisitTime(id, times.start, times.end);
-          if (!saved.ok) return setNotice(`${saved.ko} ${saved.vi}`);
+    void actionLock
+      .run("apply", async () => {
+        setNotice("정리하고 저장하는 중이에요. · Đang sắp xếp và lưu.");
+        let detail = item.detail;
+        if (showMinutes && minutes) {
+          const parsed = Object.fromEntries(
+            Object.entries(minutes)
+              .map(([k, v]) => [k, Math.max(0, Math.trunc(Number(v) || 0))] as const)
+              .filter(([, v]) => v > 0),
+          );
+          detail = { ...item.detail, minutes: parsed };
         }
-        const rest = Object.fromEntries(
-          Object.entries(detail ?? {}).filter(([k]) => k !== "start" && k !== "end"),
-        );
-        // 글로 쓴 고칠 내용은 음성 보태기와 같이 AI가 그 항목만 다시 정리·번역한다(이슈 #118).
-        // 한국어·베트남어 어느 쪽으로 써도 공식 기록 칸은 한국어 기록체가 된다.
-        if (text.trim()) {
-          setBusy(true);
-          setNotice("정리하고 번역하는 중이에요. · Đang sắp xếp và dịch.");
-          const rewritten = await real.actions.rewriteItemText(id, key, text.trim());
-          if (!rewritten.ok) {
-            setBusy(false);
-            return setNotice(`${rewritten.ko} ${rewritten.vi}`);
+        if (showTimes && times) detail = { ...item.detail, start: times.start, end: times.end };
+        const value =
+          text.trim() ||
+          (showTimes && times?.start && times.end
+            ? `${times.start}~${times.end} 방문`
+            : item.value_ko);
+        if (demo.real) {
+          const real = demo.real;
+          // 방문 시작·종료는 records.visit_start·visit_end에 둔다
+          if (showTimes && times) {
+            const saved = await real.actions.setVisitTime(id, times.start, times.end);
+            if (!saved.ok) return setNotice(`${saved.ko} ${saved.vi}`);
           }
-          // 지원별 분을 같이 고쳤으면 AI 결과 뒤에 덮어써서 직접 넣은 분이 남게 한다
-          if (showMinutes && minutes) {
-            const saved = await real.actions.patchItem(id, key, { detail: rest });
-            if (!saved.ok) {
-              setBusy(false);
-              return setNotice(`${saved.ko} ${saved.vi}`);
+          const rest = Object.fromEntries(
+            Object.entries(detail ?? {}).filter(([k]) => k !== "start" && k !== "end"),
+          );
+          // 글로 쓴 고칠 내용은 음성 보태기와 같이 AI가 그 항목만 다시 정리·번역한다(이슈 #118).
+          // 한국어·베트남어 어느 쪽으로 써도 공식 기록 칸은 한국어 기록체가 된다.
+          if (text.trim()) {
+            setNotice("정리하고 번역하는 중이에요. · Đang sắp xếp và dịch.");
+            const rewritten = await real.actions.rewriteItemText(id, key, text.trim());
+            if (!rewritten.ok) {
+              return setNotice(`${rewritten.ko} ${rewritten.vi}`);
             }
+            // 지원별 분을 같이 고쳤으면 AI 결과 뒤에 덮어써서 직접 넣은 분이 남게 한다
+            if (showMinutes && minutes) {
+              const saved = await real.actions.patchItem(id, key, { detail: rest });
+              if (!saved.ok) {
+                return setNotice(`${saved.ko} ${saved.vi}`);
+              }
+            }
+            router.push(back);
+            return;
           }
+          // 시간·분만 고쳤으면 value_ko는 바뀐 때만 보낸다(그대로인 값을 다시 보내지 않음)
+          const result = await real.actions.patchItem(id, key, {
+            ...(value !== item.value_ko ? { value_ko: value } : {}),
+            ...(detail ? { detail: rest } : {}),
+            confirmed_by_worker: true,
+          });
+          if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
           router.push(back);
           return;
         }
-        // 시간·분만 고쳤으면 value_ko는 바뀐 때만 보낸다(그대로인 값을 다시 보내지 않음)
-        const result = await real.actions.patchItem(id, key, {
-          ...(value !== item.value_ko ? { value_ko: value } : {}),
-          ...(detail ? { detail: rest } : {}),
-          confirmed_by_worker: true,
-        });
-        if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
+        demo.update((db) => workerEditItem(db, id, key, { value_ko: value, detail }, nowIso()));
         router.push(back);
-      })();
-      return;
-    }
-    demo.update((db) => workerEditItem(db, id, key, { value_ko: value, detail }, nowIso()));
-    router.push(back);
+      })
+      .catch(networkNotice);
   };
 
-  const voiceAdd = async () => {
-    if (recorder.state === "recording" && demo.real) {
-      recorder.stop();
-      let blob = recorder.blob();
-      for (let wait = 0; !blob && wait < 20; wait++) {
-        await new Promise((resolve) => window.setTimeout(resolve, 100));
-        blob = recorder.blob();
-      }
-      if (!blob) return setNotice("녹음을 찾지 못했어요. 다시 말해 주세요.");
-      setNotice("올리는 중이에요. · Đang tải lên.");
-      // 이 항목만 다시 쓴다(③ 항목 보태기, save_ai_item item)
-      const result = await demo.real.actions.sendItemVoice(id, key, blob);
-      if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
-      recorder.discard();
-      router.push(back);
-      return;
-    }
-    if (recorder.state === "recording") {
-      recorder.stop();
-      const next = mockVoiceAddition(demo.db, id, key, nowIso());
-      recorder.discard();
-      if (next) {
-        demo.update(() => next);
-        router.push(back);
-      } else {
-        setNotice("시연(Mock)에서는 이 항목의 말하기 결과가 없어요. 글로 적어 주세요.");
-      }
-      return;
-    }
-    setNotice("");
-    recorder.start();
+  const voiceAdd = () => {
+    void actionLock
+      .run("voice", async () => {
+        if (recorder.state === "recording" && demo.real) {
+          recorder.stop();
+          let blob = recorder.blob();
+          for (let wait = 0; !blob && wait < 20; wait++) {
+            await new Promise((resolve) => window.setTimeout(resolve, 100));
+            blob = recorder.blob();
+          }
+          if (!blob) return setNotice("녹음을 찾지 못했어요. 다시 말해 주세요.");
+          setNotice("올리는 중이에요. · Đang tải lên.");
+          // 이 항목만 다시 쓴다(③ 항목 보태기, save_ai_item item)
+          const result = await demo.real.actions.sendItemVoice(id, key, blob);
+          if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
+          recorder.discard();
+          router.push(back);
+          return;
+        }
+        if (recorder.state === "recording") {
+          recorder.stop();
+          const next = mockVoiceAddition(demo.db, id, key, nowIso());
+          recorder.discard();
+          if (next) {
+            demo.update(() => next);
+            router.push(back);
+          } else {
+            setNotice("시연(Mock)에서는 이 항목의 말하기 결과가 없어요. 글로 적어 주세요.");
+          }
+          return;
+        }
+        setNotice("");
+        await recorder.start();
+      })
+      .catch(networkNotice);
   };
 
   return (
@@ -176,7 +187,7 @@ export default function ItemEditPage() {
       <AppBar
         title={missing ? "내용 보태기" : "항목 고치기"}
         vi={missing ? "Bổ sung" : "Sửa mục"}
-        back={back}
+        back={busy ? undefined : back}
       />
       <ResidentPill resident={resident} date={record.careDate} />
       <div className="scroll" style={{ marginTop: 12, paddingBottom: 12 }}>
@@ -267,6 +278,7 @@ export default function ItemEditPage() {
               <label htmlFor="visit-start">시작</label>
               <input
                 id="visit-start"
+                disabled={busy}
                 type="time"
                 value={timeValues.start}
                 onChange={(event) => setTimes({ ...timeValues, start: event.target.value })}
@@ -274,6 +286,7 @@ export default function ItemEditPage() {
               <label htmlFor="visit-end">종료</label>
               <input
                 id="visit-end"
+                disabled={busy}
                 type="time"
                 value={timeValues.end}
                 onChange={(event) => setTimes({ ...timeValues, end: event.target.value })}
@@ -293,6 +306,7 @@ export default function ItemEditPage() {
                   <label htmlFor={`minutes-${k}`}>{ko}</label>
                   <input
                     id={`minutes-${k}`}
+                    disabled={busy}
                     type="number"
                     inputMode="numeric"
                     min={0}
@@ -314,6 +328,7 @@ export default function ItemEditPage() {
             </label>
           </div>
           <TextArea
+            disabled={busy}
             id="item-text"
             className="input"
             value={text}
@@ -346,17 +361,40 @@ export default function ItemEditPage() {
         )}
       </div>
       <div className="action-panel card sticky-actions">
-        <button type="button" className="btn btn-outline btn-center btn-sm" onClick={voiceAdd}>
+        <button
+          type="button"
+          className="btn btn-outline btn-center btn-sm"
+          disabled={busy}
+          aria-busy={actionLock.pending === "voice"}
+          onClick={voiceAdd}
+        >
           <Icon name={recorder.state === "recording" ? "stop" : "mic"} />
           <BtnLabel
             ko={
-              recorder.state === "recording" ? "말하기 끝" : missing ? "말로 보충" : "다시 말하기"
+              busy
+                ? "처리 중"
+                : recorder.state === "recording"
+                  ? "말하기 끝"
+                  : missing
+                    ? "말로 보충"
+                    : "다시 말하기"
             }
-            vi="Nói lại"
+            vi={busy ? "Đang xử lý" : "Nói lại"}
           />
         </button>
-        <button type="button" className="btn btn-primary" disabled={!canApply} onClick={apply}>
-          <BtnLabel ko={missing ? "내용 적용" : "수정 내용 적용"} vi="Áp dụng" />
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={!canApply}
+          aria-busy={actionLock.pending === "apply"}
+          onClick={apply}
+        >
+          <BtnLabel
+            ko={
+              actionLock.pending === "apply" ? "저장 중" : missing ? "내용 적용" : "수정 내용 적용"
+            }
+            vi={actionLock.pending === "apply" ? "Đang lưu" : "Áp dụng"}
+          />
         </button>
       </div>
     </MobileScreen>

@@ -13,7 +13,7 @@ export type AppRole = "worker" | "reviewer";
 
 /** 역할의 첫 화면 */
 export function roleHome(role: AppRole) {
-  return role === "reviewer" ? "/review" : "/today";
+  return role === "reviewer" ? "/overview" : "/today";
 }
 
 /** 이 화면 묶음을 열 수 없는 사람이면 보낼 곳, 열 수 있으면 null */

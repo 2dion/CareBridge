@@ -40,13 +40,13 @@ function ok(value: DemoDb | { error: string }): DemoDb {
 }
 
 describe("관리자 규칙 (M1~M5)", () => {
-  it("검토 대기: 전송한 기록만, 확인 필요가 많은 순", () => {
+  it("검토 대기: 전송한 기록만, 받은 시각이 오래된 순", () => {
     const db = createDemoDb(TODAY);
     const queue = reviewQueue(db);
     expect(queue.length).toBeGreaterThan(0);
     expect(queue.every((record) => record.status === "submitted")).toBe(true);
-    const counts = queue.map((record) => countUnresolved(record.items));
-    expect([...counts].sort((a, b) => b - a)).toEqual(counts);
+    const times = queue.map((record) => record.submittedAt ?? "9999");
+    expect([...times].sort()).toEqual(times);
   });
 
   it("‘확인 필요’를 하나라도 안 정하면 승인을 막고, 모두 정하면 승인한다", () => {

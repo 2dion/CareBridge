@@ -1,6 +1,6 @@
 // 관리자 화면(M1~M5) Mock 규칙. 승인 조건·되돌림·덮어쓰기 금지는 코드가 맡는다(AGENTS.md 원칙 3·5).
 // 실제로는 PATCH /api/records/:id/items/:key, POST /approve, POST /return(데이터구조 v1.6.2 공통 계약).
-import { countUnresolved, demoAgentSteps, type ItemKey, type Resolution } from "./state";
+import { demoAgentSteps, type ItemKey, type Resolution } from "./state";
 import {
   addDays,
   canApproveRecord,
@@ -15,15 +15,15 @@ import {
   updateRecord,
 } from "./store";
 
-/** M1: 전송한 기록, 확인 필요가 많은 순 → 받은 시각 이른 순. */
+/** M1: 전송한 기록, 받은 시각이 오래된 순. 시각이 없으면 마지막(#148). */
 export function reviewQueue(db: DemoDb): DemoRecord[] {
   return Object.values(db.records)
     .filter((record) => record.status === "submitted")
-    .sort((a, b) => {
-      const diff = countUnresolved(b.items) - countUnresolved(a.items);
-      if (diff !== 0) return diff;
-      return (a.submittedAt ?? "").localeCompare(b.submittedAt ?? "");
-    });
+    .sort(
+      (a, b) =>
+        (a.submittedAt ?? "9999").localeCompare(b.submittedAt ?? "9999") ||
+        a.id.localeCompare(b.id),
+    );
 }
 
 /** M1 '재전송' 표시: 한 번이라도 되돌린 뒤 다시 전송한 기록(record_events의 returned로 계산). */

@@ -48,7 +48,7 @@ export default function LoginPage() {
       return;
     }
     if (result.role === "reviewer") {
-      router.push("/review");
+      router.push("/overview");
       return;
     }
     const onboarded = supabaseConfigured() ? result.onboarded : Boolean(demo?.db.onboarded);

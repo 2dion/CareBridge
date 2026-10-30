@@ -9,7 +9,8 @@ import { Icon, type IconName } from "@/components/mobile/icon";
 import { Listen } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
 import type { ItemKey } from "@/lib/demo/state";
-import { displayOrder, getResident, itemLabel, kstTime, lateDays } from "@/lib/demo/store";
+import { type RecordItem, getResident, itemLabel, kstTime, lateDays } from "@/lib/demo/store";
+import { recordViewItems } from "@/lib/records/view-order";
 import { capitalizeVi, itemBadge, withNote } from "@/lib/records/item-badge";
 
 const badgeClass = { orange: "badge-orange", green: "badge-green", gray: "badge-gray" } as const;
@@ -51,10 +52,50 @@ export default function RecordViewPage() {
   }
 
   const approved = record.status === "approved";
-  const items = [...record.items].sort(
-    (a, b) => displayOrder.indexOf(a.item_key) - displayOrder.indexOf(b.item_key),
-  );
+  const sections = recordViewItems(record.items, approved);
   const late = lateDays(record);
+  const renderItem = (item: RecordItem) => {
+    const label = itemLabel(item.item_key);
+    // '확인 필요'에 관리자가 고른 결과([확인함]/[기록 안 함])가 있으면 그 배지를 보인다(이슈 #98)
+    const badge = itemBadge(item, names);
+    const omitted = badge?.kind === "omitted";
+    const empty = !item.value_ko && (item.status === "not_mentioned" || omitted);
+    return (
+      <article key={item.item_key} className="view-item card">
+        <span className="icon-bubble">
+          <Icon name={itemIcon[item.item_key]} />
+        </span>
+        <div className="body">
+          <b>
+            {label.ko}
+            {badge && (
+              <span className={`badge ${badgeClass[badge.tone]}`} style={{ marginLeft: 6 }}>
+                {badge.ko}
+              </span>
+            )}
+          </b>
+          {badge?.vi && (
+            <span className="vi" style={{ display: "block" }}>
+              {badge.vi}
+            </span>
+          )}
+          {empty ? (
+            <p style={{ color: "var(--color-muted)" }}>
+              {omitted ? withNote("기록 안 함", item.resolution_note) : "언급 없음"}
+            </p>
+          ) : (
+            <>
+              <div className="ko-line">
+                <p>{item.value_ko}</p>
+                <Listen text={item.value_ko} />
+              </div>
+              {item.value_native && <span className="vi">{item.value_native}</span>}
+            </>
+          )}
+        </div>
+      </article>
+    );
+  };
 
   return (
     <MobileScreen tab="archive">
@@ -86,48 +127,16 @@ export default function RecordViewPage() {
         </small>
       </div>
       <div className="scroll" style={{ paddingBottom: 16 }}>
-        {items.map((item) => {
-          const label = itemLabel(item.item_key);
-          // '확인 필요'에 관리자가 고른 결과([확인함]/[기록 안 함])가 있으면 그 배지를 보인다(이슈 #98)
-          const badge = itemBadge(item, names);
-          const omitted = badge?.kind === "omitted";
-          const empty = !item.value_ko && (item.status === "not_mentioned" || omitted);
-          return (
-            <article key={item.item_key} className="view-item card">
-              <span className="icon-bubble">
-                <Icon name={itemIcon[item.item_key]} />
-              </span>
-              <div className="body">
-                <b>
-                  {label.ko}
-                  {badge && (
-                    <span className={`badge ${badgeClass[badge.tone]}`} style={{ marginLeft: 6 }}>
-                      {badge.ko}
-                    </span>
-                  )}
-                </b>
-                {badge?.vi && (
-                  <span className="vi" style={{ display: "block" }}>
-                    {badge.vi}
-                  </span>
-                )}
-                {empty ? (
-                  <p style={{ color: "var(--color-muted)" }}>
-                    {omitted ? withNote("기록 안 함", item.resolution_note) : "언급 없음"}
-                  </p>
-                ) : (
-                  <>
-                    <div className="ko-line">
-                      <p>{item.value_ko}</p>
-                      <Listen text={item.value_ko} />
-                    </div>
-                    {item.value_native && <span className="vi">{item.value_native}</span>}
-                  </>
-                )}
-              </div>
-            </article>
-          );
-        })}
+        {sections.visible.map(renderItem)}
+        {sections.missing.length > 0 && (
+          <details className="card" style={{ padding: 14 }}>
+            <summary>
+              언급 없음 항목 {sections.missing.length}개{" "}
+              <span className="vi">Các mục không được đề cập</span>
+            </summary>
+            {sections.missing.map(renderItem)}
+          </details>
+        )}
         {!approved && (
           <p className="foot-note">
             {names.reviewer} 검토가 끝나면 기록 상태가 바뀌어요.
