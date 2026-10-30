@@ -1016,17 +1016,40 @@
 
 .m-app .home-header {
   position: relative;
-  height: 184px;
+  height: 244px;
+  overflow: visible;
   background: var(--color-primary);
   color: #fff;
   flex-shrink: 0;
 }
 
-/* 날짜는 머리 위쪽, 그 아래·캐릭터 왼쪽 빈자리에 알림(이슈 #149). 머리 높이 184px는 알림이 없어도 같다 */
+/* 로고 아래 날짜·알림을 배치한다. 알림 두 줄이 있어도 머리 높이는 같다. */
+.m-app .home-brand {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  width: 150px;
+  height: 32px;
+  overflow: hidden;
+  /* 기존 로고 아래 워드마크만 표시. 흰 원본 바탕은 초록색에 섞어 없앤다. */
+  mix-blend-mode: screen;
+}
+
+.m-app .home-brand .home-logo {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: block;
+  width: 150px;
+  max-width: none;
+  margin: 0;
+  filter: grayscale(1) invert(1) brightness(4);
+}
+
 .m-app .home-header .date {
   position: absolute;
   left: 24px;
-  top: 22px;
+  top: 80px;
   z-index: 2;
 }
 
@@ -1045,7 +1068,9 @@
 .m-app .home-header .art {
   position: absolute;
   right: 0;
-  bottom: 0;
+  bottom: -12px; /* 원본 투명 여백을 빼고 손이 경계 아래로 약 8px 걸치게 한다 */
+  z-index: 3;
+  pointer-events: none;
   margin: 0;
 }
 
@@ -1054,7 +1079,7 @@
   position: absolute;
   left: 16px;
   right: 140px;
-  top: 72px;
+  top: 130px;
   z-index: 2;
   display: flex;
   flex-direction: column;

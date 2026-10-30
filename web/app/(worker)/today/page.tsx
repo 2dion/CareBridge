@@ -88,6 +88,9 @@ export default function TodayPage() {
   return (
     <MobileScreen tab="today">
       <header className="home-header">
+        <div className="home-brand">
+          <Art name="logo" width={150} alt="케어브릿지" className="home-logo" priority />
+        </div>
         <div className="date">
           <strong>{monthDayWeek(today)}</strong>
         </div>
