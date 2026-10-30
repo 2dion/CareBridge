@@ -14,6 +14,7 @@ import { AppBar, MobileScreen } from "@/components/mobile/shell";
 import { TextInput } from "@/components/mobile/text-field";
 import { signIn, supabaseConfigured } from "@/lib/auth/session";
 import { MIN_PASSWORD_LENGTH, type SignupError } from "@/lib/auth/signup";
+import { PRIVACY_SECTIONS } from "@/lib/privacy";
 import { ROLE_NAMES_BOTH, roleNames } from "@/lib/demo/roles";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,8 +47,10 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [show, setShow] = useState(false);
-  const [agree, setAgree] = useState(false);
-  const [more, setMore] = useState(false);
+  const [agreeAi, setAgreeAi] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [moreAi, setMoreAi] = useState(false);
+  const [morePrivacy, setMorePrivacy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState<SignupError | "network" | null>(null);
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
@@ -64,7 +67,8 @@ export default function SignupPage() {
     EMAIL_PATTERN.test(email.trim()) &&
     password.length >= MIN_PASSWORD_LENGTH &&
     password === password2 &&
-    agree;
+    agreeAi &&
+    agreePrivacy;
 
   const touch = (field: Field) => setTouched((prev) => ({ ...prev, [field]: true }));
 
@@ -267,46 +271,81 @@ export default function SignupPage() {
           <label className="consent-row">
             <input
               type="checkbox"
-              checked={agree}
-              onChange={(event) => setAgree(event.target.checked)}
+              checked={agreeAi}
+              onChange={(event) => setAgreeAi(event.target.checked)}
             />
             <span>
-              <b>AI 결과는 초안이며 {ROLE_NAMES_BOTH.reviewer}가 승인합니다.</b>
-              <b>어르신·가족 실명을 쓰지 않습니다.</b>
-              <span className="vi">
-                Kết quả AI là bản nháp, {ROLE_NAMES_BOTH.reviewerVi} duyệt. Không dùng tên thật.
-              </span>
+              <b>[필수] AI 사용 원칙에 동의합니다.</b>
+              <span className="vi">Tôi đồng ý với nguyên tắc sử dụng AI.</span>
             </span>
           </label>
-          <button
-            type="button"
-            className="text-link"
-            style={{ textAlign: "left" }}
-            onClick={() => setMore(!more)}
-            aria-expanded={more}
-          >
-            AI 사용 원칙·개인정보 안내 {more ? "접기" : "펼치기"}
-          </button>
-          {more && (
-            <div style={{ fontSize: 13, color: "var(--color-sub)", display: "grid", gap: 6 }}>
+          {moreAi && (
+            <div id="ai-consent-details" className="consent-details">
               <p>
-                AI가 말한 내용을 항목별 초안으로 정리하고, {ROLE_NAMES_BOTH.worker}가 확인한 뒤{" "}
-                {ROLE_NAMES_BOTH.reviewer}가 승인해야 기록이 끝나요. 말하지 않은 내용은 지어내지
-                않아요.
-                <span className="vi" style={{ display: "block" }}>
-                  AI soạn bản nháp, {ROLE_NAMES_BOTH.workerVi} kiểm tra,{" "}
-                  {ROLE_NAMES_BOTH.reviewerVi} duyệt.
+                AI 기록은 초안이며, 관리자(강사)의 승인을 거쳐 공식 기록이 됩니다.
+                <span className="vi">
+                  Bản ghi AI là bản nháp, chỉ trở thành chính thức sau khi người quản lý (giảng
+                  viên) duyệt.
                 </span>
               </p>
               <p>
-                이름, 언어 설정, 기록 내용만 모으고 우리 기관 사람만 볼 수 있게 보관해요. 녹음은
-                글자로 바꾼 뒤 지워요.
-                <span className="vi" style={{ display: "block" }}>
-                  Chỉ thu thập tên, ngôn ngữ và nội dung ghi chép; chỉ người trong cơ sở xem được.
-                </span>
+                어르신과 가족의 실명은 기록하지 않습니다.
+                <span className="vi">Không ghi tên thật của người cao tuổi và gia đình.</span>
               </p>
             </div>
           )}
+          <button
+            type="button"
+            className="text-link consent-toggle"
+            onClick={() => setMoreAi(!moreAi)}
+            aria-expanded={moreAi}
+            aria-controls="ai-consent-details"
+          >
+            {moreAi ? "내용 접기" : "내용 보기 ›"}
+          </button>
+        </div>
+        <div className="card consent">
+          <label className="consent-row">
+            <input
+              type="checkbox"
+              checked={agreePrivacy}
+              onChange={(event) => setAgreePrivacy(event.target.checked)}
+            />
+            <span>
+              <b>[필수] 개인정보 수집·이용에 동의합니다.</b>
+              <span className="vi">Tôi đồng ý thu thập và sử dụng thông tin cá nhân.</span>
+            </span>
+          </label>
+          {morePrivacy && (
+            <table id="privacy-consent-details" className="consent-table">
+              <caption className="sr-only">
+                개인정보 수집·이용 안내 · Thông tin thu thập và sử dụng thông tin cá nhân
+              </caption>
+              <tbody>
+                {PRIVACY_SECTIONS.map((section) => (
+                  <tr key={section.ko}>
+                    <th scope="row">
+                      {section.ko}
+                      <span className="vi">{section.vi}</span>
+                    </th>
+                    <td>
+                      {section.body}
+                      <span className="vi">{section.bodyVi}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <button
+            type="button"
+            className="text-link consent-toggle"
+            onClick={() => setMorePrivacy(!morePrivacy)}
+            aria-expanded={morePrivacy}
+            aria-controls="privacy-consent-details"
+          >
+            {morePrivacy ? "내용 접기" : "내용 보기 ›"}
+          </button>
         </div>
         {(serverError === "signup_failed" ||
           serverError === "invalid_input" ||
