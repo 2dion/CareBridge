@@ -3,6 +3,7 @@
 // W1(오늘): 오늘 기록이 있어야 하는 어르신 카드. 수정 필요·작성 전 알림은 머리(짙은 초록) 안 날짜 아래(이슈 #149).
 // 병기(10/26): 카드 버튼·머리 알림은 병기, 날짜·배지·탭은 한국어만. 카드 안내 줄은 뺐다(10/29, 배지·버튼과 뜻이 겹침).
 // 종 버튼은 두지 않는다(10/28 알림표시 결정): 수정 필요 알림과 하는 일이 같다.
+import Image from "next/image";
 import Link from "next/link";
 
 import { ResidentPhoto } from "@/components/resident-photo";
@@ -89,7 +90,14 @@ export default function TodayPage() {
     <MobileScreen tab="today">
       <header className="home-header">
         <div className="home-brand">
-          <Art name="logo" width={150} alt="케어브릿지" className="home-logo" priority />
+          <Image
+            src="/art/wordmark-white.svg"
+            width={150}
+            height={29}
+            alt="케어브릿지"
+            className="home-logo"
+            priority
+          />
         </div>
         <div className="date">
           <strong>{monthDayWeek(today)}</strong>
