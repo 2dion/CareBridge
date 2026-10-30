@@ -1,5 +1,5 @@
 // 기록 검증 (Agent 도구 ③ validate_draft). AI 판단이 아니라 서버 코드 검사다.
-// 근거: 문서/설계/ai규칙-v1.1.2.md '서버 검사와 예외 처리' 검사 1~6,
+// 근거: 문서/설계/ai규칙-v1.1.3.md '서버 검사와 예외 처리' 검사 1~6,
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
 
@@ -138,7 +138,7 @@ export const MINUTE_KEYS = [
 ] as const;
 
 // 재가(별지 제12호)에만 있는 form_fields 칸. 시설(별지 제16호) 기록에는 두지 않는다.
-// 근거: 문서/설계/데이터구조-v1.6.5.md 'form_fields (재가 제12호 전용)'
+// 근거: 문서/설계/데이터구조-v1.6.6.md 'form_fields (재가 제12호 전용)'
 export const HOME_ONLY_FORM_FIELDS = [
   "total_minutes",
   "body_trend",

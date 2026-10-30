@@ -1,5 +1,5 @@
 // 실제 Supabase에서 읽은 줄을 화면이 쓰는 모양(DemoDb)으로 바꾼다. 화면 코드는 Mock과 같은 모양을 그대로 읽는다.
-// 근거: 문서/설계/데이터구조-v1.6.5.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
+// 근거: 문서/설계/데이터구조-v1.6.6.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
 import type { ItemKey, ItemStatus, RecordStatus, Resolution } from "../demo/state";
 import type {
   Assignment,
@@ -27,7 +27,12 @@ export type ProfileRow = {
   /** 로그인한 계정의 이메일(auth.users). W5 내 정보에 보이기만 하고 저장하지 않는다(이슈 #138) */
   email: string;
 };
-export type ResidentRow = { id: string; alias: string; care_type: "facility" | "home" };
+export type ResidentRow = {
+  id: string;
+  name: string;
+  photo_path?: string | null;
+  care_type: "facility" | "home";
+};
 export type AssignmentRow = {
   resident_id: string;
   worker_id: string;
@@ -145,8 +150,9 @@ export function mapResidents(
           : null;
       return {
         id: row.id,
-        alias: row.alias,
-        initial: [...row.alias][0] ?? "",
+        name: row.name,
+        photoPath: row.photo_path ?? null,
+        initial: [...row.name][0] ?? "",
         careType: row.care_type,
         visitDays: days && days.length > 0 ? days : row.care_type === "home" ? [] : null,
         visitTime: links.map((a) => a.schedule?.trim()).find(Boolean) ?? null,
@@ -155,7 +161,7 @@ export function mapResidents(
         startDate,
       } satisfies Resident;
     })
-    .sort((a, b) => a.alias.localeCompare(b.alias, "ko"));
+    .sort((a, b) => a.name.localeCompare(b.name, "ko"));
 }
 
 /** 담당 연결 줄 그대로(M4가 작성자마다 보이고 고친다, 이슈 #95) */
@@ -406,7 +412,7 @@ export function toDemoDb(rows: RealRows, today: string): DemoDb {
   const isWorker = rows.profile.role === "worker";
   const firstWorker = rows.staff.find((person) => person.role === "worker");
   return {
-    version: 4,
+    version: 5,
     seededOn: today,
     worker: {
       name: isWorker ? rows.profile.name : (firstWorker?.name ?? ""),

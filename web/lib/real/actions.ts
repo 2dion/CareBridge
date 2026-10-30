@@ -1,6 +1,6 @@
 // 실제 모드의 화면 동작: 서버 API(공통 계약 10개)와 Supabase(RLS) 직접 쓰기. 끝나면 화면이 다시 읽는다(reload).
 // AI 결과는 서버가 만들고, 화면은 가짜 결과를 만들지 않는다.
-// 근거: 문서/설계/데이터구조-v1.6.5.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
+// 근거: 문서/설계/데이터구조-v1.6.6.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { HelperAnswer } from "../demo/helper";
@@ -252,17 +252,17 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         .eq("care_date", careDate);
       return after(dbError(error) ?? { ok: true as const });
     },
-    /** M4 [수정](관리자, RLS). 어르신 정보(가명·급여 종류)는 바뀐 때만 residents를 고치고,
+    /** M4 [수정](관리자, RLS). 어르신 정보(실명·급여 종류)는 바뀐 때만 residents를 고치고,
      *  담당 연결은 작성자마다 한 줄(assignments unique(worker_id, resident_id))이라 고른 작성자만 남기고
      *  빠진 작성자 줄은 지우고 새 작성자 줄은 넣는다(이슈 #95). 표시용 방문 시간은 schedule 칸(이슈 #96).
      *  바뀐 줄이 없으면 changed: false */
     async updateResident(residentId: string, edit: ResidentEdit) {
       let changed = false;
-      if (edit.alias !== undefined || edit.careType !== undefined) {
+      if (edit.name !== undefined || edit.careType !== undefined) {
         const { error } = await supabase
           .from("residents")
           .update({
-            ...(edit.alias !== undefined ? { alias: edit.alias } : {}),
+            ...(edit.name !== undefined ? { name: edit.name.trim() } : {}),
             ...(edit.careType !== undefined ? { care_type: edit.careType } : {}),
           })
           .eq("id", residentId);
@@ -323,15 +323,15 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
       }
       return after({ ok: true as const, changed });
     },
-    /** M4 어르신 추가: residents에 넣고(가명만, 원칙 9) 고른 작성자와 담당 연결을 만든다(이슈 #95) */
+    /** M4 어르신 추가: residents에 넣고(실명, #99) 고른 작성자와 담당 연결을 만든다(이슈 #95) */
     async addResident(
-      alias: string,
+      name: string,
       careType: "facility" | "home",
       link: { workerIds: string[]; startDate: string } = { workerIds: [], startDate: "" },
     ) {
       const { data, error } = await supabase
         .from("residents")
-        .insert({ alias, care_type: careType })
+        .insert({ name: name.trim(), care_type: careType })
         .select("id")
         .single();
       if (error || !data) return after(dbError(error) ?? actionError("create_failed"));

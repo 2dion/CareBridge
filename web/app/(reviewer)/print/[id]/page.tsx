@@ -59,7 +59,7 @@ export default function PrintPage() {
     notesArea,
     record.items,
     record.formFields,
-    resident?.alias,
+    resident?.name,
     db.worker.org,
   ]);
   const result = generated?.key === resultKey ? generated : null;
@@ -94,7 +94,7 @@ export default function PrintPage() {
         template: new Uint8Array(template),
         fontBytes: new Uint8Array(fontBytes),
         record: source,
-        alias: resident?.alias ?? "",
+        residentName: resident?.name ?? "",
         org: db.worker.org,
         notesArea,
         training,
@@ -123,7 +123,7 @@ export default function PrintPage() {
     <main className="d-app p-app">
       <header className="p-bar no-print">
         <b>
-          {title} · {resident?.alias} · {monthDayWeek(record.careDate)}
+          {title} · {resident?.name} · {monthDayWeek(record.careDate)}
         </b>
         <div>
           <button
@@ -229,7 +229,7 @@ export default function PrintPage() {
         <aside className="panel legal-form-record" aria-label="양식에 넣을 기록">
           <h2>양식에 넣을 기록</h2>
           <p>
-            {resident?.alias} · {record.careDate} · {db.worker.org}
+            {resident?.name} · {record.careDate} · {db.worker.org}
           </p>
           {record.status !== "approved" && <p className="info-note">승인 전 미리보기입니다.</p>}
           {displayOrder

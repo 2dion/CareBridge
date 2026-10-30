@@ -1,5 +1,5 @@
 // 실명 검사(validate_draft 검사 6)에 넘길 이름 목록을 DB에서 읽는다.
-// 근거: 문서/결정/2026-10-21-재가분칸-실명목록.md — 같은 기관 계정의 profiles.name.
+// 근거: 문서/결정/2026-10-21-재가분칸-실명목록.md — 같은 기관 계정의 profiles.name과 어르신 residents.name(#99).
 // 가명 표시(○)·한 글자 이름을 빼는 일은 validate-draft.ts가 맡는다.
 // 서버 전용 RPC만 사용한다. 작성자의 profiles 조회 범위를 넓히지 않는다.
 

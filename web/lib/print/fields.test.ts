@@ -180,7 +180,7 @@ describe("제12호 인쇄 칸 채우기", () => {
       template,
       fontBytes: readFileSync(resolve("public/fonts/noto-sans-kr.ttf")),
       record,
-      alias: "이○○ 어르신",
+      residentName: "이○○ 어르신",
       org,
       notesArea: "",
     });

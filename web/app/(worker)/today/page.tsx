@@ -5,6 +5,8 @@
 // 종 버튼은 두지 않는다(10/28 알림표시 결정): 수정 필요 알림과 하는 일이 같다.
 import Link from "next/link";
 
+import { ResidentPhoto } from "@/components/resident-photo";
+
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
@@ -118,10 +120,10 @@ export default function TodayPage() {
           return (
             <article key={resident.id} className="resident card">
               <div className="row">
-                <div className="avatar">{resident.initial}</div>
+                <ResidentPhoto resident={resident} size={56} />
                 <div className="info">
                   <div className="name-row">
-                    <span className="name">{resident.alias}</span>
+                    <span className="name">{resident.name}</span>
                     <StatusBadge status={status} />
                   </div>
                   <span style={{ fontSize: 13, color: "var(--color-sub)" }}>

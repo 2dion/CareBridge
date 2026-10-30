@@ -258,17 +258,17 @@ describe("관리자 규칙 (M1~M5)", () => {
     ).toBe(true);
   });
 
-  it("어르신 추가는 가명(성 한 글자 + ○○)만, 재가는 방문 요일을 정해야 못 쓴 기록을 센다", () => {
+  it("어르신 추가는 실명, 재가는 방문 요일을 정해야 못 쓴 기록을 센다", () => {
     const db = createDemoDb(TODAY);
-    expect(addResident(db, { initial: " ", careType: "home", startDate: TODAY })).toEqual({
-      error: "initial_required",
+    expect(addResident(db, { name: " ", careType: "home", startDate: TODAY })).toEqual({
+      error: "name_required",
     });
-    expect(addResident(db, { initial: "김", careType: "home", startDate: TODAY })).toEqual({
-      error: "duplicate",
-    });
-    let next = ok(addResident(db, { initial: "정", careType: "home", startDate: "2026-10-20" }));
+    const same = ok(addResident(db, { name: "김가상", careType: "home", startDate: TODAY }));
+    expect(same.residents.filter((resident) => resident.name === "김가상")).toHaveLength(2);
+    expect(same.residents.at(-1)!.id).not.toBe(db.residents[0].id);
+    let next = ok(addResident(db, { name: "정가상", careType: "home", startDate: "2026-10-20" }));
     const added = next.residents.at(-1)!;
-    expect(added.alias).toBe("정○○ 어르신");
+    expect(added.name).toBe("정가상");
     expect(listMissed(next, TODAY).some((row) => row.residentId === added.id)).toBe(false);
     next = ok(
       updateResident(next, added.id, {
@@ -280,8 +280,8 @@ describe("관리자 규칙 (M1~M5)", () => {
     expect(listMissed(next, TODAY).filter((row) => row.residentId === added.id).length).toBe(2);
   });
 
-  // 이슈 #96: [수정]으로 가명·급여 종류를 고치고, 바뀐 게 없으면 '저장했어요'를 띄우지 않는다
-  it("어르신 수정: 가명은 겹치면 안 되고, 기록 있는 어르신은 급여 종류를 못 바꾸며, 바뀐 칸을 가려낸다", () => {
+  // 이슈 #96: [수정]으로 실명·급여 종류를 고치고, 바뀐 게 없으면 '저장했어요'를 띄우지 않는다
+  it("어르신 수정: 동명이인을 허용하고, 기록 있는 어르신은 급여 종류를 못 바꾸며, 바뀐 칸을 가려낸다", () => {
     const db = createDemoDb(TODAY);
     const [first, second] = db.residents;
     const base = {
@@ -289,8 +289,11 @@ describe("관리자 규칙 (M1~M5)", () => {
       visitTime: first.visitTime,
       startDate: first.startDate,
     };
-    expect(updateResident(db, first.id, { ...base, alias: second.alias })).toEqual({
-      error: "duplicate",
+    expect(ok(updateResident(db, first.id, { ...base, name: second.name })).residents[0].name).toBe(
+      second.name,
+    );
+    expect(updateResident(db, first.id, { ...base, name: " " })).toEqual({
+      error: "name_required",
     });
     expect(residentHasRecords(db, first.id)).toBe(true);
     expect(
@@ -299,11 +302,11 @@ describe("관리자 규칙 (M1~M5)", () => {
         careType: first.careType === "home" ? "facility" : "home",
       }),
     ).toEqual({ error: "care_type_locked" });
-    const renamed = ok(updateResident(db, first.id, { ...base, alias: "최○○ 어르신" }));
-    expect(renamed.residents[0]).toMatchObject({ alias: "최○○ 어르신", initial: "최" });
+    const renamed = ok(updateResident(db, first.id, { ...base, name: "최가상" }));
+    expect(renamed.residents[0]).toMatchObject({ name: "최가상", initial: "최" });
     expect(residentEditChanged(first, null, base)).toBe(false);
-    expect(residentEditChanged(first, null, { ...base, alias: first.alias })).toBe(false);
-    expect(residentEditChanged(first, null, { ...base, alias: "최○○ 어르신" })).toBe(true);
+    expect(residentEditChanged(first, null, { ...base, name: first.name })).toBe(false);
+    expect(residentEditChanged(first, null, { ...base, name: "최가상" })).toBe(true);
     expect(residentEditChanged(first, ["w1"], { ...base, workerIds: ["w1"] })).toBe(false);
     expect(residentEditChanged(first, ["w1"], { ...base, workerIds: ["w1", "w2"] })).toBe(true);
     expect(residentEditChanged(first, null, { ...base, startDate: "2026-01-01" })).toBe(true);

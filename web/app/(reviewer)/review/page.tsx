@@ -3,6 +3,8 @@
 // M1(검토 대기): 확인 필요가 많은 기록부터. 위에 지난 7일 작성 전 기록·기록 없음 처리.
 // 재전송 기록(되돌린 뒤 다시 전송한 기록)은 어르신 이름 옆에 ↻ 아이콘(10/28 알림표시 결정).
 // 그 아래 8~30일 전 빈 날은 ‘기한 지난 빈 기록’ 상자, 관리자가 기록 없음으로 정리(기한지난빈기록 결정).
+import { ResidentPhoto } from "@/components/resident-photo";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -182,7 +184,10 @@ function ReviewQueue() {
                 return (
                   <li key={`${row.residentId}-${row.careDate}-${row.kind}-${row.workerId ?? ""}`}>
                     <span>{monthDayWeek(row.careDate)}</span>
-                    <b>{resident?.alias}</b>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      {resident && <ResidentPhoto resident={resident} size={36} />}
+                      <b>{resident?.name}</b>
+                    </span>
                     {/* 못 쓴 기록은 작성자마다 한 줄. 기록 없음 처리는 어르신 단위라 담당 작성자들을 보인다(이슈 #95) */}
                     <span>
                       {row.workerName ?? residentWorkerNames(db, row.residentId).join(", ")}
@@ -242,7 +247,10 @@ function ReviewQueue() {
                   return (
                     <li key={`${row.residentId}-${row.careDate}`}>
                       <span>{monthDayWeek(row.careDate)}</span>
-                      <b>{resident?.alias}</b>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                        {resident && <ResidentPhoto resident={resident} size={36} />}
+                        <b>{resident?.name}</b>
+                      </span>
                       <span>{residentWorkerNames(db, row.residentId).join(", ")}</span>
                       {row.noCare ? (
                         <>
@@ -329,7 +337,7 @@ function ReviewQueue() {
                     }}
                   >
                     <td>
-                      <b>{resident?.alias.replace(" 어르신", "")}</b>
+                      <b>{resident?.name.replace(" 어르신", "")}</b>
                       {wasResent(record) && (
                         <span className="resent" role="img" aria-label="재전송" title="재전송">
                           <Icon name="refresh" />
@@ -369,7 +377,7 @@ function ReviewQueue() {
         >
           <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>‘기록 없음’ 정리를 지울까요?</h2>
           <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
-            {getResident(db, clearing.residentId)?.alias ?? ""} · {monthDayWeek(clearing.careDate)}
+            {getResident(db, clearing.residentId)?.name ?? ""} · {monthDayWeek(clearing.careDate)}
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button
@@ -393,7 +401,7 @@ function ReviewQueue() {
       )}
       {marking && (
         <OverdueModal
-          label={`${getResident(db, marking.residentId)?.alias ?? ""} · ${monthDayWeek(marking.careDate)}`}
+          label={`${getResident(db, marking.residentId)?.name ?? ""} · ${monthDayWeek(marking.careDate)}`}
           onClose={() => setMarking(null)}
           onSave={(reason, note) => {
             const next = markOverdueNoCare(db, { ...marking, reason, note }, today);

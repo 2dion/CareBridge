@@ -24,7 +24,7 @@ export async function createRecordPdf({
   template,
   fontBytes,
   record,
-  alias,
+  residentName,
   org,
   notesArea,
   training = false,
@@ -32,7 +32,7 @@ export async function createRecordPdf({
   template: Uint8Array;
   fontBytes: Uint8Array;
   record: DemoRecord;
-  alias: string;
+  residentName: string;
   org: string;
   notesArea: NoteArea | "";
   /** 교육용 기관의 연습 기록이면 '연습용'을 찍는다(결정 2026-10-25-강사흐름통일 4, 이슈 #125) */
@@ -43,7 +43,7 @@ export async function createRecordPdf({
   output.registerFontkit(fontkit);
   // 고정 TrueType 전체를 포함해 CJK 글꼴 부분 포함(subset)의 뷰어별 누락을 피한다.
   const font: PDFFont = await output.embedFont(fontBytes, { subset: false });
-  const { fields, marks } = printFields(record, alias, org, notesArea);
+  const { fields, marks } = printFields(record, residentName, org, notesArea);
   const size = 6;
   const lineHeight = 6.5;
   const prepared = fields.map((field) => {

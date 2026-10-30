@@ -3,6 +3,8 @@
 // M2(기록 검토): 왼쪽 원문·번역, 오른쪽 항목.
 // 관리자는 항목을 고치거나 ‘확인 필요’를 [확인함]/[기록 안 함]으로 정한다. 하나라도 안 정하면 승인할 수 없다(원칙 3).
 import Link from "next/link";
+import { ResidentPhoto } from "@/components/resident-photo";
+
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -188,7 +190,8 @@ function ReviewRecord() {
       <header className="page-head">
         <div>
           <h1>
-            {resident?.alias} · {monthDayWeek(record.careDate)}
+            {resident && <ResidentPhoto resident={resident} size={40} />} {resident?.name} ·{" "}
+            {monthDayWeek(record.careDate)}
           </h1>
           <p>
             {resident?.careType === "home" ? "재가" : "시설"} · 별지 제{record.formType}호 ·{" "}

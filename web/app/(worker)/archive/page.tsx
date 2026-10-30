@@ -256,7 +256,7 @@ function MissedCard({
         <DateBox date={row.careDate} />
         <div className="meta">
           <b>{monthDay(row.careDate)} 일일 기록</b>
-          <span>{resident.alias}</span>
+          <span>{resident.name}</span>
         </div>
         <StatusBadge status={row.kind === "draft" ? "draft" : "not_started"} />
       </div>
@@ -297,7 +297,7 @@ function RecordRow({ db, record }: { db: DemoDb; record: DemoRecord }) {
       <div className="meta">
         <b>일일 기록</b>
         <span>
-          {resident?.alias} · {time}
+          {resident?.name} · {time}
         </span>
       </div>
       <StatusBadge status={record.status} />
@@ -383,7 +383,7 @@ function RangeList({
                   <DateBox date={date} />
                   <div className="meta">
                     <b>일일 기록</b>
-                    <span>{getResident(db, row.residentId)?.alias} · 아직 작성하지 않았어요.</span>
+                    <span>{getResident(db, row.residentId)?.name} · 아직 작성하지 않았어요.</span>
                   </div>
                   <Link className="pill pill-write" href={`/start/${row.residentId}?date=${date}`}>
                     <Icon name="pencil" />
@@ -465,7 +465,7 @@ function NoCareSheet({
               Ngày này không có chăm sóc?
             </span>
             <p style={{ marginTop: 4, fontSize: 14, color: "var(--color-sub)" }}>
-              {monthDayWeek(row.careDate)} · {resident?.alias}
+              {monthDayWeek(row.careDate)} · {resident?.name}
             </p>
           </div>
           <div className="stack" style={{ gap: 8 }} role="radiogroup" aria-label="사유">

@@ -57,7 +57,7 @@ const item = (key: ItemRow["item_key"], fields: Partial<ItemRow> = {}): ItemRow 
 describe("mapResidents", () => {
   it("담당 연결의 가장 이른 시작일과 방문 요일 합집합", () => {
     const [resident] = mapResidents(
-      [{ id: "res-1", alias: "이○○ 어르신", care_type: "home" }],
+      [{ id: "res-1", name: "이○○ 어르신", care_type: "home" }],
       [
         {
           resident_id: "res-1",
@@ -111,7 +111,7 @@ describe("mapResidents", () => {
 
   it("시설은 매일(visitDays null)", () => {
     const [resident] = mapResidents(
-      [{ id: "r", alias: "김○○ 어르신", care_type: "facility" }],
+      [{ id: "r", name: "김○○ 어르신", care_type: "facility" }],
       [],
       "2026-10-28",
     );
@@ -472,7 +472,7 @@ describe("toDemoDb", () => {
           { id: "w1", name: "마이", role: "worker", native_lang: "vi" },
           { id: "w2", name: "린", role: "worker", native_lang: "ko" },
         ],
-        residents: [{ id: "res-1", alias: "이○○ 어르신", care_type: "facility" }],
+        residents: [{ id: "res-1", name: "이○○ 어르신", care_type: "facility" }],
         assignments: [
           {
             resident_id: "res-1",

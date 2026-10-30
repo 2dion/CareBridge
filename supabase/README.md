@@ -4,7 +4,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 
 - **목적:** 표와 RLS를 대시보드에서 손으로 만들지 않고 파일로 남겨, 누가 언제 무엇을 바꿨는지 PR로 보이게 합니다.
 - **배경:** 모든 표를 기관별 RLS로 나눠야 하고(AGENTS.md 원칙 7), 여러 사람이 동시에 개발합니다.
-- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v1.6.5.md`), 기술 선택 v1.1 §3.
+- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v1.6.6.md`), 기술 선택 v1.1 §3.
 - **사유:** Supabase CLI의 기본 구조(`config.toml`, `migrations/`, `seed.sql`)를 그대로 써서 새로 배울 것을 줄입니다.
 
 ## 들어 있는 것
@@ -113,3 +113,11 @@ npx supabase db push                               # migrations/ 를 클라우�
 - [기록 안 함] 사유는 `record_items.resolution_note`입니다. omitted일 때만 있고 비면 `note_required`, 작성자가 쓰면 `reviewer_only`입니다. resolution이 바뀌면 DB가 비웁니다. 회귀 SQL은 `supabase/tests/resolution-note.sql`입니다(결정 `2026-10-28-기록안함사유`).
 - 항목 하나 저장은 service_role 전용 `save_ai_item(record_id, item_key, actor_id, expected_value_ko, mode, item)`입니다. mode `translation`은 PATCH와 같은 사람(draft·returned 작성자, submitted 관리자)의 value_native만, `item`은 작성자의 음성 보태기 항목 전체(source = worker, confirmed_by_worker = false)를 저장합니다. 서버 코드는 `saveItemTranslation`·`saveAddedItem`(`web/lib/agent/draft-repository.ts`), 회귀 SQL은 `supabase/tests/save-ai-item.sql`입니다(결정 `2026-10-28-항목하나저장`).
 - (10/29) `save_ai_item` mode `check`는 재가 제공 지원 재검사(검사 5: 지원별 분 합 ≤ 방문 시간) 결과로 `status`·`reason`·`reason_native`만 바꿉니다. 작성자 본인이 draft·returned일 때만 되고, 내용·출처·`confirmed_by_worker`는 그대로입니다. 작성자가 W3에서 분·방문 시점을 고친 PATCH 뒤와 `/submit` 직전에 서버가 부릅니다(`web/lib/records/support-check.ts`, `saveItemCheck`). 결정 `2026-10-29-초안검사보강`.
+
+## 어르신 실명·사진 (#99)
+
+- `20261030113134_resident_names_photos.sql`: 10/30 실제 CareBridge DB 반영. `name`·`photo_path`, 비공개 `resident-photos`, 현재 사진 SELECT 정책, 직접 사진 경로 변경 차단, 기관 기본값.
+- 새 명단은 `name` 사용. `alias`는 구버전 INSERT 호환만 남기며 기존 가명을 실명으로 추정하지 않습니다.
+- 서버는 기존 `SUPABASE_SERVICE_ROLE_KEY`로 검사·변환한 JPEG를 저장합니다. 브라우저에 서버 키를 주지 않습니다.
+- `supabase/tests/resident-photos.sql`: 두 기관·담당/미담당 작성자·직접 업로드·경로 위조·동명이인·삭제 후 접근 차단을 검사하고 ROLLBACK합니다. Storage 메타데이터만 쓰는 합성 픽스처입니다.
+- 사진 읽기는 세션 인증 API, 공개/서명 URL 없음. 교체·삭제 시 Storage API 정리 실패는 `cleanup_pending`으로 응답하고 화면에서 알려 줍니다. 해당 파일은 현재 경로에서 빠져 읽기가 차단되지만, 운영자가 Storage API로 남은 파일 정리를 확인해야 합니다.

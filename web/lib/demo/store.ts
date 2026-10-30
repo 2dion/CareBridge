@@ -22,7 +22,9 @@ export type EventType =
 
 export type Resident = {
   id: string;
-  alias: string;
+  name: string;
+  /** 현재 사진 갱신 값. Mock은 축소한 합성 사진 data URL, 실제는 비공개 Storage 경로. */
+  photoPath?: string | null;
   initial: string;
   careType: CareType;
   /** 재가 방문 요일 1=월 … 7=일. 시설은 null(매일). */
@@ -111,7 +113,7 @@ export type Assignment = {
 };
 
 export type DemoDb = {
-  version: 4;
+  version: 5;
   seededOn: string;
   worker: { name: string; email: string; org: string };
   reviewer: { name: string };
@@ -202,7 +204,7 @@ export function monthDayWeek(date: string): string {
 }
 
 /** "14:00~17:00" → "오후 2:00 ~ 오후 5:00" (화면문구 v1.0: 시간은 글자로).
- *  assignments.schedule은 표시용 글자라 "평일 14:00~17:00"처럼 요일 말이 앞에 올 수 있다(데이터 구조 v1.6.5).
+ *  assignments.schedule은 표시용 글자라 "평일 14:00~17:00"처럼 요일 말이 앞에 올 수 있다(데이터 구조 v1.6.6).
  *  시각(HH:MM)만 글자로 바꾸고 나머지 글자는 그대로 둔다. 시각이 없으면("매일") 원문 그대로. */
 export function timeRangeLabel(range: string | null): string {
   if (!range) return "";
@@ -418,7 +420,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
   const residents: Resident[] = [
     {
       id: "kim",
-      alias: "김○○ 어르신",
+      name: "김가상",
       initial: "김",
       careType: "facility",
       visitDays: null,
@@ -428,7 +430,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
     },
     {
       id: "lee",
-      alias: "이○○ 어르신",
+      name: "이가상",
       initial: "이",
       careType: "home",
       visitDays: [1, 2, 3, 4, 5],
@@ -438,7 +440,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
     },
     {
       id: "park",
-      alias: "박○○ 어르신",
+      name: "박가상",
       initial: "박",
       careType: "facility",
       visitDays: null,
@@ -567,7 +569,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
   }
 
   return {
-    version: 4,
+    version: 5,
     seededOn: today,
     worker: { name: worker, email: "worker@carebridge.test", org: "케어브릿지 데모 요양센터" },
     reviewer: { name: reviewer },
