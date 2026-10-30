@@ -34,7 +34,7 @@ export default function SentPage() {
       </div>
       <section className="card" style={{ margin: "28px 16px 0", padding: "18px 20px" }}>
         <b style={{ fontSize: 17 }}>
-          {resident.alias} · {monthDay(record.careDate)}
+          {resident.name} · {monthDay(record.careDate)}
         </b>
         <p style={{ marginTop: 8, fontSize: 15, color: "var(--color-sub)" }}>
           확인한 기록을 {names.reviewer}에게 전송했어요. {names.reviewer}가 승인하면 끝나요.

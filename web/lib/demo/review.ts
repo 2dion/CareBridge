@@ -354,10 +354,10 @@ export function removeNoCareDay(db: DemoDb, residentId: string, careDate: string
   };
 }
 
-/** M4 [수정]: 담당 연결(방문 요일·표시용 방문 시간·담당 시작일)과 어르신 정보(가명·급여 종류, 이슈 #96).
- *  alias·careType·workerIds는 바뀐 때만 넣는다. 실제 모드의 workerIds는 담당 작성자 id 목록(이슈 #95) */
+/** M4 [수정]: 담당 연결(방문 요일·표시용 방문 시간·담당 시작일)과 어르신 정보(실명·급여 종류, 이슈 #96).
+ *  name·careType·workerIds는 바뀐 때만 넣는다. 실제 모드의 workerIds는 담당 작성자 id 목록(이슈 #95) */
 export type ResidentEdit = Pick<Resident, "visitDays" | "visitTime" | "startDate"> & {
-  alias?: string;
+  name?: string;
   careType?: Resident["careType"];
   workerIds?: string[];
 };
@@ -371,14 +371,11 @@ export function updateResident(
   db: DemoDb,
   residentId: string,
   edit: ResidentEdit,
-): DemoDb | { error: "duplicate" | "care_type_locked" } {
+): DemoDb | { error: "name_required" | "care_type_locked" } {
   const { workerIds: _workerIds, ...fields } = edit;
   void _workerIds; // Mock은 작성자가 한 명이라 담당 연결 줄을 따로 두지 않는다
-  if (
-    fields.alias !== undefined &&
-    db.residents.some((resident) => resident.id !== residentId && resident.alias === fields.alias)
-  ) {
-    return { error: "duplicate" };
+  if (fields.name !== undefined && (!fields.name.trim() || fields.name.trim().length > 80)) {
+    return { error: "name_required" };
   }
   const current = db.residents.find((resident) => resident.id === residentId);
   if (
@@ -396,7 +393,8 @@ export function updateResident(
         ? {
             ...resident,
             ...fields,
-            ...(fields.alias !== undefined ? { initial: [...fields.alias][0] ?? "" } : {}),
+            ...(fields.name !== undefined ? { name: fields.name.trim() } : {}),
+            ...(fields.name !== undefined ? { initial: [...fields.name.trim()][0] ?? "" } : {}),
           }
         : resident,
     ),
@@ -421,7 +419,7 @@ export function residentEditChanged(
     sameWorkers &&
     (resident.visitTime ?? null) === (edit.visitTime ?? null) &&
     resident.startDate === edit.startDate &&
-    (edit.alias === undefined || edit.alias === resident.alias) &&
+    (edit.name === undefined || edit.name === resident.name) &&
     (edit.careType === undefined || edit.careType === resident.careType)
   );
 }
@@ -452,18 +450,17 @@ export const formFieldHint: Record<"16" | "12", Record<ItemKey, string>> = {
   },
 };
 
-/** M4 어르신 추가: 실명 대신 성 한 글자 + ○○(원칙 9). 시연 초안은 같은 급여의 합성 사례를 쓴다. */
+/** M4 어르신 추가: 실명·선택 사진(이슈 #99). 시연 초안은 같은 급여의 합성 사례를 쓴다. */
 export function addResident(
   db: DemoDb,
-  input: { initial: string; careType: Resident["careType"]; startDate: string },
-): DemoDb | { error: "initial_required" | "duplicate" } {
-  const initial = input.initial.trim().slice(0, 1);
-  if (!initial) return { error: "initial_required" };
-  const alias = `${initial}○○ 어르신`;
-  if (db.residents.some((resident) => resident.alias === alias)) return { error: "duplicate" };
+  input: { name: string; careType: Resident["careType"]; startDate: string },
+): DemoDb | { error: "name_required" } {
+  const name = input.name.trim();
+  if (!name || name.length > 80) return { error: "name_required" };
+  const initial = [...name][0];
   const resident: Resident = {
     id: `r${db.residents.length + 1}-${Date.now().toString(36)}`,
-    alias,
+    name,
     initial,
     careType: input.careType,
     visitDays: input.careType === "home" ? [] : null,

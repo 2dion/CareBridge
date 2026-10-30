@@ -2,6 +2,8 @@
 
 // M3(승인한 기록): 왼쪽 목록, 오른쪽 내용과 처리 이력(작성 → 전송 → [검토·수정 → 되돌림 → 재전송] → 검토·수정 → 승인). 인쇄·PDF는 /print/[id].
 import Link from "next/link";
+import { ResidentPhoto } from "@/components/resident-photo";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -74,7 +76,7 @@ function Approved() {
             <option value="all">어르신 · 전체</option>
             {db.residents.map((item) => (
               <option key={item.id} value={item.id}>
-                어르신 · {item.alias.replace(" 어르신", "")}
+                어르신 · {item.name.replace(" 어르신", "")}
               </option>
             ))}
           </select>
@@ -111,7 +113,10 @@ function Approved() {
                   onClick={() => router.replace(`/approved?id=${record.id}`)}
                 >
                   <span>
-                    <b>{who?.alias}</b>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      {who && <ResidentPhoto resident={who} size={36} />}
+                      <b>{who?.name}</b>
+                    </span>
                     <small>
                       {monthDayWeek(record.careDate)} · {who?.careType === "home" ? "재가" : "시설"}{" "}
                       · {record.workerName ?? db.worker.name}
@@ -177,7 +182,7 @@ function ApprovedDetail({ record }: { record: DemoRecord }) {
       <div className="page-head" style={{ marginBottom: 16, flexWrap: "wrap" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 22 }}>
-            {resident?.alias} · {monthDayWeek(record.careDate)}
+            {resident?.name} · {monthDayWeek(record.careDate)}
           </h2>
           <p>
             {resident?.careType === "home" ? "재가" : "시설"} · 별지 제{record.formType}호 · 승인{" "}

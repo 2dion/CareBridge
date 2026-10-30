@@ -64,8 +64,8 @@ function load(today: string): DemoDb {
     if (saved) {
       const parsed = JSON.parse(saved) as DemoDb;
       // 날짜가 바뀌면 ‘오늘’ 기준 시드가 어긋나므로 새로 만든다(시연용).
-      // version 4(10/29): 이력 줄에 actor_role이 붙어, 옛 시연 데이터는 새로 만든다
-      if (parsed?.version === 4 && parsed.seededOn === today && parsed.records) return parsed;
+      // version 5(10/30): 어르신 이름·사진 구조로 바뀌어 옛 시연 데이터는 새로 만든다
+      if (parsed?.version === 5 && parsed.seededOn === today && parsed.records) return parsed;
     }
   } catch {
     /* 손상된 시연 데이터는 새로 만든다 */

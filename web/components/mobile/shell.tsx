@@ -2,6 +2,8 @@
 
 // 작성자 화면 공통 틀: 화면 바탕, 위 제목줄, 아래 탭, 어르신 이름표.
 import Link from "next/link";
+import { ResidentPhoto } from "@/components/resident-photo";
+
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -133,9 +135,9 @@ export function ResidentPill({
 }) {
   return (
     <div className="resident-pill">
-      <span className="mini-avatar">{resident.initial}</span>
+      <ResidentPhoto resident={resident} size={30} />
       <span>
-        <b>{resident.alias}</b> · {monthDay(date)}
+        <b>{resident.name}</b> · {monthDay(date)}
         {extra ? ` · ${extra}` : ""}
       </span>
     </div>

@@ -66,7 +66,7 @@ describe("법정 원문 기록 PDF", () => {
         template,
         fontBytes,
         record,
-        alias: "김○○ 어르신",
+        residentName: "김○○ 어르신",
         org: db.worker.org,
         notesArea: "physical",
       });

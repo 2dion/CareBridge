@@ -11,17 +11,17 @@ export const PRIVACY_SECTIONS = [
     icon: "user",
     ko: "수집 항목",
     vi: "Thông tin thu thập",
-    body: "이름, 이메일, 사용 언어, 녹음을 바꾼 글, 돌봄 기록 내용. 어르신은 가명(예: 김○○)으로만 기록",
+    body: "이름, 이메일, 사용 언어, 녹음을 바꾼 글, 돌봄 기록 내용. 어르신 실명·선택 사진은 대상 확인용으로 보관하며 AI 입력에 추가하지 않음. 관찰 본문에는 실명을 쓰지 않음",
     bodyVi:
-      "Tên, email, ngôn ngữ, văn bản từ ghi âm, nội dung ghi chép. Người cao tuổi chỉ ghi bằng tên ẩn danh (vd: Kim○○)",
+      "Tên, email, ngôn ngữ, văn bản từ ghi âm, nội dung ghi chép. Lưu tên thật và ảnh tùy chọn của người cao tuổi để nhận diện, không thêm vào dữ liệu gửi AI. Không ghi tên thật trong nội dung quan sát",
   },
   {
     icon: "shield",
     ko: "보유·이용 기간",
     vi: "Thời gian lưu",
-    body: "회원 탈퇴 시까지. 승인한 돌봄 기록은 관계 법령에 따른 기간 동안 보관. 녹음 파일은 글자로 바꾼 즉시 삭제",
+    body: "회원 탈퇴 시까지. 승인한 돌봄 기록은 관계 법령에 따른 기간 동안 보관. 녹음 파일은 글자로 바꾼 즉시 삭제. 사진은 교체·삭제 시 기존 파일 삭제",
     bodyVi:
-      "Đến khi xóa tài khoản. Ghi chép đã duyệt lưu theo thời hạn luật định. Tệp ghi âm bị xóa ngay sau khi chuyển thành chữ",
+      "Đến khi xóa tài khoản. Ghi chép đã duyệt lưu theo thời hạn luật định. Tệp ghi âm bị xóa ngay sau khi chuyển thành chữ. Ảnh cũ bị xóa khi thay hoặc xóa ảnh",
   },
   {
     icon: "alert",

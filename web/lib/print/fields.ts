@@ -111,7 +111,7 @@ export function printableItem(record: DemoRecord, key: ItemKey) {
 
 export function printFields(
   record: DemoRecord,
-  alias: string,
+  residentName: string,
   org: string,
   notesArea: NoteArea | "",
 ): { fields: PrintField[]; marks: PrintMark[] } {
@@ -145,7 +145,7 @@ export function printFields(
   };
 
   if (record.formType === "16") {
-    add("name", alias.replace(/ 어르신$/, ""), 108, 133, 41);
+    add("name", residentName.replace(/ 어르신$/, ""), 108, 133, 41);
     add("org", org, 145, 153, 140, 18);
     add("year", year, 70, 251, 27);
     add("date", `${Number(month)}/${Number(day)}`, 208, 251, 40);
@@ -197,7 +197,7 @@ export function printFields(
     }
     add("stay", value("visit_time"), 156, 748, 120, 34, true);
   } else {
-    add("name", alias.replace(/ 어르신$/, ""), 145, 110, 34);
+    add("name", residentName.replace(/ 어르신$/, ""), 145, 110, 34);
     add("org", org, 150, 129, 145, 14);
     add("year", year, 110, 149, 28);
     add("month", String(Number(month)), 267, 149, 11);
