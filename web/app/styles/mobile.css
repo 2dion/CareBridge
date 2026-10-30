@@ -1016,7 +1016,7 @@
 
 .m-app .home-header {
   position: relative;
-  height: 244px;
+  height: 284px;
   overflow: visible;
   background: var(--color-primary);
   color: #fff;
@@ -1029,27 +1029,19 @@
   top: 20px;
   left: 24px;
   width: 150px;
-  height: 32px;
-  overflow: hidden;
-  /* 기존 로고 아래 워드마크만 표시. 흰 원본 바탕은 초록색에 섞어 없앤다. */
-  mix-blend-mode: screen;
 }
 
 .m-app .home-brand .home-logo {
-  position: absolute;
-  bottom: 0;
-  left: 0;
   display: block;
   width: 150px;
-  max-width: none;
+  height: auto;
   margin: 0;
-  filter: grayscale(1) invert(1) brightness(4);
 }
 
 .m-app .home-header .date {
   position: absolute;
   left: 24px;
-  top: 80px;
+  top: 120px;
   z-index: 2;
 }
 
@@ -1079,7 +1071,7 @@
   position: absolute;
   left: 16px;
   right: 140px;
-  top: 130px;
+  top: 170px;
   z-index: 2;
   display: flex;
   flex-direction: column;
