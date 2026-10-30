@@ -113,8 +113,9 @@ create function pg_temp.act(p_uid uuid) returns void language sql as $$
 $$;
 
 -- 지금 단계에서 생긴 이력(시각 = 트랜잭션 시작 시각)을 정한 시각으로 옮김.
--- 모든 단계(전송·되돌림·다시 전송·승인)를 돌봄 날 저녁 안에 두어, 언제 돌려도 미래 시각이 생기지 않음(#181).
--- 지연전송만 어제 오전. least()는 혹시 모를 미래 시각을 막는 안전장치.
+-- 흐름: 돌봄 날 작성·전송 → 다음 날 오전 관리자 검토(승인·되돌림), 되돌린 기록은 다음 날 오후 재전송.
+-- 다음 날 시각이 아직 오지 않았으면(어제 기록을 오전에 돌릴 때) 검토를 돌봄 날 저녁으로 둠 → 미래 시각 없음(#181).
+-- least()는 혹시 모를 미래 시각을 막는 안전장치.
 create function pg_temp.stamp(p_rec uuid, p_ts timestamptz) returns timestamptz language plpgsql as $$
 declare ts timestamptz := least(p_ts, now() - interval '2 minutes');
 begin
@@ -126,6 +127,8 @@ create function pg_temp.kst(p_d date, p_t time) returns timestamptz language sql
   select (p_d + p_t) at time zone 'Asia/Seoul'
 $$;
 
+create temp sequence demo_seq;
+
 create function pg_temp.demo_record(
   p_res text, p_who text, p_date date, p_transcript text, p_transcript_ko text,
   p_items jsonb, p_form_fields jsonb, p_visit_start text, p_visit_end text,
@@ -135,7 +138,18 @@ declare
   c demo_ctx%rowtype;
   wk uuid; rv uuid; res uuid; rec uuid;
   t_created timestamptz; t_sub timestamptz; t_appr timestamptz;
+  n int := nextval('demo_seq');      -- 기록 번호: 기록마다 시각을 조금씩 다르게
+  o interval;                        -- 0~39분
+  rd date; r0 time;                  -- 검토 날과 그날 검토 시작 시각
 begin
+  o := ((n * 17) % 40) * interval '1 minute';
+  -- 검토는 다음 날 오전(09:05~11:25). 되돌린 기록은 다음 날 오후 재전송까지 지났는지 보고 정함
+  r0 := time '09:05' + ((n * 29) % 140) * interval '1 minute';
+  rd := p_date + 1;
+  if pg_temp.kst(rd, case when p_flow = 'resent' then time '13:40' + o else r0 end) > now() - interval '5 minutes' then
+    rd := p_date; r0 := time '19:20' + o;   -- 다음 날 시각이 아직 안 옴 → 돌봄 날 저녁
+  end if;
+
   select * into c from demo_ctx;
   wk := case p_who when 'worker' then c.worker else c.trainee end;
   rv := case p_who when 'worker' then c.reviewer else c.trainer end;
@@ -146,8 +160,10 @@ begin
   insert into public.records (resident_id, worker_id, care_date, transcript, transcript_ko, form_fields, visit_start, visit_end)
   values (res, wk, p_date, p_transcript, p_transcript_ko, coalesce(p_form_fields, '{}'), p_visit_start::time, p_visit_end::time)
   returning id into rec;
+  -- 시설은 근무 끝(16:00), 재가는 방문 끝난 뒤 10~49분에 씀
   t_created := pg_temp.stamp(rec, case when p_flow = 'submitted_late'
-    then pg_temp.kst(c.today - 1, '10:00') else pg_temp.kst(p_date, '16:20') end);
+    then pg_temp.kst(c.today - 1, '09:40') + o
+    else pg_temp.kst(p_date, coalesce(p_visit_end::time, '16:00')) + interval '10 minutes' + o end);
 
   if p_flow = 'draft' then  -- 임시 저장: 받아쓴 글만 있고 정리 전
     insert into demo_plan values (rec, t_created, null, null);
@@ -169,13 +185,13 @@ begin
   update public.record_items set confirmed_by_worker = true where record_id = rec;
   perform pg_temp.stamp(rec, t_created + interval '4 minutes');
   update public.records set status = 'submitted' where id = rec;
-  t_sub := pg_temp.stamp(rec, t_created + interval '10 minutes');
+  t_sub := pg_temp.stamp(rec, t_created + interval '6 minutes' + (n % 5) * interval '1 minute');
 
   if p_flow in ('returned', 'resent') then
     perform pg_temp.act(rv);
     update public.records set status = 'returned', return_reason = p_reason, return_reason_native = p_reason_native
     where id = rec;
-    perform pg_temp.stamp(rec, pg_temp.kst(p_date, '18:00'));
+    perform pg_temp.stamp(rec, pg_temp.kst(rd, r0));
     if p_flow = 'resent' then  -- 작성자가 배변 칸을 고쳐 다시 전송 (제공 지원은 [확인함]이 풀림)
       perform pg_temp.act(wk);
       update public.record_items
@@ -184,9 +200,11 @@ begin
           status = 'observed', reason = ''
       where record_id = rec and item_key = 'support';
       update public.records set form_fields = form_fields || '{"stool_accidents": 1, "urine_accidents": 2}' where id = rec;
-      perform pg_temp.stamp(rec, pg_temp.kst(p_date, '19:00'));
+      perform pg_temp.stamp(rec, case when rd > p_date then pg_temp.kst(rd, time '13:30' + o)
+                                      else pg_temp.kst(rd, r0) + interval '50 minutes' end);
       update public.records set status = 'submitted' where id = rec;
-      t_sub := pg_temp.stamp(rec, pg_temp.kst(p_date, '19:10'));
+      t_sub := pg_temp.stamp(rec, case when rd > p_date then pg_temp.kst(rd, time '13:40' + o)
+                                       else pg_temp.kst(rd, r0) + interval '58 minutes' end);
     end if;
   end if;
 
@@ -194,9 +212,9 @@ begin
     perform pg_temp.act(rv);
     update public.record_items set resolution = 'confirmed_by_reviewer'
     where record_id = rec and status = 'needs_check';
-    perform pg_temp.stamp(rec, pg_temp.kst(p_date, '18:00'));
+    perform pg_temp.stamp(rec, pg_temp.kst(rd, r0));
     update public.records set status = 'approved' where id = rec;
-    t_appr := pg_temp.stamp(rec, pg_temp.kst(p_date, '18:05'));
+    t_appr := pg_temp.stamp(rec, pg_temp.kst(rd, r0) + (2 + n % 6) * interval '1 minute');
   end if;
 
   insert into demo_plan values (rec, t_created,
