@@ -81,7 +81,7 @@ describe("submitRecord", () => {
     expect(recheckOrder).toBeLessThan(updateOrder);
   });
 
-  it("[맞아요]가 안 된 항목이 있으면 다시 검사하지 않고 409", async () => {
+  it("[확인 완료]가 안 된 항목이 있으면 다시 검사하지 않고 409", async () => {
     const deps = fakeDeps(draft, {
       listItems: vi.fn(async () => items({ support: { confirmed_by_worker: false } })),
     });

@@ -68,7 +68,7 @@ describe("patchItem", () => {
     );
   });
 
-  it("[맞아요]만 누르면 번역하지 않음", async () => {
+  it("[확인 완료]만 누르면 번역하지 않음", async () => {
     const deps = fakeDeps(draft);
     expect((await patchItem("rec-1", "meal", { confirmed_by_worker: true }, deps)).status).toBe(
       200,
@@ -169,7 +169,7 @@ describe("patchItem", () => {
     expect(r).toEqual({ status: 403, body: { error: "reviewer_only" } });
   });
 
-  it("관리자가 [맞아요]를 누르면 403 not_record_worker", async () => {
+  it("관리자가 [확인 완료]를 누르면 403 not_record_worker", async () => {
     const deps = fakeDeps(submitted, { currentUser: vi.fn(async () => reviewer) });
     expect((await patchItem("rec-1", "meal", { confirmed_by_worker: true }, deps)).body.error).toBe(
       "not_record_worker",

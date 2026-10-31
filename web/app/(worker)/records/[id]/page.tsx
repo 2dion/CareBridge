@@ -600,8 +600,8 @@ function ItemCard({
       )}
       {!done &&
         (item.status === "needs_check" ? (
-          // 전송은 9개 항목이 모두 확인(맞아요)되거나 작성자가 고친 것이어야 한다(DB 제출 검사, 10/28).
-          // ‘확인 필요’도 [맞아요]로 확인하고 보낼 수 있고, 남은 판단은 관리자가 한다.
+          // 전송은 9개 항목이 모두 확인([확인 완료]·[해당 없음])되거나 작성자가 고친 것이어야 한다(DB 제출 검사, 10/28).
+          // ‘확인 필요’도 [확인 완료]로 확인하고 보낼 수 있고, 남은 판단은 관리자가 한다.
           <div className="btn-row">
             <Link
               className="btn btn-primary btn-sm"
@@ -611,7 +611,7 @@ function ItemCard({
                 if (pending) event.preventDefault();
               }}
             >
-              <BtnLabel ko="수정하기" vi="Sửa" />
+              <BtnLabel ko="내용 수정" vi="Sửa nội dung" />
             </Link>
             <button
               type="button"
@@ -620,8 +620,8 @@ function ItemCard({
               onClick={() => onConfirm(item.item_key)}
             >
               <BtnLabel
-                ko={confirming ? "확인 중" : "맞아요"}
-                vi={confirming ? "Đang kiểm tra" : "Đúng"}
+                ko={confirming ? "확인 중" : "확인 완료"}
+                vi={confirming ? "Đang kiểm tra" : "Xác nhận"}
               />
             </button>
           </div>
@@ -635,7 +635,7 @@ function ItemCard({
                 if (pending) event.preventDefault();
               }}
             >
-              <BtnLabel ko="보태기" vi="Bổ sung" />
+              <BtnLabel ko="내용 추가" vi="Thêm nội dung" />
             </Link>
             <button
               type="button"
@@ -644,8 +644,8 @@ function ItemCard({
               onClick={() => onConfirm(item.item_key)}
             >
               <BtnLabel
-                ko={confirming ? "확인 중" : "없음이 맞아요"}
-                vi={confirming ? "Đang kiểm tra" : "Đúng là không có"}
+                ko={confirming ? "확인 중" : "해당 없음"}
+                vi={confirming ? "Đang kiểm tra" : "Không có"}
               />
             </button>
           </div>
@@ -658,8 +658,8 @@ function ItemCard({
               onClick={() => onConfirm(item.item_key)}
             >
               <BtnLabel
-                ko={confirming ? "확인 중" : "맞아요"}
-                vi={confirming ? "Đang kiểm tra" : "Đúng"}
+                ko={confirming ? "확인 중" : "확인 완료"}
+                vi={confirming ? "Đang kiểm tra" : "Xác nhận"}
               />
             </button>
             <Link
@@ -670,7 +670,7 @@ function ItemCard({
                 if (pending) event.preventDefault();
               }}
             >
-              <BtnLabel ko="달라요" vi="Không đúng" />
+              <BtnLabel ko="내용 수정" vi="Sửa nội dung" />
             </Link>
           </div>
         ))}

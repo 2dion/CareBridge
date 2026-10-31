@@ -1,6 +1,6 @@
 "use client";
 
-// W3 · 항목 고치기·보태기(수정, 언급 없음 보충).
+// W3 · 내용 수정·내용 추가(수정, 언급 없음 보충).
 // 한국어·베트남어 어느 쪽으로 써도 되고, 실제로는 서버가 이 항목만 한국어 기록체로 다시 쓰고 번역한다(화면 v1.3 W3).
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
@@ -185,8 +185,8 @@ export default function ItemEditPage() {
   return (
     <MobileScreen tab="today">
       <AppBar
-        title={missing ? "내용 보태기" : "항목 고치기"}
-        vi={missing ? "Bổ sung" : "Sửa mục"}
+        title={missing ? "내용 추가" : "내용 수정"}
+        vi={missing ? "Thêm nội dung" : "Sửa nội dung"}
         back={busy ? undefined : back}
       />
       <ResidentPill resident={resident} date={record.careDate} />
