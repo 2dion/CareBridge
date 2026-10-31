@@ -1018,7 +1018,12 @@
   position: relative;
   height: 208px;
   overflow: visible;
-  background: var(--color-primary);
+  background-color: var(--color-primary);
+  /* 장식은 배경에만 그려 캐릭터의 경계 밖 손과 버튼 클릭을 방해하지 않는다. */
+  background-image:
+    radial-gradient(circle 150px at 100% -12%, rgba(195, 241, 218, 0.07) 99%, transparent 100%),
+    radial-gradient(circle 112px at 96% 104%, rgba(195, 241, 218, 0.05) 99%, transparent 100%);
+  background-repeat: no-repeat;
   color: #fff;
   flex-shrink: 0;
 }
