@@ -141,7 +141,7 @@ describe("Mock 데이터 규칙 (데이터구조 v1.6.2)", () => {
     expect("id" in made).toBe(true);
   });
 
-  it("모든 항목을 맞아요·고침 해야 보낼 수 있고, ‘확인 필요’는 남아도 된다", () => {
+  it("모든 항목을 확인 완료·수정해야 보낼 수 있고, ‘확인 필요’는 남아도 된다", () => {
     let db = createDemoDb(TODAY);
     const made = ensureRecord(db, "kim", TODAY, TODAY, NOW);
     if ("error" in made) throw new Error(made.error);

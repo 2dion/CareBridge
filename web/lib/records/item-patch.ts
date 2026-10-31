@@ -123,7 +123,7 @@ export async function patchItem(
   const isWorker = record.worker_id === user.id;
   if (record.status === "submitted") {
     if (user.role !== "reviewer") return fail(403, "reviewer_only");
-    if ("confirmed_by_worker" in patch) return fail(403, "not_record_worker"); // [맞아요]는 작성자만
+    if ("confirmed_by_worker" in patch) return fail(403, "not_record_worker"); // [확인 완료]는 작성자만
   } else {
     if (!isWorker) return fail(403, "not_record_worker");
     if ("resolution" in patch || "resolution_note" in patch) return fail(403, "reviewer_only");

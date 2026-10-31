@@ -185,7 +185,7 @@ function reviewable(record: DemoRecord) {
   return record.status === "submitted";
 }
 
-/** 관리자 직접 수정: source=reviewer, 고치기 전 내용을 남김. 작성자 확인은 풀린다(되돌아오면 다시 [맞아요]). */
+/** 관리자 직접 수정: source=reviewer, 고치기 전 내용을 남김. 작성자 확인은 풀린다(되돌아오면 다시 [확인 완료]). */
 export function reviewerEditItem(
   db: DemoDb,
   id: string,

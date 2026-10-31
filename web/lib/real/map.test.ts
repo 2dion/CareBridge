@@ -270,7 +270,7 @@ describe("mapRecord 이력(record_events)", () => {
   const flow: EventRow[] = [
     ev("00:00", "w1", "created", { after: { status: "draft" } }),
     ev("00:01", null, "ai_filled", { item_key: "sleep", after: { value_ko: "잘 못 잠" } }),
-    // [맞아요]만 누른 줄은 수정이 아니다
+    // [확인 완료]만 누른 줄은 수정이 아니다
     ev("00:02", "w1", "edited", { item_key: "meal", after: { confirmed_by_worker: true } }),
     ev("00:10", "w1", "submitted", { before: { status: "draft" }, after: { status: "submitted" } }),
     ev("01:00", "rv", "returned", {

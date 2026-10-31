@@ -195,7 +195,7 @@ export function inputModeOf(record: RecordRow, jobs: AudioJobRow[]): DemoRecord[
   return voiced ? "voice" : record.transcript ? "text" : null;
 }
 
-/** 항목 ‘수정’으로 치는 칸. DB의 출처 판정(record_items_guard_source)과 같다. [맞아요]·번역·사유만 바뀐 줄은 수정이 아니다 */
+/** 항목 ‘수정’으로 치는 칸. DB의 출처 판정(record_items_guard_source)과 같다. [확인 완료]·번역·사유만 바뀐 줄은 수정이 아니다 */
 const EDIT_KEYS = ["value_ko", "status", "detail"];
 
 /** record_events → 화면 이력. 요약 띠·M3 처리 이력이 쓴다(이슈 #124).
