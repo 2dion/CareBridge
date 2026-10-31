@@ -1023,7 +1023,7 @@
   background-image:
     radial-gradient(circle 150px at 100% -12%, rgba(195, 241, 218, 0.045) 99%, transparent 100%),
     radial-gradient(circle 190px at 86% 116%, rgba(195, 241, 218, 0.075) 99%, transparent 100%),
-    radial-gradient(ellipse at 96% 92%, rgba(174, 234, 200, 0.12), transparent 66%),
+    radial-gradient(ellipse at 96% 92%, rgba(174, 234, 200, 0.08), transparent 66%),
     linear-gradient(120deg, transparent 36%, rgba(95, 177, 141, 0.08));
   background-repeat: no-repeat;
   color: #fff;
@@ -1071,18 +1071,21 @@
 
 .m-app .home-header .art {
   position: absolute;
-  right: 0;
+  right: -8px;
   bottom: -12px; /* 원본 투명 여백을 빼고 손이 경계 아래로 약 8px 걸치게 한다 */
   z-index: 3;
   pointer-events: none;
   margin: 0;
+  clip-path: inset(-8px 7px -8px -8px);
+  filter: drop-shadow(0 1px 1px rgba(15, 67, 49, 0.18))
+    drop-shadow(-2px 3px 4px rgba(15, 67, 49, 0.1));
 }
 
-/* 머리 안 알림: 날짜 아래, 캐릭터(폭 132) 왼쪽. 수정 필요가 앞, 작성 전이 뒤. 0건은 빠진다 */
+/* 머리 안 알림: 날짜 아래, 캐릭터(폭 142) 왼쪽. 수정 필요가 앞, 작성 전이 뒤. 0건은 빠진다 */
 .m-app .home-alerts {
   position: absolute;
   left: 16px;
-  right: 140px;
+  right: 150px;
   top: 140px;
   z-index: 2;
   display: flex;
