@@ -9,6 +9,17 @@ import type { ItemKey } from "../demo/state";
 import type { FontSize, NoCareReason } from "../demo/store";
 import { FONT_VALUE } from "./map";
 
+/** GET /api/helper/messages 응답(데이터 구조 v1.7 공통 계약) */
+export type HelperMessagesPage = {
+  messages: Array<{
+    id: string;
+    question: string;
+    answer: HelperAnswer;
+    created_at: string;
+  }>;
+  next_before: string | null;
+};
+
 export type ActionError = {
   ok: false;
   error: string;
@@ -381,9 +392,17 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
     async translateReturnReason(recordId: string) {
       return callApi(`/api/records/${recordId}/return/translate`);
     },
-    /** W6 도우미. 답은 저장하지 않는다 */
+    /** W6 도우미. 서버가 답한 뒤 helper_messages에 남기고 id·created_at을 더해 준다(저장이 실패하면 null, 이슈 #218) */
     async askHelper(question: string) {
-      return callApi<HelperAnswer>("/api/helper/ask", { body: { question } });
+      return callApi<HelperAnswer & { id: string | null; created_at: string | null }>(
+        "/api/helper/ask",
+        { body: { question } },
+      );
+    },
+    /** W6를 열 때 지난 대화(내 최근 50개, 오래된 순)를 서버에서 불러온다. before는 앞서 받은 created_at */
+    async helperMessages(before?: string) {
+      const query = before ? `?before=${encodeURIComponent(before)}` : "";
+      return callApi<HelperMessagesPage>(`/api/helper/messages${query}`, { method: "GET" });
     },
     /** M2 'AI 작업 기록'(관리자는 같은 기관 agent_steps 읽기) */
     async agentSteps(recordId: string) {

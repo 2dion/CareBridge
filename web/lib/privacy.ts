@@ -4,16 +4,17 @@ export const PRIVACY_SECTIONS = [
     icon: "doc",
     ko: "수집·이용 목적",
     vi: "Mục đích",
-    body: "돌봄 기록 초안 작성, 번역, 관리자 검토·승인. 같은 기관 사람만 열람",
-    bodyVi: "Soạn bản nháp, dịch, quản lý xem xét và duyệt. Chỉ người trong cùng cơ sở xem được",
+    body: "돌봄 기록 초안 작성, 번역, 관리자 검토·승인, 도우미 답변과 교육·업무 지원. 같은 기관 사람만 열람",
+    bodyVi:
+      "Soạn bản nháp, dịch, quản lý xem xét và duyệt, trả lời trợ lý và hỗ trợ học tập, công việc. Chỉ người trong cùng cơ sở xem được",
   },
   {
     icon: "user",
     ko: "수집 항목",
     vi: "Thông tin thu thập",
-    body: "이름, 이메일, 사용 언어, 녹음을 바꾼 글, 돌봄 기록 내용. 어르신 실명·선택 사진은 대상 확인용으로 보관하며 AI 입력에 추가하지 않음. 관찰 본문에는 실명을 쓰지 않음",
+    body: "이름, 이메일, 사용 언어, 녹음을 바꾼 글, 돌봄 기록 내용, 도우미에 물은 질문과 답(관리자·강사가 볼 수 있음). 어르신 실명·선택 사진은 대상 확인용으로 보관하며 AI 입력에 추가하지 않음. 관찰 본문에는 실명을 쓰지 않음",
     bodyVi:
-      "Tên, email, ngôn ngữ, văn bản từ ghi âm, nội dung ghi chép. Lưu tên thật và ảnh tùy chọn của người cao tuổi để nhận diện, không thêm vào dữ liệu gửi AI. Không ghi tên thật trong nội dung quan sát",
+      "Tên, email, ngôn ngữ, văn bản từ ghi âm, nội dung ghi chép, câu hỏi và câu trả lời của trợ lý (người quản lý, giảng viên có thể xem). Lưu tên thật và ảnh tùy chọn của người cao tuổi để nhận diện, không thêm vào dữ liệu gửi AI. Không ghi tên thật trong nội dung quan sát",
   },
   {
     icon: "shield",
