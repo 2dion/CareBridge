@@ -1,6 +1,6 @@
 // records.form_type은 DB에서 smallint(16 / 12)라 Supabase가 숫자로 돌려준다. 공통 계약과 화면은 "16" / "12" 글자를 쓴다.
 // 숫자와 글자를 섞어 비교하다 재가 기록을 시설로 잘못 본 일이 있어(10/29, #115 #116) 변환을 한 곳에 둔다.
-// 근거: 문서/설계/데이터구조-v1.6.6.md 상태 값 목록 records.form_type
+// 근거: 문서/설계/데이터구조-v1.7.md 상태 값 목록 records.form_type
 
 import type { CareType } from "@/lib/agent/validate-draft";
 
