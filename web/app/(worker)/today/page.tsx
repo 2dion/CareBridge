@@ -117,7 +117,7 @@ export default function TodayPage() {
             ))}
           </nav>
         )}
-        <Art name="robot-home-header" width={132} className="art" priority />
+        <Art name="robot-home-header" width={142} className="art" priority />
       </header>
       <div className="home-body">
         {cards.length > 0 && (
