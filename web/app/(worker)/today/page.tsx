@@ -67,7 +67,7 @@ export default function TodayPage() {
   const cards = todayCards(db, today);
   const returned = returnedRecords(db);
   const missed = listMissed(db, today);
-  // 0건인 알림은 뺀다. 둘 다 0건이면 알림 자리만 비고 머리 높이는 그대로(CSS 고정 높이)
+  // 0건인 알림은 뺀다. 두 줄 알림이 있을 때만 CSS에서 머리 높이를 늘린다.
   const allAlerts: HeaderAlert[] = [
     {
       key: "returned",
@@ -93,7 +93,7 @@ export default function TodayPage() {
           <Image
             src="/art/wordmark-white.svg"
             width={150}
-            height={29}
+            height={31}
             alt="케어브릿지"
             className="home-logo"
             priority
