@@ -59,10 +59,14 @@ export default function MePage() {
           alignItems: "center",
         }}
       >
-        <Art name="robot-face" width={64} className="art" />
-        <div>
-          <b style={{ fontSize: 18 }}>{db.worker.name}</b>{" "}
-          <span className="badge badge-green">{names.worker}</span>
+        <Art name="robot-face" width={64} className="art" style={{ margin: 0, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <b style={{ flex: 1, minWidth: 0, fontSize: 18 }}>{db.worker.name}</b>
+            <span className="badge badge-green" style={{ flexShrink: 0, marginLeft: "auto" }}>
+              {names.worker}
+            </span>
+          </div>
           <p style={{ fontSize: 14, color: "var(--color-sub)" }}>{db.worker.org}</p>
           <p style={{ fontSize: 13, color: "var(--color-muted)" }}>{db.worker.email}</p>
         </div>
