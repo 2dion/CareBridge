@@ -39,7 +39,7 @@ function fakeDeps(overrides: Partial<HelperDeps> = {}): HelperDeps {
     })),
     searchManual: vi.fn(async () => [section]),
     searchGlossary: vi.fn(async () => []),
-    translateQuestion: vi.fn(async () => "밥을 안 드셔요"),
+    translateQuestion: vi.fn(async () => ({ text: "밥을 안 드셔요", keywords: [] })),
     askClaude: vi.fn(
       async () =>
         '{"ko":"억지로 권하지 마세요.","vi":"Đừng ép ăn.","source":"10장 120쪽","found":true}',
@@ -63,14 +63,20 @@ describe("askHelper", () => {
     const deps = fakeDeps();
     await askHelper({ question: "밥을 안 드셔요" }, deps);
     expect(deps.translateQuestion).not.toHaveBeenCalled();
-    expect(deps.searchManual).toHaveBeenCalledWith("밥을 안 드셔요");
+    expect(deps.searchManual).toHaveBeenCalledWith("밥을 안 드셔요", []);
   });
 
   it("한글이 없는 질문(베트남어)은 한국어로 옮겨 검색하고, 모델에는 원문도 건넴(#122)", async () => {
-    const deps = fakeDeps();
+    const deps = fakeDeps({
+      translateQuestion: vi.fn(async () => ({
+        text: "밥을 안 드셔요",
+        keywords: ["식사", "거부"],
+      })),
+    });
     const r = await askHelper({ question: "Cụ không chịu ăn cơm" }, deps);
     expect(deps.translateQuestion).toHaveBeenCalledWith("Cụ không chịu ăn cơm");
-    expect(deps.searchManual).toHaveBeenCalledWith("밥을 안 드셔요");
+    // 번역할 때 뽑은 핵심 낱말도 교재 검색에 건넨다(이슈 #219)
+    expect(deps.searchManual).toHaveBeenCalledWith("밥을 안 드셔요", ["식사", "거부"]);
     expect(deps.searchGlossary).toHaveBeenCalledWith("밥을 안 드셔요");
     const message = vi.mocked(deps.askClaude).mock.calls[0][1];
     expect(message).toContain("[질문]\n밥을 안 드셔요");
@@ -85,7 +91,7 @@ describe("askHelper", () => {
       askClaude: vi.fn(async () => null),
     });
     const r = await askHelper({ question: "Cụ không chịu ăn cơm" }, deps);
-    expect(deps.searchManual).toHaveBeenCalledWith("Cụ không chịu ăn cơm");
+    expect(deps.searchManual).toHaveBeenCalledWith("Cụ không chịu ăn cơm", []);
     expect(r).toEqual({ status: 503, body: { error: "ai_not_configured" } });
   });
 
@@ -109,7 +115,7 @@ describe("askHelper", () => {
 
   it("건강·안전 질문(베트남어)은 모델 답에 없어도 안전 안내를 ko·vi 맨 앞에 붙임(#122)", async () => {
     const deps = fakeDeps({
-      translateQuestion: vi.fn(async () => "어르신이 넘어지셨어요"),
+      translateQuestion: vi.fn(async () => ({ text: "어르신이 넘어지셨어요", keywords: [] })),
       searchManual: vi.fn(async () => [fallSection]),
       askClaude: vi.fn(
         async () =>
