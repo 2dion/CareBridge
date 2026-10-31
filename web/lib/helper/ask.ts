@@ -40,10 +40,11 @@ export type HelperDeps = {
     /** 교육용 기관(organizations.is_training)이면 고정 안내에 '강사'를 쓴다(이슈 #180) */
     isTraining?: boolean;
   } | null>;
-  searchManual(question: string): Promise<ManualSection[]>;
+  /** keywords: 번역할 때 AI가 뽑은 핵심 낱말(이슈 #219). 한국어 질문은 빈 배열 */
+  searchManual(question: string, keywords: string[]): Promise<ManualSection[]>;
   searchGlossary(question: string): Promise<GlossaryTerm[]>;
-  /** 한글이 없는 질문을 한국어로 옮긴다(가벼운 모델 한 번). 키가 없으면 null */
-  translateQuestion(question: string): Promise<string | null>;
+  /** 한글이 없는 질문을 한국어로 옮기고 교재 검색용 핵심 낱말을 뽑는다(가벼운 모델 한 번). 키가 없으면 null */
+  translateQuestion(question: string): Promise<{ text: string; keywords: string[] } | null>;
   /** 가벼운 모델 한 번 호출. 키가 없으면 null */
   askClaude(system: string, user: string): Promise<string | null>;
   /** 답한 질문을 helper_messages에 넣는다(서버 전용). 넣지 못하면 null — 답은 그대로 돌려준다 */
@@ -77,7 +78,7 @@ export function safetyNotice(names: RoleNames = roleNames(false)) {
 /** 일반 기관 기준 문구(관리자) */
 export const SAFETY_NOTICE = safetyNotice();
 
-// 낙상·호흡·의식·통증·출혈·투약 사고. 한국어와 베트남어 낱말을 모두 본다(원문 질문과 번역한 질문 둘 다 검사).
+// 낙상·호흡·질식·의식·통증·출혈·투약 사고(질식은 이슈 #220). 한국어와 베트남어 낱말을 모두 본다(원문 질문과 번역한 질문 둘 다 검사).
 export const SAFETY_KEYWORDS = {
   ko: [
     "낙상",
@@ -86,6 +87,9 @@ export const SAFETY_KEYWORDS = {
     "호흡",
     "숨이",
     "숨을",
+    "질식",
+    "사레",
+    "목에 걸",
     "의식",
     "통증",
     "아파",
@@ -103,6 +107,9 @@ export const SAFETY_KEYWORDS = {
     "té",
     "khó thở",
     "ngạt",
+    "nghẹn",
+    "nghẹt thở",
+    "sặc",
     "bất tỉnh",
     "hôn mê",
     "ngất",
@@ -211,9 +218,9 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   }
 
   // 한글이 없는 질문(베트남어 등)은 한국어로 옮겨 검색한다. 키가 없으면(null) 원문 그대로 검색한다.
-  const questionKo = isNotKorean(question)
-    ? (await deps.translateQuestion(question))?.trim() || question
-    : question;
+  const translated = isNotKorean(question) ? await deps.translateQuestion(question) : null;
+  const questionKo = translated?.text.trim() || question;
+  const keywords = translated?.keywords ?? [];
   // 안전 안내는 모델 답과 상관없이 서버가 붙인다(W6 3번). 원문과 번역 둘 다 검사한다.
   const safety = isSafetyQuestion(question, questionKo);
   // 교육용 기관이면 고정 안내의 '관리자'를 '강사'로(이슈 #180)
@@ -243,7 +250,7 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   };
 
   const [sections, terms] = await Promise.all([
-    deps.searchManual(questionKo),
+    deps.searchManual(questionKo, keywords),
     deps.searchGlossary(questionKo),
   ]);
   if (sections.length === 0 && terms.length === 0) return finish(notFound);

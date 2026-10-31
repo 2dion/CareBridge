@@ -8,26 +8,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import type { GlossaryTerm, HelperDeps, ManualSection } from "./ask";
+import { rankSections } from "./manual-rank";
 import type { HelperMessagesDeps, StoredHelperRow } from "./messages";
 
 // 교재 검색은 로그인한 사람 권한(manual_sections·glossary는 기관 공통 읽기). 상위 3절만 Claude에 건넨다(W6 1번).
 const MAX_SECTIONS = 3;
-
-// 낱말 끝 조사. simple 사전은 조사를 떼지 않아 "신체활동지원이"가 "신체활동지원"과 맞지 않는다(이슈 #183).
-const KO_PARTICLE = /(이란|에는|에서|으로|이나|이랑|하고|은|는|이|가|을|를|에|의|도|로|란)$/u;
-
-/** 질문을 낱말로 나눠 하나라도 맞는 절을 찾는다(manual_sections.search는 simple 사전). 조사를 뗀 낱말도 함께 찾는다 */
-export function manualQuery(question: string) {
-  const words = question
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .filter((word) => word.length >= 2)
-    .slice(0, 10);
-  const stems = words
-    .map((word) => word.replace(KO_PARTICLE, ""))
-    .filter((stem) => stem.length >= 2);
-  return [...new Set([...words, ...stems])].join(" or ");
-}
 
 export async function createHelperDeps(): Promise<HelperDeps> {
   const supabase = await createSupabaseServerClient();
@@ -62,16 +47,13 @@ export async function createHelperDeps(): Promise<HelperDeps> {
       if (error) throw new Error(`도우미 대화 저장 실패: ${error.message}`);
       return data as { id: string; created_at: string };
     },
-    async searchManual(question) {
-      const query = manualQuery(question);
-      if (!query) return [];
+    async searchManual(question, keywords) {
+      // 교재는 13절뿐이라 전부 가져와 앱에서 순위를 매긴다(이슈 #219): 흔한 말에 밀려 필요한 절이 빠지지 않게
       const { data, error } = await supabase
         .from("manual_sections")
-        .select("chapter, title, page, body")
-        .textSearch("search", query, { type: "websearch", config: "simple" })
-        .limit(MAX_SECTIONS);
+        .select("chapter, title, page, body");
       if (error) throw new Error(`교재 검색 실패: ${error.message}`);
-      return (data ?? []) as ManualSection[];
+      return rankSections((data ?? []) as ManualSection[], question, keywords, MAX_SECTIONS);
     },
     async searchGlossary(question) {
       const { data, error } = await supabase.rpc("search_glossary", {
