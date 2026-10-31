@@ -32,8 +32,12 @@ function parseTranslation(raw: string): string | null {
   }
 }
 
-/** 가벼운 모델에 한 번 묻고 {"text"}를 꺼낸다. 형식이 틀리면 한 번 다시 요청한다. */
-async function translateOnce(system: string, content: string): Promise<string> {
+/** 가벼운 모델에 한 번 묻고 parse로 답을 꺼낸다. 형식이 틀리면 한 번 다시 요청한다. */
+async function askOnce<T>(
+  system: string,
+  content: string,
+  parse: (raw: string) => T | null,
+): Promise<T> {
   const client = getClaudeClient();
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await client.messages.create({
@@ -45,11 +49,14 @@ async function translateOnce(system: string, content: string): Promise<string> {
     const text = response.content
       .map((block) => (block.type === "text" ? block.text : ""))
       .join("");
-    const translated = parseTranslation(text);
-    if (translated) return translated;
+    const parsed = parse(text);
+    if (parsed) return parsed;
   }
   throw new Error("translation_failed");
 }
+
+const translateOnce = (system: string, content: string) =>
+  askOnce(system, content, parseTranslation);
 
 export async function translateShort(textKo: string, lang: NativeLang): Promise<string> {
   if (lang === "ko" || textKo.trim() === "") return "";
@@ -62,11 +69,38 @@ export async function translateShort(textKo: string, lang: NativeLang): Promise<
 const QUESTION_SYSTEM = [
   "너는 외국인 요양보호사가 한 질문을 한국어로 번역한다. 질문은 베트남어일 수 있다.",
   "뜻을 더하거나 빼지 않고, 답하지 않는다. 요양 용어는 한국 요양보호사 교재의 말을 쓴다(예: 신체활동지원, 체위변경, 낙상).",
-  '다른 말 없이 JSON 한 줄로만 답한다: {"text": "한국어 질문"}',
+  // 교재 검색은 낱말이 그대로 맞아야 찾는다. 번역문에 '숨쉬기'가 있어도 교재는 '호흡'이라 쓰므로 교재 말도 같이 받는다(이슈 #219)
+  "keywords에는 교재에서 답을 찾을 때 쓸 핵심 낱말을 2~5개 쓴다. '어떻게·무엇' 같은 흔한 말은 빼고, 요양보호사 교재에 나오는 말과 비슷한 말을 함께 쓴다(예: 숨쉬기 힘들다 → 호흡, 숨, 호흡곤란).",
+  '다른 말 없이 JSON 한 줄로만 답한다: {"text": "한국어 질문", "keywords": ["낱말"]}',
 ].join("\n");
 
-export async function translateQuestionKo(question: string): Promise<string | null> {
+export function parseQuestionTranslation(raw: string): { text: string; keywords: string[] } | null {
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as { text?: unknown; keywords?: unknown };
+    if (typeof parsed.text !== "string" || !parsed.text.trim()) return null;
+    const keywords = Array.isArray(parsed.keywords)
+      ? [
+          ...new Set(
+            parsed.keywords
+              .filter((word): word is string => typeof word === "string")
+              .map((word) => word.trim())
+              .filter((word) => word.length >= 2 && word.length <= 20),
+          ),
+        ].slice(0, 6)
+      : [];
+    return { text: parsed.text.trim(), keywords };
+  } catch {
+    return null;
+  }
+}
+
+export async function translateQuestionKo(
+  question: string,
+): Promise<{ text: string; keywords: string[] } | null> {
   if (question.trim() === "") return null;
   if (getAiMode() === "mock") return null;
-  return translateOnce(QUESTION_SYSTEM, question);
+  return askOnce(QUESTION_SYSTEM, question, parseQuestionTranslation);
 }
