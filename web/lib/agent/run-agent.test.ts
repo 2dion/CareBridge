@@ -168,6 +168,8 @@ describe("agentSystemPrompt", () => {
   it("특이사항·다음 확인사항을 지어내지 말고, 번역에 성별을 정하지 말라고 함", () => {
     const prompt = agentSystemPrompt("facility", "vi");
     expect(prompt).toContain("notes(특이사항)와 next_check(다음 확인사항)도 같다");
+    // 이슈 #205: 건강·안전 신호만 특이사항에도 쓴다(AI 규칙 v1.1.5 확인 필요 4번)
+    expect(prompt).toContain("notes에도 그 사실만 짧게 쓴다");
     expect(prompt).toContain("성별을 정하지 않는다");
     expect(prompt).toContain("ông/bà");
   });

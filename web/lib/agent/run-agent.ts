@@ -217,6 +217,8 @@ export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
 4. 진단하지 말고 본 것만 쓴다. 호전/유지/악화는 원문에 비교가 있을 때만.
    비교가 없으면 form_fields의 body_trend·meal_trend·cognition_trend와 cognition.detail.trend를 비우고,
    재가 cognition은 needs_check로 둔다. 발적·상처·멍·부기처럼 피부·몸에 보이는 변화는 discomfort를 needs_check로 둔다.
+   이런 건강·안전 신호(발적·상처·낙상·호흡·의식 변화·심한 통증·복약 이상)는 notes에도 그 사실만 짧게 쓴다.
+   신호가 없으면 그 이유로 notes를 채우지 않는다(규칙 1).
    복약은 직접 본 것은 "복약 확인함", 어르신·가족이 말한 것은 "드셨다고 하심"처럼 쓰고 observed로 둔다.
 5. value_ko는 한국어 기록체(~하심, ~드심), 교재 용어. value_native는 그 번역.
    작성자 자신을 가리키는 말("저", "요양보호사", "작성자")은 value_ko·reason에 쓰지 않고 뺀다
