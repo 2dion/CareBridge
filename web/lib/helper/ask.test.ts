@@ -216,6 +216,13 @@ describe("isSafetyQuestion", () => {
     expect(isSafetyQuestion("Cụ kêu đau bụng")).toBe(true);
     expect(isSafetyQuestion("Cụ khó thở".normalize("NFD"))).toBe(true);
     expect(isSafetyQuestion("Cụ uống thuốc hai lần")).toBe(true);
+    // 질식·사레·목에 걸림(이슈 #220)
+    expect(isSafetyQuestion("어르신이 식사 중에 질식한 것 같아요")).toBe(true);
+    expect(isSafetyQuestion("사레가 들려서 기침을 하세요")).toBe(true);
+    expect(isSafetyQuestion("음식이 목에 걸렸어요")).toBe(true);
+    expect(isSafetyQuestion("Cụ bị nghẹn khi ăn")).toBe(true);
+    expect(isSafetyQuestion("Cụ bị nghẹt thở khi ăn")).toBe(true);
+    expect(isSafetyQuestion("Cụ bị sặc nước")).toBe(true);
   });
 
   it("일상 질문은 안전 질문이 아님", () => {

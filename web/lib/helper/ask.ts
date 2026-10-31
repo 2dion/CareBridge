@@ -63,7 +63,7 @@ export function safetyNotice(names: RoleNames = roleNames(false)) {
 /** 일반 기관 기준 문구(관리자) */
 export const SAFETY_NOTICE = safetyNotice();
 
-// 낙상·호흡·의식·통증·출혈·투약 사고. 한국어와 베트남어 낱말을 모두 본다(원문 질문과 번역한 질문 둘 다 검사).
+// 낙상·호흡·질식·의식·통증·출혈·투약 사고(질식은 이슈 #220). 한국어와 베트남어 낱말을 모두 본다(원문 질문과 번역한 질문 둘 다 검사).
 export const SAFETY_KEYWORDS = {
   ko: [
     "낙상",
@@ -72,6 +72,9 @@ export const SAFETY_KEYWORDS = {
     "호흡",
     "숨이",
     "숨을",
+    "질식",
+    "사레",
+    "목에 걸",
     "의식",
     "통증",
     "아파",
@@ -89,6 +92,9 @@ export const SAFETY_KEYWORDS = {
     "té",
     "khó thở",
     "ngạt",
+    "nghẹn",
+    "nghẹt thở",
+    "sặc",
     "bất tỉnh",
     "hôn mê",
     "ngất",
