@@ -31,6 +31,10 @@ export class AgentRunError extends Error {
   }
 }
 
+// 응답 전체 제한. Vercel이 maxDuration(300초)에 함수를 끊으면 실패를 기록하지 못해 W3가 '정리 중'에 남는다(이슈 #235).
+// 받아쓰기 시간을 뺀 여유를 두고, 넘으면 실패로 끝내 [다시 시도]를 보이게 한다.
+const AGENT_TIME_LIMIT_MS = 240_000;
+
 const minutes = (time: string) => {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
@@ -120,6 +124,7 @@ export async function runAgentForRecord(
   const stepOffset = count ?? 0;
 
   const claude = getClaudeClient();
+  const deadline = AbortSignal.timeout(AGENT_TIME_LIMIT_MS);
   const deps: AgentDeps = {
     async callClaude(system, messages) {
       // 시스템 프롬프트·도구 정의와 지금까지의 대화에 캐시 표시(프롬프트 캐싱). 적중은 코디세이 콘솔 '캐시' 칸으로 확인
@@ -131,7 +136,7 @@ export async function runAgentForRecord(
           tools: AGENT_TOOLS as unknown as Anthropic.Tool[],
           messages: withConversationCache(messages) as unknown as Anthropic.MessageParam[],
         },
-        { timeout: 90_000, maxRetries: 1 }, // 시간 초과·연결 오류는 한 번 다시
+        { timeout: 90_000, maxRetries: 1, signal: deadline }, // 시간 초과·연결 오류는 한 번 다시
       );
       const content = response.content.flatMap((block): ContentBlock[] => {
         if (block.type === "text") return [{ type: "text", text: block.text }];
@@ -174,6 +179,14 @@ export async function runAgentForRecord(
   };
 
   const result = await runAgent({ transcript, careType, nativeLang, context }, deps);
+  // 초안을 만들었으니 앞서 실패했거나 멈춘 녹음 작업을 끝낸다. 남겨 두면 W3가 실패·정리 중으로 보인다(이슈 #234)
+  const { error: jobError } = await serverClient
+    .from("audio_jobs")
+    .update({ status: "done", error: "" })
+    .eq("record_id", recordId)
+    .eq("target", "record")
+    .neq("status", "done");
+  if (jobError) console.error("audio job cleanup failed", recordId, jobError.message);
   const { data: saved } = await userClient
     .from("records")
     .select("form_fields")

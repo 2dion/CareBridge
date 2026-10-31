@@ -175,12 +175,22 @@ export function mapAssignments(rows: AssignmentRow[]): Assignment[] {
   }));
 }
 
+/** 처리가 이만큼 지나면 서버가 끊긴 것으로 본다. /audio·agent-run의 maxDuration(300초)보다 조금 길게(이슈 #235) */
+export const PROCESSING_LIMIT_MS = 6 * 60 * 1000;
+
 /** 정리 중·실패는 기록 전체 녹음 작업(audio_jobs)의 마지막 상태로 본다 */
-export function draftStateOf(record: RecordRow, items: ItemRow[], jobs: AudioJobRow[]): DraftState {
+export function draftStateOf(
+  record: RecordRow,
+  items: ItemRow[],
+  jobs: AudioJobRow[],
+  now = Date.now(),
+): DraftState {
   const last = jobs
     .filter((job) => job.record_id === record.id && job.target === "record")
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
-  if (last && ["uploaded", "transcribing", "filling"].includes(last.status)) return "processing";
+  if (last && ["uploaded", "transcribing", "filling"].includes(last.status)) {
+    return now - Date.parse(last.created_at) > PROCESSING_LIMIT_MS ? "failed" : "processing";
+  }
   if (last?.status === "failed") return "failed";
   const touched = items.some(
     (item) => item.source !== "ai" || item.status !== "not_mentioned" || item.confirmed_by_worker,
