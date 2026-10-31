@@ -28,7 +28,7 @@ import {
 } from "@/lib/demo/store";
 import { createRealActions, type RealActions } from "@/lib/real/actions";
 import { loadRealDb, NotSignedInError } from "@/lib/real/load";
-import type { JoinCode } from "@/lib/real/map";
+import { type JoinCode, textRunStateOf } from "@/lib/real/map";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export type RealContext = {
@@ -81,9 +81,29 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// [글로 쓰기] 처리는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다. 이 탭에 시작 시각을 남긴다(이슈 #237)
+const TEXT_RUNS_KEY = "carebridge.text-runs";
+
+function readTextRuns(): Record<string, number> {
+  try {
+    return JSON.parse(window.sessionStorage.getItem(TEXT_RUNS_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveTextRuns(runs: Record<string, number>) {
+  try {
+    window.sessionStorage.setItem(TEXT_RUNS_KEY, JSON.stringify(runs));
+  } catch {
+    // 저장이 막혀도 요청이 도는 동안은 running으로 '정리 중'을 보인다
+  }
+}
+
 function RealProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{
     db: DemoDb;
+    loadedAt: number;
     today: string;
     role: RealContext["role"];
     userId: string;
@@ -91,6 +111,9 @@ function RealProvider({ children }: { children: ReactNode }) {
     nativeLang: "ko" | "vi";
     joinCodes: JoinCode[];
   } | null>(null);
+  const [textRuns, setTextRuns] = useState<Record<string, number>>(() =>
+    typeof window === "undefined" ? {} : readTextRuns(),
+  );
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const reload = useCallback(async () => {
@@ -99,7 +122,20 @@ function RealProvider({ children }: { children: ReactNode }) {
     const today = kstToday();
     try {
       const next = await loadRealDb(supabase, today);
-      if (seq === loadSeq) setState({ today, ...next });
+      if (seq === loadSeq) {
+        const loadedAt = Date.now();
+        setState({ today, loadedAt, ...next });
+        setTextRuns((prev) => {
+          const kept = Object.fromEntries(
+            Object.entries(prev).filter(([id, startedAt]) => {
+              const record = next.db.records[id];
+              return record && textRunStateOf(record.items, startedAt, loadedAt) !== null;
+            }),
+          );
+          saveTextRuns(kept);
+          return kept;
+        });
+      }
     } catch (error) {
       if (error instanceof NotSignedInError) {
         setState(null);
@@ -133,16 +169,6 @@ function RealProvider({ children }: { children: ReactNode }) {
     };
   }, [reload, supabase]);
 
-  // 정리 중(받아쓰기·Agent)인 기록이 있으면 끝날 때까지 3초마다 다시 읽는다
-  const processing = state
-    ? Object.values(state.db.records).some((record) => record.draftState === "processing")
-    : false;
-  useEffect(() => {
-    if (!processing) return;
-    const timer = window.setInterval(() => void reload(), 3000);
-    return () => window.clearInterval(timer);
-  }, [processing, reload]);
-
   // [글로 쓰기]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다.
   // [글로 쓰기]는 서버가 다시 읽히기 전에도 입력 방법을 '글'로 보여, '정리 중'에 음성 단계가 나오지 않게 한다(이슈 #135)
   type Running = { draftState: "processing" | "failed"; inputMode?: DemoRecord["inputMode"] };
@@ -155,7 +181,21 @@ function RealProvider({ children }: { children: ReactNode }) {
       inputMode?: DemoRecord["inputMode"],
     ) => {
       setRunning((prev) => ({ ...prev, [id]: { draftState: "processing", inputMode } }));
+      const startText = inputMode === "text";
+      if (startText) {
+        setTextRuns((prev) => {
+          const next = { ...prev, [id]: Date.now() };
+          saveTextRuns(next);
+          return next;
+        });
+      }
       const result = await run();
+      setTextRuns((prev) => {
+        const { [id]: finished, ...next } = prev;
+        if (finished === undefined) return prev;
+        saveTextRuns(next);
+        return next;
+      });
       setRunning((prev) => {
         const next = { ...prev };
         if (result.ok) delete next[id];
@@ -191,15 +231,29 @@ function RealProvider({ children }: { children: ReactNode }) {
 
   const db = useMemo(() => {
     if (!state) return null;
-    const ids = Object.keys(running).filter((id) => state.db.records[id]);
-    if (ids.length === 0) return state.db;
     const records = { ...state.db.records };
-    for (const id of ids) {
-      const { draftState, inputMode } = running[id];
+    for (const [id, startedAt] of Object.entries(textRuns)) {
+      const draftState =
+        records[id] && textRunStateOf(records[id].items, startedAt, state.loadedAt);
+      if (draftState) records[id] = { ...records[id], draftState, inputMode: "text" };
+    }
+    for (const [id, { draftState, inputMode }] of Object.entries(running)) {
+      if (!records[id]) continue;
       records[id] = { ...records[id], draftState, ...(inputMode ? { inputMode } : {}) };
     }
     return { ...state.db, records };
-  }, [state, running]);
+  }, [state, running, textRuns]);
+
+  // 정리 중(받아쓰기·Agent)인 기록이 있으면 끝날 때까지 3초마다 다시 읽는다
+  const processing = db
+    ? Object.values(db.records).some((record) => record.draftState === "processing")
+    : false;
+  useEffect(() => {
+    if (!processing) return;
+    const timer = window.setInterval(() => void reload(), 3000);
+    return () => window.clearInterval(timer);
+  }, [processing, reload]);
+
   const noop = useCallback(() => {}, []);
 
   const value = useMemo<DemoContext | null>(

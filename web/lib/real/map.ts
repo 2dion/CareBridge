@@ -178,6 +178,25 @@ export function mapAssignments(rows: AssignmentRow[]): Assignment[] {
 /** 처리가 이만큼 지나면 서버가 끊긴 것으로 본다. /audio·agent-run의 maxDuration(300초)보다 조금 길게(이슈 #235) */
 export const PROCESSING_LIMIT_MS = 6 * 60 * 1000;
 
+/** AI 초안이나 작성자 손길이 닿은 항목이 있는가 */
+export function draftTouched(
+  items: Pick<ItemRow, "source" | "status" | "confirmed_by_worker">[],
+): boolean {
+  return items.some(
+    (item) => item.source !== "ai" || item.status !== "not_mentioned" || item.confirmed_by_worker,
+  );
+}
+
+/** [글로 쓰기] 처리는 작업 행이 없어 시작 시각으로 본다(이슈 #237). 초안이 생겼으면 null(끝남) */
+export function textRunStateOf(
+  items: Pick<ItemRow, "source" | "status" | "confirmed_by_worker">[],
+  startedAt: number,
+  now: number,
+): "processing" | "failed" | null {
+  if (draftTouched(items)) return null;
+  return now - startedAt > PROCESSING_LIMIT_MS ? "failed" : "processing";
+}
+
 /** 정리 중·실패는 기록 전체 녹음 작업(audio_jobs)의 마지막 상태로 본다 */
 export function draftStateOf(
   record: RecordRow,
@@ -192,10 +211,7 @@ export function draftStateOf(
     return now - Date.parse(last.created_at) > PROCESSING_LIMIT_MS ? "failed" : "processing";
   }
   if (last?.status === "failed") return "failed";
-  const touched = items.some(
-    (item) => item.source !== "ai" || item.status !== "not_mentioned" || item.confirmed_by_worker,
-  );
-  return record.transcript.trim() || touched ? "ready" : "empty";
+  return record.transcript.trim() || draftTouched(items) ? "ready" : "empty";
 }
 
 /** 입력 방법: 기록 전체 녹음 작업(audio_jobs.target = record)이 있으면 음성, 없고 원문만 있으면 글(이슈 #135).
