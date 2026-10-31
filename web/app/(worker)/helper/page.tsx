@@ -2,9 +2,10 @@
 
 // W6(도우미): 교재 근거 질문·답. 기록을 대신 쓰거나 고치지 않는다.
 // 답변은 남이 쓴 내용이라 병기(원칙 ②), 내 질문은 그대로(①).
-// 대화는 서버에 저장하지 않고 로그인한 계정별로 이 브라우저 안에만 남긴다(이슈 #152, lib/helper/history.ts).
+// 대화는 서버(helper_messages)에 남기고, 열 때 GET /api/helper/messages로 지난 대화를 불러와 이어 보인다(이슈 #218).
+// 실제 모드는 브라우저 저장을 쓰지 않는다. Supabase 설정이 없는 Mock만 계정별로 이 브라우저 안에 남긴다(이슈 #152, lib/helper/history.ts).
 import { useSearchParams } from "next/navigation";
-import { type FormEvent, Fragment, useEffect, useRef, useState } from "react";
+import { type FormEvent, Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
@@ -50,21 +51,56 @@ export default function HelperPage() {
 function HelperChat({ userId }: { userId: string }) {
   const demo = useDemo();
   const search = useSearchParams();
-  // 화면을 열 때(다른 탭에서 돌아오기·새로 고침) 이 계정의 대화를 되살린다. 데이터가 읽힌 뒤(브라우저)에만 마운트된다
+  const real = demo?.real;
+  // Mock만 화면을 열 때 이 브라우저에 남은 대화를 되살린다. 실제 모드는 서버에서 불러온다(아래). 데이터가 읽힌 뒤(브라우저)에만 마운트된다
   const [messages, setMessages] = useState<Message[]>(() =>
-    loadHelperHistory(browserStorage(), userId),
+    real ? [] : loadHelperHistory(browserStorage(), userId),
   );
   // 교육용 기관이면 보고 상대가 '강사'(이슈 #146)
   const names = useRoleNames();
   const [text, setText] = useState("");
   const [clearOpen, setClearOpen] = useState(false);
+  // 지난 대화 불러오기: 실제 모드만. 실패하면 맨 위에 안내를 두고 새 질문은 그대로 할 수 있다
+  const [history, setHistory] = useState<"loading" | "done" | "error">(real ? "loading" : "done");
+  const historyLoaded = useRef(false);
   const nextId = useRef(messages.reduce((max, row) => Math.max(max, row.id), 0) + 1);
   const bottom = useRef<HTMLDivElement>(null);
 
-  // 대화가 바뀔 때마다 저장(최근 50개)
+  const loadHistory = useCallback(() => {
+    if (!real) return;
+    void real.actions.helperMessages().then((result) => {
+      if (historyLoaded.current) return;
+      if (!result.ok) {
+        setHistory("error");
+        return;
+      }
+      historyLoaded.current = true;
+      // 불러오는 사이 새로 물은 질문이 있어도 지난 대화는 그 위쪽에 놓는다
+      const past: Message[] = result.data.messages.flatMap((row) => {
+        const meId = nextId.current;
+        nextId.current += 2;
+        return [
+          { id: meId, from: "me" as const, text: row.question, at: row.created_at },
+          { id: meId + 1, from: "bot" as const, state: "done" as const, answer: row.answer },
+        ];
+      });
+      setMessages((prev) => [...past, ...prev]);
+      setHistory("done");
+    });
+  }, [real]);
+
   useEffect(() => {
+    if (!real) return;
+    // 예전(#152)에 이 브라우저에 남은 도우미 대화는 서버 기록으로 옮겨 가므로 지운다
+    clearHelperHistory(browserStorage(), userId);
+    loadHistory();
+  }, [real, userId, loadHistory]);
+
+  // Mock만: 대화가 바뀔 때마다 이 브라우저에 저장(최근 50개)
+  useEffect(() => {
+    if (real) return;
     saveHelperHistory(browserStorage(), userId, messages);
-  }, [messages, userId]);
+  }, [real, messages, userId]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end", behavior: "smooth" });
@@ -91,13 +127,23 @@ function HelperChat({ userId }: { userId: string }) {
       setMessages((prev) => prev.map((m) => (m.id === replaceId ? loading : m)));
     }
     if (demo?.real) {
-      // POST /api/helper/ask: 교재에서 찾은 내용만으로 답한다. 서버는 답을 저장하지 않는다
+      // POST /api/helper/ask: 교재에서 찾은 내용만으로 답한다. 서버가 답한 질문을 helper_messages에 남긴다
       void demo.real.actions.askHelper(q).then((result) => {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === botId
               ? result.ok
-                ? { id: botId, from: "bot", state: "done", answer: result.data }
+                ? {
+                    id: botId,
+                    from: "bot",
+                    state: "done",
+                    answer: {
+                      ko: result.data.ko,
+                      vi: result.data.vi,
+                      source: result.data.source,
+                      found: result.data.found,
+                    },
+                  }
                 : { id: botId, from: "bot", state: "error", question: q }
               : m,
           ),
@@ -140,7 +186,8 @@ function HelperChat({ userId }: { userId: string }) {
         title="도우미"
         vi="Trợ lý chăm sóc"
         right={
-          messages.length > 0 ? (
+          // 서버 기록은 작성자가 지우지 않으므로 실제 모드에서는 숨긴다. Mock 데모만 있다
+          !real && messages.length > 0 ? (
             <button type="button" className="text-link" onClick={() => setClearOpen(true)}>
               대화 지우기
               <span className="vi" style={{ display: "block", fontSize: 11 }}>
@@ -153,9 +200,38 @@ function HelperChat({ userId }: { userId: string }) {
       <div className="reason-box big helper-notice" role="note">
         <b>건강·안전 문제는 {names.reviewer}에게 먼저 보고하세요.</b>
         <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo {names.reviewerVi}.</span>
+        <span>
+          질문과 답은 저장되고 {names.reviewer}가 볼 수 있어요. 어르신·가족 실명은 쓰지 마세요.
+        </span>
+        <span className="vi">
+          Câu hỏi và câu trả lời được lưu lại, {names.reviewerVi} có thể xem. Đừng ghi tên thật của
+          người cao tuổi và gia đình.
+        </span>
       </div>
       <div className="chat" aria-live="polite">
-        {messages.length === 0 && (
+        {history === "error" && (
+          <div className="form-error box" role="alert">
+            <Icon name="alert" />
+            <div>
+              <b>지난 대화를 불러오지 못했어요.</b>
+              <span className="vi">Không thể tải cuộc trò chuyện trước đó.</span>
+              <button
+                type="button"
+                className="text-link"
+                onClick={() => {
+                  setHistory("loading");
+                  loadHistory();
+                }}
+              >
+                다시 불러오기
+                <span className="vi" style={{ display: "block", fontSize: 11 }}>
+                  Tải lại
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+        {messages.length === 0 && history !== "loading" && (
           <div className="stack" style={{ alignItems: "center", gap: 8, marginTop: 24 }}>
             <Art name="robot-face" width={120} />
             <p style={{ fontSize: 16, fontWeight: 700 }}>일하다 막히면 물어보세요.</p>

@@ -1,4 +1,4 @@
-// ⑤ 도우미 답(W6): 교재 매뉴얼(manual_sections)과 용어 목록(glossary)에서 찾은 내용만으로 답한다. 답은 저장하지 않는다.
+// ⑤ 도우미 답(W6): 교재 매뉴얼(manual_sections)과 용어 목록(glossary)에서 찾은 내용만으로 답한다. 답한 질문은 helper_messages에 남긴다(이슈 #218).
 // 근거: 문서/설계/ai규칙-v1.1.5.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v1.7.md '공통 계약' helper/ask
 // DB·Claude 호출은 HelperDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 // 이슈 #122: 교재 검색과 search_glossary는 한국어만 맞으므로, 한글이 없는 질문(베트남어 등)은 먼저 한국어로 옮겨 검색한다.
@@ -20,6 +20,18 @@ export type GlossaryTerm = {
 };
 export type HelperAnswer = { ko: string; vi: string; source: string | null; found: boolean };
 
+/** helper_messages에 넣는 1행(질문 1개 + 답 1개). org_id·id·created_at은 DB가 채운다 */
+export type HelperMessageRow = {
+  worker_id: string;
+  question: string;
+  question_ko: string;
+  answer_ko: string;
+  answer_native: string;
+  source: string;
+  found: boolean;
+  safety: boolean;
+};
+
 export type HelperDeps = {
   currentUser(): Promise<{
     id: string;
@@ -35,6 +47,8 @@ export type HelperDeps = {
   translateQuestion(question: string): Promise<{ text: string; keywords: string[] } | null>;
   /** 가벼운 모델 한 번 호출. 키가 없으면 null */
   askClaude(system: string, user: string): Promise<string | null>;
+  /** 답한 질문을 helper_messages에 넣는다(서버 전용). 넣지 못하면 null — 답은 그대로 돌려준다 */
+  saveMessage(row: HelperMessageRow): Promise<{ id: string; created_at: string } | null>;
 };
 
 export const MAX_QUESTION_CHARS = 500;
@@ -187,7 +201,7 @@ export function parseHelperAnswer(raw: string): HelperAnswer | null {
   }
 }
 
-// POST /api/helper/ask — 작성자. 입력 question. 출력 ko·vi·source·found
+// POST /api/helper/ask — 작성자. 입력 question. 출력 ko·vi·source·found + id·created_at(저장한 행, 저장이 실패하면 null)
 export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiResult> {
   const user = await deps.currentUser();
   if (!user) return { status: 401, body: { error: "not_signed_in" } };
@@ -212,11 +226,26 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   // 교육용 기관이면 고정 안내의 '관리자'를 '강사'로(이슈 #180)
   const names = roleNames(Boolean(user.isTraining));
   const notFound = notFoundAnswer(names);
-  const finish = (answer: HelperAnswer): ApiResult => {
+  // 200으로 답하는 길은 모두 여기를 지난다. 답한 질문만(교재에서 못 찾은 답 포함) 남기고, 실패 응답은 남기지 않는다.
+  const finish = async (answer: HelperAnswer): Promise<ApiResult> => {
     const base = answer.found ? answer : notFound;
+    const shown = localized(
+      safety ? withSafetyNotice(base, safetyNotice(names)) : base,
+      user.nativeLang,
+    );
+    const saved = await saveQuietly(deps, {
+      worker_id: user.id,
+      question,
+      question_ko: questionKo !== question ? questionKo : "",
+      answer_ko: shown.ko,
+      answer_native: shown.vi,
+      source: shown.source ?? "",
+      found: shown.found,
+      safety,
+    });
     return {
       status: 200,
-      body: localized(safety ? withSafetyNotice(base, safetyNotice(names)) : base, user.nativeLang),
+      body: { ...shown, id: saved?.id ?? null, created_at: saved?.created_at ?? null },
     };
   };
 
@@ -236,6 +265,16 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
     if (answer) return finish(answer);
   }
   return { status: 502, body: { error: "helper_failed" } };
+}
+
+// 저장이 실패해도 작성자는 답을 받아야 하므로 오류는 서버 기록에만 남기고 null을 돌려준다
+async function saveQuietly(deps: HelperDeps, row: HelperMessageRow) {
+  try {
+    return await deps.saveMessage(row);
+  } catch (error) {
+    console.error("helper_messages 저장 실패", error);
+    return null;
+  }
 }
 
 const localized = (answer: HelperAnswer, lang: NativeLang) =>

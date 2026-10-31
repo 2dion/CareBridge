@@ -30,6 +30,8 @@ const term = {
   page: "88",
 };
 
+const SAVED = { id: "m1", created_at: "2026-10-31T01:00:00.123456+00:00" };
+
 function fakeDeps(overrides: Partial<HelperDeps> = {}): HelperDeps {
   return {
     currentUser: vi.fn(async () => ({
@@ -44,6 +46,7 @@ function fakeDeps(overrides: Partial<HelperDeps> = {}): HelperDeps {
       async () =>
         '{"ko":"억지로 권하지 마세요.","vi":"Đừng ép ăn.","source":"10장 120쪽","found":true}',
     ),
+    saveMessage: vi.fn(async () => SAVED),
     ...overrides,
   };
 }
@@ -54,7 +57,13 @@ describe("askHelper", () => {
     const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
     expect(r).toEqual({
       status: 200,
-      body: { ko: "억지로 권하지 마세요.", vi: "Đừng ép ăn.", source: "10장 120쪽", found: true },
+      body: {
+        ko: "억지로 권하지 마세요.",
+        vi: "Đừng ép ăn.",
+        source: "10장 120쪽",
+        found: true,
+        ...SAVED,
+      },
     });
     expect(vi.mocked(deps.askClaude).mock.calls[0][1]).toContain("억지로 권하지 않는다.");
   });
@@ -99,7 +108,7 @@ describe("askHelper", () => {
     const deps = fakeDeps({ searchManual: vi.fn(async () => []) });
     expect(await askHelper({ question: "주식 시세" }, deps)).toEqual({
       status: 200,
-      body: NOT_FOUND,
+      body: { ...NOT_FOUND, ...SAVED },
     });
     expect(deps.askClaude).not.toHaveBeenCalled();
   });
@@ -110,7 +119,10 @@ describe("askHelper", () => {
         async () => '{"ko":"물을 자주 드리세요.","vi":"Cho uống nước.","source":"","found":false}',
       ),
     });
-    expect(await askHelper({ question: "밥" }, deps)).toEqual({ status: 200, body: NOT_FOUND });
+    expect(await askHelper({ question: "밥" }, deps)).toEqual({
+      status: 200,
+      body: { ...NOT_FOUND, ...SAVED },
+    });
   });
 
   it("건강·안전 질문(베트남어)은 모델 답에 없어도 안전 안내를 ko·vi 맨 앞에 붙임(#122)", async () => {
@@ -128,6 +140,7 @@ describe("askHelper", () => {
       vi: "Hãy báo ngay cho người quản lý. Đừng vội đỡ dậy.",
       source: "12장 300쪽",
       found: true,
+      ...SAVED,
     });
   });
 
@@ -214,6 +227,96 @@ describe("askHelper", () => {
   });
 });
 
+describe("답 저장(이슈 #218)", () => {
+  it("답한 질문을 작성자·질문·답·출처와 함께 남김", async () => {
+    const deps = fakeDeps();
+    await askHelper({ question: "  밥을 안 드셔요 " }, deps);
+    expect(deps.saveMessage).toHaveBeenCalledWith({
+      worker_id: "w1",
+      question: "밥을 안 드셔요",
+      question_ko: "",
+      answer_ko: "억지로 권하지 마세요.",
+      answer_native: "Đừng ép ăn.",
+      source: "10장 120쪽",
+      found: true,
+      safety: false,
+    });
+  });
+
+  it("교재에서 못 찾은 답도 남김(found=false, 출처 빈값)", async () => {
+    const deps = fakeDeps({ searchManual: vi.fn(async () => []) });
+    await askHelper({ question: "주식 시세" }, deps);
+    expect(deps.saveMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ answer_ko: NOT_FOUND.ko, source: "", found: false }),
+    );
+  });
+
+  it("한글 없는 질문은 원문과 옮긴 한국어를 따로 남기고, 안전 안내가 붙었으면 표시함", async () => {
+    const deps = fakeDeps({
+      translateQuestion: vi.fn(async () => ({ text: "어르신이 넘어지셨어요", keywords: [] })),
+      searchManual: vi.fn(async () => [fallSection]),
+    });
+    await askHelper({ question: "Cụ bị ngã rồi" }, deps);
+    expect(deps.saveMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        question: "Cụ bị ngã rồi",
+        question_ko: "어르신이 넘어지셨어요",
+        safety: true,
+      }),
+    );
+    // 화면에 보인 답(안전 안내 포함) 그대로
+    expect(vi.mocked(deps.saveMessage).mock.calls[0][0].answer_ko).toMatch(
+      /^관리자에게 바로 보고하세요\./,
+    );
+  });
+
+  it("작성자가 한국어면 모국어 답은 빈값으로 남김", async () => {
+    const deps = fakeDeps({
+      currentUser: vi.fn(async () => ({
+        id: "k1",
+        role: "worker" as const,
+        nativeLang: "ko" as const,
+      })),
+    });
+    await askHelper({ question: "밥을 안 드셔요" }, deps);
+    expect(deps.saveMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ worker_id: "k1", answer_native: "" }),
+    );
+  });
+
+  it("저장이 실패해도 답은 200으로 돌려주고 id만 비움", async () => {
+    const deps = fakeDeps({
+      saveMessage: vi.fn(async () => {
+        throw new Error("db down");
+      }),
+    });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
+    spy.mockRestore();
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ ko: "억지로 권하지 마세요.", id: null, created_at: null });
+  });
+
+  it("401·403·400·502·503이면 저장하지 않음", async () => {
+    const statusOf = async (deps: HelperDeps, body: unknown) => {
+      const r = await askHelper(body, deps);
+      expect(deps.saveMessage).not.toHaveBeenCalled();
+      return r.status;
+    };
+    const reviewer = vi.fn(async () => ({
+      id: "r1",
+      role: "reviewer" as const,
+      nativeLang: "ko" as const,
+    }));
+    const q = { question: "밥" };
+    expect(await statusOf(fakeDeps({ currentUser: vi.fn(async () => null) }), q)).toBe(401);
+    expect(await statusOf(fakeDeps({ currentUser: reviewer }), q)).toBe(403);
+    expect(await statusOf(fakeDeps(), { question: "" })).toBe(400);
+    expect(await statusOf(fakeDeps({ askClaude: vi.fn(async () => "형식이 아님") }), q)).toBe(502);
+    expect(await statusOf(fakeDeps({ askClaude: vi.fn(async () => null) }), q)).toBe(503);
+  });
+});
+
 describe("isSafetyQuestion", () => {
   it("한국어·베트남어 안전 낱말을 찾음(대소문자·결합 문자 무관)", () => {
     expect(isSafetyQuestion("어르신이 넘어지셨어요")).toBe(true);
@@ -286,7 +389,7 @@ describe("교육용 기관 고정 안내(이슈 #180)", () => {
       askClaude: vi.fn(async () => '{"ko":"","vi":"","source":"","found":false}'),
     });
     const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
-    expect(r.body).toEqual({ ...notFoundAnswer(roleNames(true)), vi: "" });
+    expect(r.body).toEqual({ ...notFoundAnswer(roleNames(true)), vi: "", ...SAVED });
   });
 
   it("건강·안전 질문은 '강사에게 바로 보고하세요'", async () => {
