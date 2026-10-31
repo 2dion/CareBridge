@@ -1,5 +1,5 @@
 // 회원가입: 가입 코드가 기관·역할을 정하고, 서버가 계정과 profiles 1행을 함께 만든다.
-// 근거: 문서/결정/2026-10-25-로그인가입.md, 문서/설계/데이터구조-v1.6.6.md '공통 계약' POST /api/auth/signup
+// 근거: 문서/결정/2026-10-25-로그인가입.md, 문서/설계/데이터구조-v1.7.md '공통 계약' POST /api/auth/signup
 // DB·Supabase Auth 호출은 SignupDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
 export type Role = "worker" | "reviewer";

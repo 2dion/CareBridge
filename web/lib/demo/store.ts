@@ -204,7 +204,7 @@ export function monthDayWeek(date: string): string {
 }
 
 /** "14:00~17:00" → "오후 2:00 ~ 오후 5:00" (화면문구 v1.0: 시간은 글자로).
- *  assignments.schedule은 표시용 글자라 "평일 14:00~17:00"처럼 요일 말이 앞에 올 수 있다(데이터 구조 v1.6.6).
+ *  assignments.schedule은 표시용 글자라 "평일 14:00~17:00"처럼 요일 말이 앞에 올 수 있다(데이터 구조 v1.7).
  *  시각(HH:MM)만 글자로 바꾸고 나머지 글자는 그대로 둔다. 시각이 없으면("매일") 원문 그대로. */
 export function timeRangeLabel(range: string | null): string {
   if (!range) return "";
