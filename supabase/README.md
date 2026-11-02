@@ -7,6 +7,12 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 - **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v2.0.0.md`), 기술 선택 v1.1 §3.
 - **사유:** Supabase CLI의 기본 구조(`config.toml`, `migrations/`, `seed.sql`)를 그대로 써서 새로 배울 것을 줄입니다.
 
+## 공모전 DB 변경 금지
+
+**기존 공모전 DB `CareBridge`(`mswdkdjtpysvxqdzjbqh`)는 변경하지 않습니다.** 사용자에게 공모전 환경 변경을 명시적으로 요청받은 경우만 예외입니다. 마이그레이션·시드·초기화·데이터 정리·Auth·Storage·RLS·권한·키 변경과 실제 AI 검증은 코디세이 프로젝트에서만 진행합니다.
+
+DB 쓰기 전에 CLI/MCP·환경 변수의 대상 ref가 코디세이 `fffgpgrnppxxqccncstf`인지 확인합니다. 기존 공모전 예약 작업도 임의로 수정하거나 중단하지 않습니다. [공통 작업 규칙](../AGENTS.md#공모전-환경-변경-금지)을 따릅니다.
+
 ## 들어 있는 것
 
 | 파일 | 내용 |
