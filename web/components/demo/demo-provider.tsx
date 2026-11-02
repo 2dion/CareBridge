@@ -81,20 +81,22 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// [글로 쓰기] 처리는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다. 이 탭에 시작 시각을 남긴다(이슈 #237)
-const TEXT_RUNS_KEY = "carebridge.text-runs";
+// [글로 쓰기]·[다시 시도]는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다.
+// 이 탭에 시작 시각을 남기고, 실패는 시작 시각 0으로 남겨 새로고침해도 실패로 보인다(이슈 #237)
+const DRAFT_RUNS_KEY = "carebridge.draft-runs";
+type DraftRun = { startedAt: number; inputMode?: DemoRecord["inputMode"] };
 
-function readTextRuns(): Record<string, number> {
+function readDraftRuns(): Record<string, DraftRun> {
   try {
-    return JSON.parse(window.sessionStorage.getItem(TEXT_RUNS_KEY) ?? "{}");
+    return JSON.parse(window.sessionStorage.getItem(DRAFT_RUNS_KEY) ?? "{}");
   } catch {
     return {};
   }
 }
 
-function saveTextRuns(runs: Record<string, number>) {
+function saveDraftRuns(runs: Record<string, DraftRun>) {
   try {
-    window.sessionStorage.setItem(TEXT_RUNS_KEY, JSON.stringify(runs));
+    window.sessionStorage.setItem(DRAFT_RUNS_KEY, JSON.stringify(runs));
   } catch {
     // 저장이 막혀도 요청이 도는 동안은 running으로 '정리 중'을 보인다
   }
@@ -111,8 +113,8 @@ function RealProvider({ children }: { children: ReactNode }) {
     nativeLang: "ko" | "vi";
     joinCodes: JoinCode[];
   } | null>(null);
-  const [textRuns, setTextRuns] = useState<Record<string, number>>(() =>
-    typeof window === "undefined" ? {} : readTextRuns(),
+  const [draftRuns, setDraftRuns] = useState<Record<string, DraftRun>>(() =>
+    typeof window === "undefined" ? {} : readDraftRuns(),
   );
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
@@ -125,14 +127,14 @@ function RealProvider({ children }: { children: ReactNode }) {
       if (seq === loadSeq) {
         const loadedAt = Date.now();
         setState({ today, loadedAt, ...next });
-        setTextRuns((prev) => {
+        setDraftRuns((prev) => {
           const kept = Object.fromEntries(
-            Object.entries(prev).filter(([id, startedAt]) => {
+            Object.entries(prev).filter(([id, run]) => {
               const record = next.db.records[id];
-              return record && textRunStateOf(record.items, startedAt, loadedAt) !== null;
+              return record && textRunStateOf(record.items, run.startedAt, loadedAt) !== null;
             }),
           );
-          saveTextRuns(kept);
+          saveDraftRuns(kept);
           return kept;
         });
       }
@@ -175,27 +177,24 @@ function RealProvider({ children }: { children: ReactNode }) {
   const [running, setRunning] = useState<Record<string, Running>>({});
   const base = useMemo(() => createRealActions(supabase, reload), [supabase, reload]);
   const actions = useMemo<RealActions>(() => {
+    const remember = (id: string, run: DraftRun | null) => {
+      setDraftRuns((prev) => {
+        const next = { ...prev };
+        if (run) next[id] = run;
+        else delete next[id];
+        saveDraftRuns(next);
+        return next;
+      });
+    };
     const track = async (
       id: string,
       run: () => ReturnType<RealActions["retryDraft"]>,
       inputMode?: DemoRecord["inputMode"],
     ) => {
       setRunning((prev) => ({ ...prev, [id]: { draftState: "processing", inputMode } }));
-      const startText = inputMode === "text";
-      if (startText) {
-        setTextRuns((prev) => {
-          const next = { ...prev, [id]: Date.now() };
-          saveTextRuns(next);
-          return next;
-        });
-      }
+      remember(id, { startedAt: Date.now(), inputMode });
       const result = await run();
-      setTextRuns((prev) => {
-        const { [id]: finished, ...next } = prev;
-        if (finished === undefined) return prev;
-        saveTextRuns(next);
-        return next;
-      });
+      remember(id, result.ok ? null : { startedAt: 0, inputMode });
       setRunning((prev) => {
         const next = { ...prev };
         if (result.ok) delete next[id];
@@ -232,17 +231,19 @@ function RealProvider({ children }: { children: ReactNode }) {
   const db = useMemo(() => {
     if (!state) return null;
     const records = { ...state.db.records };
-    for (const [id, startedAt] of Object.entries(textRuns)) {
+    for (const [id, { startedAt, inputMode }] of Object.entries(draftRuns)) {
       const draftState =
         records[id] && textRunStateOf(records[id].items, startedAt, state.loadedAt);
-      if (draftState) records[id] = { ...records[id], draftState, inputMode: "text" };
+      if (draftState) {
+        records[id] = { ...records[id], draftState, ...(inputMode ? { inputMode } : {}) };
+      }
     }
     for (const [id, { draftState, inputMode }] of Object.entries(running)) {
       if (!records[id]) continue;
       records[id] = { ...records[id], draftState, ...(inputMode ? { inputMode } : {}) };
     }
     return { ...state.db, records };
-  }, [state, running, textRuns]);
+  }, [state, running, draftRuns]);
 
   // 정리 중(받아쓰기·Agent)인 기록이 있으면 끝날 때까지 3초마다 다시 읽는다
   const processing = db
