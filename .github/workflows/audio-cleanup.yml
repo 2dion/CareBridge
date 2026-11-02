@@ -1,11 +1,9 @@
 # 목적: Storage에 1시간 넘게 남은 녹음 파일을 매시간 지운다(결정 2026-10-21-녹음업로드 4번, 2026-10-27-녹음임시보관 5번).
 # 배포 사이트의 /api/cron/audio-cleanup을 부른다. 저장소 Secrets에 CODYSSEY_CRON_SECRET이 없으면 건너뛴다.
-# Vercel Cron은 Hobby 요금제에서 하루 1번만 돌아서 GitHub Actions로 둔다.
+# 코디세이의 매시간 자동 실행은 새 Supabase Cron이 맡는다. 이 workflow는 수동 진단용이다.
 name: 녹음 파일 정리
 
 on:
-  schedule:
-    - cron: "17 * * * *"
   workflow_dispatch:
 
 jobs:
