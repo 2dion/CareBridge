@@ -54,7 +54,7 @@ insert into contract_draft select jsonb_build_object('transcript_ko','합성 원
  from public.record_items where record_id=(select id from contract_ids);
 set local role service_role;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
-select pg_temp.check_true((select count(*)=3 from public.record_blocked_names((select id from contract_ids),'f2000000-0000-0000-0000-000000000001')),'서버는 해당 기관 이름 목록만');
+select pg_temp.check_true((select count(*)=4 from public.record_blocked_names((select id from contract_ids),'f2000000-0000-0000-0000-000000000001')),'서버는 해당 기관의 프로필 3명과 어르신 1명 이름만');
 select pg_temp.expect_error($q$select * from public.record_blocked_names((select id from contract_ids),'f2000000-0000-0000-0000-000000000003')$q$,'not_record_worker');
 select * from public.save_record_ai_draft((select id from contract_ids),'f2000000-0000-0000-0000-000000000001','',(select data from contract_draft));
 select pg_temp.expect_error($q$select * from public.save_record_ai_draft((select id from contract_ids),'f2000000-0000-0000-0000-000000000001','오래된 원문',(select data from contract_draft))$q$,'stale_draft');
