@@ -28,7 +28,7 @@ import {
 } from "@/lib/demo/store";
 import { createRealActions, type RealActions } from "@/lib/real/actions";
 import { loadRealDb, NotSignedInError } from "@/lib/real/load";
-import { type JoinCode, textRunStateOf } from "@/lib/real/map";
+import { itemsSnapshot, type JoinCode, textRunStateOf } from "@/lib/real/map";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export type RealContext = {
@@ -84,7 +84,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 // [글로 쓰기]·[다시 시도]는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다.
 // 이 탭에 시작 시각을 남기고, 실패는 시작 시각 0으로 남겨 새로고침해도 실패로 보인다(이슈 #237)
 const DRAFT_RUNS_KEY = "carebridge.draft-runs";
-type DraftRun = { startedAt: number; inputMode?: DemoRecord["inputMode"] };
+type DraftRun = { startedAt: number; snapshot: string; inputMode?: DemoRecord["inputMode"] };
 
 function readDraftRuns(): Record<string, DraftRun> {
   try {
@@ -116,6 +116,10 @@ function RealProvider({ children }: { children: ReactNode }) {
   const [draftRuns, setDraftRuns] = useState<Record<string, DraftRun>>(() =>
     typeof window === "undefined" ? {} : readDraftRuns(),
   );
+  const loaded = useRef(state);
+  useEffect(() => {
+    loaded.current = state;
+  }, [state]);
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const reload = useCallback(async () => {
@@ -131,7 +135,7 @@ function RealProvider({ children }: { children: ReactNode }) {
           const kept = Object.fromEntries(
             Object.entries(prev).filter(([id, run]) => {
               const record = next.db.records[id];
-              return record && textRunStateOf(record.items, run.startedAt, loadedAt) !== null;
+              return record && textRunStateOf(record.items, run, loadedAt) !== null;
             }),
           );
           saveDraftRuns(kept);
@@ -192,9 +196,10 @@ function RealProvider({ children }: { children: ReactNode }) {
       inputMode?: DemoRecord["inputMode"],
     ) => {
       setRunning((prev) => ({ ...prev, [id]: { draftState: "processing", inputMode } }));
-      remember(id, { startedAt: Date.now(), inputMode });
+      const snapshot = itemsSnapshot(loaded.current?.db.records[id]?.items ?? []);
+      remember(id, { startedAt: Date.now(), snapshot, inputMode });
       const result = await run();
-      remember(id, result.ok ? null : { startedAt: 0, inputMode });
+      remember(id, result.ok ? null : { startedAt: 0, snapshot, inputMode });
       setRunning((prev) => {
         const next = { ...prev };
         if (result.ok) delete next[id];
@@ -205,6 +210,11 @@ function RealProvider({ children }: { children: ReactNode }) {
     };
     return {
       ...base,
+      // 새 녹음은 audio_jobs가 상태를 맡는다. 앞선 실패 기록이 '정리 중'을 덮지 않게 지운다
+      sendVoice: (id, blob) => {
+        remember(id, null);
+        return base.sendVoice(id, blob);
+      },
       writeText: (id, text) => track(id, () => base.writeText(id, text), "text"),
       retryDraft: (id) => track(id, () => base.retryDraft(id)),
     };
@@ -231,11 +241,14 @@ function RealProvider({ children }: { children: ReactNode }) {
   const db = useMemo(() => {
     if (!state) return null;
     const records = { ...state.db.records };
-    for (const [id, { startedAt, inputMode }] of Object.entries(draftRuns)) {
-      const draftState =
-        records[id] && textRunStateOf(records[id].items, startedAt, state.loadedAt);
+    for (const [id, run] of Object.entries(draftRuns)) {
+      const draftState = records[id] && textRunStateOf(records[id].items, run, state.loadedAt);
       if (draftState) {
-        records[id] = { ...records[id], draftState, ...(inputMode ? { inputMode } : {}) };
+        records[id] = {
+          ...records[id],
+          draftState,
+          ...(run.inputMode ? { inputMode: run.inputMode } : {}),
+        };
       }
     }
     for (const [id, { draftState, inputMode }] of Object.entries(running)) {

@@ -5,6 +5,7 @@ import {
   draftTouched,
   inputModeOf,
   PROCESSING_LIMIT_MS,
+  itemsSnapshot,
   textRunStateOf,
 } from "./map";
 
@@ -72,15 +73,24 @@ describe("draftTouched", () => {
 });
 
 describe("textRunStateOf", () => {
+  const RUN = { startedAt: START, snapshot: itemsSnapshot(items()) };
+
+  it("이미 항목이 있는 기록을 재처리해도 항목이 그대로면 정리 중이고, 달라지면 끝난다", () => {
+    const before = items({ status: "observed" });
+    const run = { startedAt: START, snapshot: itemsSnapshot(before) };
+    expect(textRunStateOf(before, run, START)).toBe("processing");
+    expect(textRunStateOf(items({ status: "needs_check" }), run, START)).toBeNull();
+  });
+
   it("초안이 없으면 6분까지 processing, 넘으면 failed", () => {
-    expect(textRunStateOf(items(), START, START)).toBe("processing");
-    expect(textRunStateOf(items(), START, START + PROCESSING_LIMIT_MS)).toBe("processing");
-    expect(textRunStateOf(items(), START, START + PROCESSING_LIMIT_MS + 1)).toBe("failed");
+    expect(textRunStateOf(items(), RUN, START)).toBe("processing");
+    expect(textRunStateOf(items(), RUN, START + PROCESSING_LIMIT_MS)).toBe("processing");
+    expect(textRunStateOf(items(), RUN, START + PROCESSING_LIMIT_MS + 1)).toBe("failed");
   });
 
   it("초안이 생겼으면 null(끝남)", () => {
-    expect(textRunStateOf(items({ status: "observed" }), START, START)).toBeNull();
-    expect(textRunStateOf(items({ status: "observed" }), START, START + 3_600_000)).toBeNull();
+    expect(textRunStateOf(items({ status: "observed" }), RUN, START)).toBeNull();
+    expect(textRunStateOf(items({ status: "observed" }), RUN, START + 3_600_000)).toBeNull();
   });
 });
 
