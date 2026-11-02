@@ -243,6 +243,21 @@ describe("답 저장(이슈 #218)", () => {
     });
   });
 
+  it.each(["숨쉬기", "숨 쉬기"])(
+    "%s 힘들다는 질문은 교재가 없어도 보고 안내를 붙이고 저장",
+    async (expression) => {
+      const deps = fakeDeps({ searchManual: vi.fn(async () => []) });
+      const r = await askHelper({ question: `어르신이 ${expression} 힘들다고 하세요.` }, deps);
+      expect(r.status).toBe(200);
+      expect(r.body.ko).toMatch(/^관리자에게 바로 보고하세요\./);
+      expect(r.body.vi).toMatch(/^Hãy báo ngay cho người quản lý\./);
+      expect(deps.saveMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ safety: true, found: false }),
+      );
+      expect(deps.askClaude).not.toHaveBeenCalled();
+    },
+  );
+
   it("교재에서 못 찾은 답도 남김(found=false, 출처 빈값)", async () => {
     const deps = fakeDeps({ searchManual: vi.fn(async () => []) });
     await askHelper({ question: "주식 시세" }, deps);
