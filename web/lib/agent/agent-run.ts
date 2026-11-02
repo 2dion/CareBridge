@@ -31,7 +31,6 @@ export class AgentRunError extends Error {
   }
 }
 
-
 type RecordForContext = {
   form_type: string | number; // DB는 smallint(16 / 12)
   visit_start: string | null;
