@@ -22,6 +22,8 @@ Node.js 22 이상이 필요합니다. 키 넣는 법, 검사 명령, 폴더 구�
 | 공모전 보존 | `main` | https://care-bridge-kappa.vercel.app | 기존 `CareBridge` |
 | 코디세이 개발 | `main-codyssey` | https://carebridge-codyssey.vercel.app | 새 `CareBridge-Codyssey` |
 
+**기존 공모전 사이트와 DB는 변경하지 않습니다.** 공모전 `main`·Vercel `care-bridge`·Supabase `CareBridge`는 보존 대상입니다. 사용자가 공모전 환경 변경을 명시적으로 요청한 경우에만 해당 범위에서 작업합니다. 자세한 금지 범위와 대상 확인 절차는 [AGENTS.md](AGENTS.md#공모전-환경-변경-금지)를 따릅니다.
+
 코디세이 기능 브랜치는 `main-codyssey`에서 만들고 PR도 이 브랜치로 올립니다. GitHub 기본 브랜치는 현재 `main`을 유지하므로 PR 대상을 직접 확인합니다. 두 사이트는 별도 Vercel 프로젝트이며 모두 각 프로젝트의 Production 배포를 사용합니다. [환경 분리 결정](문서/결정/2026-11-02-공모전코디세이분리.md)을 봅니다.
 
 ## 기술 구성

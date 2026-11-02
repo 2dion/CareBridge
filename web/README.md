@@ -61,6 +61,12 @@ PR 전에 `npm run check`가 통과해야 합니다. GitHub Actions "web 검사"
 - `lib/ai`, `lib/stt`, `lib/supabase/server.ts`는 맨 위에 `import "server-only"`가 있어, 브라우저 코드에서 부르면 빌드가 깨집니다. 키가 새는 것을 막는 장치이니 지우지 않습니다.
 - 지금은 뼈대만 있습니다. 화면(W0~W6, M1~M4), API, Agent 반복, Mock 응답 내용은 각 담당이 채웁니다.
 
+## 공모전 사이트 변경 금지
+
+**기존 공모전 사이트 `https://care-bridge-kappa.vercel.app`와 연결 DB는 변경하지 않습니다.** Vercel `care-bridge`의 재배포·환경 변수·도메인·Git 연결·운영 설정 변경은 사용자가 공모전 환경을 대상으로 명시적으로 요청한 경우에만 진행합니다.
+
+코디세이 배포·실제 AI 검증은 Vercel `carebridge-codyssey`와 새 Supabase 프로젝트를 사용합니다. 로컬 환경 변수와 배포 프로젝트가 코디세이 대상인지 먼저 확인합니다. [공통 작업 규칙](../AGENTS.md#공모전-환경-변경-금지)을 따릅니다.
+
 ## Vercel 연결
 
 Vercel 프로젝트 설정에서 **Root Directory = `web`**, **Framework Preset = Next.js**로 둡니다. 환경 변수는 위 표와 `.env.example`의 이름 그대로 넣고, Production은 `USE_MOCK_AI=false`여야 합니다(아니면 `/api/health`가 문제로 알림). 녹음 정리용 `CRON_SECRET`은 새 Supabase Vault의 `codyssey_audio_cleanup_token`, GitHub의 `CODYSSEY_CRON_SECRET`과 같은 값으로 둡니다. 비밀 값은 저장소에 넣지 않습니다.
