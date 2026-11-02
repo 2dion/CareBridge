@@ -211,9 +211,17 @@ function RealProvider({ children }: { children: ReactNode }) {
     return {
       ...base,
       // 새 녹음은 audio_jobs가 상태를 맡는다. 앞선 실패 기록이 '정리 중'을 덮지 않게 지운다
-      sendVoice: (id, blob) => {
-        remember(id, null);
-        return base.sendVoice(id, blob);
+      sendVoice: async (id, blob) => {
+        const result = await base.sendVoice(id, blob);
+        if (result.ok) {
+          remember(id, null);
+          setRunning((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        }
+        return result;
       },
       writeText: (id, text) => track(id, () => base.writeText(id, text), "text"),
       retryDraft: (id) => track(id, () => base.retryDraft(id)),
