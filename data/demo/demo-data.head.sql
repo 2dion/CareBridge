@@ -29,10 +29,10 @@ begin;
 -- ── 0. 기준 값 ───────────────────────────────────────────
 create temp table demo_ctx on commit drop as
 select (now() at time zone 'Asia/Seoul')::date as today,
-       (select id from auth.users where email = 'worker@carebridge.test')   as worker,
-       (select id from auth.users where email = 'reviewer@carebridge.test') as reviewer,
-       (select id from auth.users where email = 'trainee@carebridge.test')  as trainee,
-       (select id from auth.users where email = 'trainer@carebridge.test')  as trainer;
+       (select id from auth.users where email = 'worker@codyssey.carebridge.test')   as worker,
+       (select id from auth.users where email = 'reviewer@codyssey.carebridge.test') as reviewer,
+       (select id from auth.users where email = 'trainee@codyssey.carebridge.test')  as trainee,
+       (select id from auth.users where email = 'trainer@codyssey.carebridge.test')  as trainer;
 
 do $$ begin
   if exists (select 1 from demo_ctx where worker is null or reviewer is null or trainee is null or trainer is null) then

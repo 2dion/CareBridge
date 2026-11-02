@@ -1,5 +1,5 @@
 -- 영어 이름 맞추기: [맞아요] 칸과 Agent 도구 이름을 용어집과 같은 뜻으로 바꾼다.
--- 근거: 문서/결정/2026-10-29-영어이름.md, 문서/설계/용어집-v1.0.md
+-- 근거: 문서/결정/2026-10-29-영어이름.md, 문서/설계/용어집-v2.0.0.md
 --
 -- 1. record_items.confirmed → confirmed_by_worker (관리자 [확인함] confirmed_by_reviewer 와 짝)
 -- 2. Agent 도구 search_terms → search_glossary (DB 함수·표 이름과 같게), submit_draft → return_draft ('초안 반환')
