@@ -1,5 +1,5 @@
 // 서버 환경 변수를 한 곳에서 읽는다. 값(키)은 돌려주지 않고 "있는지"만 알린다.
-// 근거: 문서/설계/코디세이api-v1.0.md §2, 문서/결정/2026-10-20-stt-groq.md
+// 근거: 문서/설계/코디세이api-v2.0.0.md §2, 문서/결정/2026-10-20-stt-groq.md
 // server-only를 넣지 않은 이유: 테스트(Vitest)에서 바로 불러 검사하기 위해서. 키를 읽는 코드는 lib/ai, lib/stt에 둔다.
 
 type Env = Record<string, string | undefined>;
