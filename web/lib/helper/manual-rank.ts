@@ -74,9 +74,59 @@ export function rankSections(
     }
     return { section: doc.section, score, index };
   });
-  return scored
+  const ordered = scored
     .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .sort((a, b) => b.score - a.score || a.index - b.index);
+  // 1위 점수의 1/3 미만인 절은 보내지 않는다(이슈 #229). 질문과 멀어 답에 쓰이지 않으면서 토큰만 든다
+  const floor = (ordered[0]?.score ?? 0) / 3;
+  return ordered
+    .filter((entry) => entry.score >= floor)
     .slice(0, limit)
     .map((entry) => entry.section);
+}
+
+/** 절당 Claude에 보내는 글자 수 상한(이슈 #229). 교재 절은 350~5,700자라 긴 절만 줄어든다 */
+export const MAX_SECTION_CHARS = 1500;
+
+/**
+ * 절 본문에서 질문 낱말(핵심 낱말 포함)이 든 문단과 그 앞뒤 문단만 남긴다. 맞는 문단이 없으면 앞부분.
+ * 어느 쪽이든 maxChars를 넘지 않는다. 문단은 줄바꿈으로 나누고, 뺀 자리는 '…'로 표시한다.
+ */
+export function excerptSection(
+  body: string,
+  terms: readonly string[],
+  maxChars = MAX_SECTION_CHARS,
+): string {
+  const paragraphs = body
+    .replace(/\r\n?/g, "\n")
+    .split(/\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  const wanted = terms.map((term) => normalize(term)).filter((term) => term.length >= 2);
+  const hit = paragraphs.map((paragraph) => {
+    const text = normalize(paragraph);
+    return wanted.some((term) => text.includes(term));
+  });
+  const keep = paragraphs.map((_, index) => hit[index] || hit[index - 1] || hit[index + 1]);
+  const chosen = hit.some(Boolean) ? keep : paragraphs.map(() => true);
+  const out: string[] = [];
+  let used = 0;
+  let skipped = false;
+  for (let index = 0; index < paragraphs.length; index++) {
+    if (!chosen[index]) {
+      skipped = true;
+      continue;
+    }
+    const paragraph = paragraphs[index];
+    const sep = (out.length > 0 ? 1 : 0) + (skipped ? 1 : 0); // 줄바꿈과 '…'도 센다
+    const room = maxChars - used - sep;
+    if (room <= 0) break;
+    const piece = Array.from(paragraph).slice(0, room).join("");
+    out.push(skipped ? `…${piece}` : piece);
+    used += Array.from(piece).length + sep;
+    skipped = false;
+    if (piece !== paragraph) break;
+  }
+  if (skipped && out.length > 0 && used + 2 <= maxChars) out.push("…");
+  return out.join("\n");
 }
