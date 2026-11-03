@@ -12,6 +12,9 @@ import {
   minutesBetween,
   REASONS,
   reasonTranslation,
+  intakeFromText,
+  isMedicationGuess,
+  MEDICATION_UNCONFIRMED_KO,
   hasQuestionPhrase,
   stripQuestionSentences,
   sumSupportMinutes,
@@ -465,7 +468,8 @@ describe("이유 번역 보존", () => {
 describe("검사 7: 식사 섭취량 값 (이슈 #133)", () => {
   const withIntake = (intake: unknown) =>
     withItem(scenarioOneDraft(), "meal", {
-      value_ko: "점심 죽 절반 이상 드심.",
+      // 양을 말로 적지 않은 내용. 말로 적으면 검사 7 보강(#245)이 값을 채운다(아래 별도 묶음)
+      value_ko: "점심 죽 드심.",
       status: "observed",
       reason: "",
       detail: { meal_type: "죽", intake },
@@ -656,5 +660,191 @@ describe("검사 8: 기록 내용의 확인 요청 문장 (이슈 #117)", () => 
       value_ko: "밤 10시에 주무시는 모습을 직접 확인함.",
     });
     expect(codes(draft)).toEqual([]);
+  });
+});
+
+// 실제 AI 검증 후속(이슈 #245, 결정 2026-11-03-실제ai검증후속): 언어가 달라도 같은 판정
+describe("검사 7 보강: 말로 한 섭취량을 서식 선택지로", () => {
+  it.each([
+    ["점심 식사를 절반 정도 드셨습니다.", "half_or_more"],
+    ["약 절반 드심", "half_or_more"],
+    ["밥을 반 그릇 드셨어요", "half_or_more"],
+    ["Bữa trưa bác ăn khoảng một nửa suất.", "half_or_more"],
+    ["반 넘게 드셨어요", "half_or_more"],
+    ["Ăn được hơn một nửa", "half_or_more"],
+    ["반도 못 드셨어요", "under_half"],
+    ["Ăn chưa được một nửa", "under_half"],
+    ["다 드셨어요", "full"],
+    ["Bác ăn hết suất", "full"],
+    ["조금 드셨어요", null],
+    ["반찬을 남기셨어요", null],
+  ] as const)("'%s' → %s", (text, intake) => {
+    expect(intakeFromText(text)).toBe(intake);
+  });
+
+  it("한국어 '절반 정도'를 AI가 경계가 불명확하다고 '확인 필요'로 두면 서버가 half_or_more·관찰로 올린다", () => {
+    const transcript = "점심 식사를 절반 정도 드셨습니다. 물 한 컵을 마셨습니다.";
+    const draft = withItem(scenarioOneDraft(), "meal", {
+      value_ko: "점심 절반 정도 드심",
+      status: "needs_check",
+      evidence: "점심 식사를 절반 정도 드셨습니다.",
+      reason: "1/2 이상·미만 경계가 불명확함",
+      reason_native: "Không rõ ranh giới",
+      detail: {},
+    });
+    const result = validateDraft(draft, { transcript, careType: "facility" });
+    const meal = result.fixed?.items.find((item) => item.item_key === "meal");
+    expect(meal?.status).toBe("observed");
+    expect(meal?.detail.intake).toBe("half_or_more");
+    expect(meal?.reason).toBe("");
+  });
+
+  it("베트남어 'khoảng một nửa'도 같은 값이고, 다른 이유가 함께 있으면 '확인 필요'는 그대로", () => {
+    const transcript = "Bữa trưa bác ăn khoảng một nửa suất. Bác uống một cốc nước.";
+    const base = withItem(scenarioOneDraft(), "meal", {
+      value_ko: "점심 약 절반 드심",
+      status: "observed",
+      evidence: "Bữa trưa bác ăn khoảng một nửa suất.",
+      detail: {},
+    });
+    const observed = validateDraft(base, { transcript, careType: "facility" }).fixed?.items.find(
+      (item) => item.item_key === "meal",
+    );
+    expect(observed?.status).toBe("observed");
+    expect(observed?.detail.intake).toBe("half_or_more");
+
+    const mixed = withItem(base, "meal", {
+      status: "needs_check",
+      reason: "섭취량 경계 불명확; 사레가 들려 관리자 확인",
+    });
+    const kept = validateDraft(mixed, { transcript, careType: "facility" }).fixed?.items.find(
+      (item) => item.item_key === "meal",
+    );
+    expect(kept?.status).toBe("needs_check");
+    expect(kept?.detail.intake).toBe("half_or_more");
+  });
+
+  it("틀린 intake 값도 근거에 말한 양이 있으면 바꿔 넣고 '확인 필요'로 낮추지 않는다", () => {
+    const draft = withItem(scenarioOneDraft(), "meal", {
+      value_ko: "점심 반 넘게 드심",
+      status: "observed",
+      evidence: "점심은 반 넘게 드셨어요.",
+      detail: { intake: "1/2 이상" },
+    });
+    const transcript = "점심은 반 넘게 드셨어요.";
+    const meal = validateDraft(draft, { transcript, careType: "facility" }).fixed?.items.find(
+      (item) => item.item_key === "meal",
+    );
+    expect(meal?.status).toBe("observed");
+    expect(meal?.detail.intake).toBe("half_or_more");
+  });
+
+  it("'조금'은 지금처럼 '확인 필요' 그대로", () => {
+    const meal = validateDraft(scenarioOneDraft(), FACILITY).fixed?.items.find(
+      (item) => item.item_key === "meal",
+    );
+    expect(meal?.status).toBe("needs_check");
+    expect(meal?.detail.intake).toBeUndefined();
+  });
+});
+
+describe("검사 11: 추정 복약은 '확인 필요'이고 진술로 바꾸지 않는다", () => {
+  const transcript = "약은 드신 것 같지만 직접 확인하지 못했습니다. 점심은 다 드셨어요.";
+
+  it("근거가 추정인지 본다", () => {
+    expect(isMedicationGuess("약은 드신 것 같지만 직접 확인하지 못했습니다.", "")).toBe(true);
+    expect(isMedicationGuess("", transcript)).toBe(true);
+    expect(isMedicationGuess("Hình như bác đã uống thuốc nhưng tôi chưa kiểm tra.", "")).toBe(true);
+    expect(isMedicationGuess("약 드시는 것을 직접 봤어요.", "")).toBe(false);
+    expect(isMedicationGuess("약 드셨다고 하셨어요.", "")).toBe(false);
+    // 약 이야기가 아닌 추정은 걸지 않는다
+    expect(isMedicationGuess("", "주무신 것 같아요. 약은 드셨어요.")).toBe(false);
+  });
+
+  it("'드셨다고 하심'으로 쓴 추정 복약을 고정 문장 + '확인 필요'로", () => {
+    const draft = withItem(scenarioOneDraft(), "medication", {
+      value_ko: "드셨다고 하심",
+      value_native: "Bà nói đã uống thuốc",
+      status: "observed",
+      evidence: "약은 드신 것 같지만 직접 확인하지 못했습니다.",
+      detail: {},
+    });
+    const medication = validateDraft(draft, { transcript, careType: "facility" }).fixed?.items.find(
+      (item) => item.item_key === "medication",
+    );
+    expect(medication?.status).toBe("needs_check");
+    expect(medication?.value_ko).toBe(MEDICATION_UNCONFIRMED_KO);
+    expect(medication?.value_native).toBe("");
+    expect(medication?.reason).toContain(REASONS.medicationGuess);
+    expect(medication?.reason_native).toContain("phỏng đoán");
+  });
+
+  it("AI가 이미 '확인 필요'로 두고 불확실하게 썼으면 내용은 그대로", () => {
+    const draft = withItem(scenarioOneDraft(), "medication", {
+      value_ko: "복약 여부 직접 확인하지 못함",
+      status: "needs_check",
+      evidence: "약은 드신 것 같지만 직접 확인하지 못했습니다.",
+      reason: "작성자가 직접 보지 못함",
+      detail: {},
+    });
+    const medication = validateDraft(draft, { transcript, careType: "facility" }).fixed?.items.find(
+      (item) => item.item_key === "medication",
+    );
+    expect(medication?.status).toBe("needs_check");
+    expect(medication?.value_ko).toBe("복약 여부 직접 확인하지 못함");
+    expect(medication?.reason).toBe("작성자가 직접 보지 못함");
+  });
+
+  it("직접 본 복약은 관찰 그대로", () => {
+    const seen = "약 드시는 것을 직접 봤어요.";
+    const draft = withItem(scenarioOneDraft(), "medication", {
+      value_ko: "복약 확인함",
+      status: "observed",
+      evidence: seen,
+      detail: {},
+    });
+    const medication = validateDraft(draft, {
+      transcript: seen,
+      careType: "facility",
+    }).fixed?.items.find((item) => item.item_key === "medication");
+    expect(medication?.status).toBe("observed");
+    expect(medication?.value_ko).toBe("복약 확인함");
+  });
+});
+
+describe("검사 9 한정: 원문에 없는 인지 항목은 '언급 없음'", () => {
+  const home = (transcript: string): ValidateContext => ({ transcript, careType: "home" });
+
+  it("인지 이야기가 없는 재가 원문에 '인지 상태 언급 없음'을 채운 '확인 필요'는 not_mentioned로", () => {
+    const transcript = "2시부터 5시까지 방문했어요. 세수 도와드리고 점심 다 드셨어요.";
+    const draft = withItem(scenarioOneDraft(), "cognition", {
+      value_ko: "인지 상태 언급 없음",
+      value_native: "Không đề cập trạng thái nhận thức",
+      status: "needs_check",
+      evidence: "",
+      reason: "원문에 인지 상태 언급이 없음",
+      detail: {},
+    });
+    const cognition = validateDraft(draft, home(transcript)).fixed?.items.find(
+      (item) => item.item_key === "cognition",
+    );
+    expect(cognition?.status).toBe("not_mentioned");
+    expect(cognition?.value_ko).toBe("");
+    expect(cognition?.reason).toBe("");
+  });
+
+  it("인지 이야기가 있는데 비교가 없으면 지금처럼 재가는 '확인 필요'", () => {
+    const transcript = "오늘 날짜를 두 번 물으셨어요. 점심 다 드셨어요.";
+    const draft = withItem(scenarioOneDraft(), "cognition", {
+      value_ko: "날짜를 두 번 물으심",
+      status: "observed",
+      evidence: "오늘 날짜를 두 번 물으셨어요.",
+      detail: {},
+    });
+    const cognition = validateDraft(draft, home(transcript)).fixed?.items.find(
+      (item) => item.item_key === "cognition",
+    );
+    expect(cognition?.status).toBe("needs_check");
+    expect(cognition?.reason).toContain(REASONS.trendWithoutComparison);
   });
 });
