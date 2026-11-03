@@ -32,10 +32,13 @@ select pg_temp.check_true(public.take_api_quota('a2000000-0000-0000-0000-0000000
 select pg_temp.check_true(public.take_api_quota('a2000000-0000-0000-0000-000000000001', 'agent', 2, 3600), 'second');
 select pg_temp.check_true(not public.take_api_quota('a2000000-0000-0000-0000-000000000001', 'agent', 2, 3600), 'third blocked');
 select pg_temp.check_true(public.take_api_quota('a2000000-0000-0000-0000-000000000001', 'helper', 2, 3600), 'other kind');
+-- translate 종류(항목 다시 번역, 되돌린 사유 번역)도 kind 검사를 통과하고 따로 센다
+select pg_temp.check_true(public.take_api_quota('a2000000-0000-0000-0000-000000000001', 'translate', 1, 3600), 'translate first');
+select pg_temp.check_true(not public.take_api_quota('a2000000-0000-0000-0000-000000000001', 'translate', 1, 3600), 'translate blocked');
 -- 프로필 없는 id는 세지 않고 통과
 select pg_temp.check_true(public.take_api_quota('a2000000-0000-0000-0000-00000000ffff', 'agent', 0, 3600), 'no profile');
 reset role;
-select pg_temp.check_true((select count(*) = 3 from public.api_usage where user_id = 'a2000000-0000-0000-0000-000000000001'), 'rows');
+select pg_temp.check_true((select count(*) = 4 from public.api_usage where user_id = 'a2000000-0000-0000-0000-000000000001'), 'rows');
 select pg_temp.check_true((select bool_and(org_id = 'a1000000-0000-0000-0000-000000000001') from public.api_usage
   where user_id = 'a2000000-0000-0000-0000-000000000001'), 'org_id from profile');
 
