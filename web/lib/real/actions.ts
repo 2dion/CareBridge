@@ -1,6 +1,6 @@
 // 실제 모드의 화면 동작: 서버 API(공통 계약 10개)와 Supabase(RLS) 직접 쓰기. 끝나면 화면이 다시 읽는다(reload).
 // AI 결과는 서버가 만들고, 화면은 가짜 결과를 만들지 않는다.
-// 근거: 문서/설계/데이터구조-v2.1.0.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
+// 근거: 문서/설계/데이터구조-v2.1.1.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
 import type { NativeLang } from "@/lib/auth/signup";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -81,6 +81,10 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
     vi: "Nội dung này đã được xử lý. Hãy tải lại trang.",
   },
   not_signed_in: { ko: "다시 로그인해 주세요.", vi: "Hãy đăng nhập lại." },
+  rate_limited: {
+    ko: "요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.",
+    vi: "Có quá nhiều yêu cầu. Hãy thử lại sau ít phút.",
+  },
   stt_failed: {
     ko: "음성을 글자로 바꾸지 못했어요. 다시 올리거나 글로 써 주세요.",
     vi: "Không chuyển được giọng nói thành văn bản. Hãy gửi lại hoặc viết trực tiếp.",
