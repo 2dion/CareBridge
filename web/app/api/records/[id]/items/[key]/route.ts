@@ -2,6 +2,7 @@ import { addItemByText } from "@/lib/audio/audio-service";
 import { ITEM_KEYS, type ItemKey } from "@/lib/agent/validate-draft";
 import { patchItem } from "@/lib/records/item-patch";
 import { createItemPatchDeps } from "@/lib/records/item-patch-supabase";
+import { enforceQuota } from "@/lib/security/rate-limit-supabase";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -16,7 +17,7 @@ async function readJson(request: Request): Promise<unknown> {
 }
 
 // PATCH /api/records/:id/items/:key: 작성자(W3)·관리자(M2)가 항목 하나를 고침. value_ko가 바뀌면 그 항목만 다시 번역한다.
-// 근거: 문서/설계/데이터구조-v2.1.0.md '공통 계약' PATCH 규칙, 문서/결정/2026-10-28-항목하나저장.md
+// 근거: 문서/설계/데이터구조-v2.1.1.md '공통 계약' PATCH 규칙, 문서/결정/2026-10-28-항목하나저장.md
 export async function PATCH(request: Request, ctx: RouteContext<"/api/records/[id]/items/[key]">) {
   const { id, key } = await ctx.params;
   const result = await patchItem(id, key, await readJson(request), await createItemPatchDeps());
@@ -30,6 +31,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/records/[id
   if (!ITEM_KEYS.includes(key as ItemKey)) {
     return Response.json({ error: "invalid_item" }, { status: 400 });
   }
+  const limited = await enforceQuota("item");
+  if (limited) return limited;
   const result = await addItemByText(
     await createSupabaseServerClient(),
     createSupabaseAdminClient(),
