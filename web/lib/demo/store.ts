@@ -731,7 +731,7 @@ export function groupItems(
   const sorted = [...items].sort(
     (a, b) => displayOrder.indexOf(a.item_key) - displayOrder.indexOf(b.item_key),
   );
-  const done = (item: RecordItem) => item.confirmed_by_worker || item.source === "worker";
+  const done = (item: RecordItem) => item.confirmed_by_worker;
   const requested = new Set(record ? requestedItemKeys(record) : []);
   const remaining = sorted.filter((item) => !requested.has(item.item_key));
   return {
@@ -746,10 +746,7 @@ export function canSubmitRecord(record: DemoRecord): boolean {
   return (
     (record.status === "draft" || record.status === "returned") &&
     record.draftState === "ready" &&
-    record.items.every(
-      (item) =>
-        item.status === "needs_check" || item.confirmed_by_worker || item.source === "worker",
-    )
+    record.items.every((item) => item.status === "needs_check" || item.confirmed_by_worker)
   );
 }
 

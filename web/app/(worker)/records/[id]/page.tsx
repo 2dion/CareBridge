@@ -214,16 +214,13 @@ export default function DraftPage() {
   }
 
   const groups = groupItems(record.items, record);
-  // 실제 모드는 DB 제출 검사와 같게 9개 모두 확인 또는 작성자가 고친 것이어야 전송한다(unconfirmed_items)
+  // 실제 모드는 DB 전송 검사와 같게 9개 모두 작성자가 확인해야 전송한다(unconfirmed_items)
   const canSend =
     canSubmitRecord(record) &&
     (!demo.real ||
-      (record.items.length === 9 &&
-        record.items.every((item) => item.confirmed_by_worker || item.source === "worker")));
+      (record.items.length === 9 && record.items.every((item) => item.confirmed_by_worker)));
   // 수정 요청 묶음으로 옮긴 카드도 실제 확인 개수에는 포함한다.
-  const doneCount = record.items.filter(
-    (item) => item.confirmed_by_worker || item.source === "worker",
-  ).length;
+  const doneCount = record.items.filter((item) => item.confirmed_by_worker).length;
   const total = record.items.length;
   const needsLeft = record.items.filter((item) => item.status === "needs_check").length;
 
@@ -505,7 +502,7 @@ function ItemCard({
   const [open, setOpen] = useState(false);
   const names = useRoleNames();
   const label = itemLabel(item.item_key);
-  const done = item.confirmed_by_worker || item.source === "worker";
+  const done = item.confirmed_by_worker;
   const editHref = `/records/${record.id}/items/${item.item_key}`;
   const badge = done
     ? { label: item.source === "worker" ? "고침" : "확인 완료", tone: "green" }
@@ -528,7 +525,7 @@ function ItemCard({
         {requestedItemKeys(record).includes(item.item_key) && (
           <span className="badge badge-orange">수정 요청</span>
         )}
-        {item.source === "ai" && !item.confirmed_by_worker && item.status !== "not_mentioned" && (
+        {item.source !== "reviewer" && !done && item.status !== "not_mentioned" && (
           <span className="ai-mark">AI 초안</span>
         )}
         {done && item.status === "needs_check" && (
@@ -600,7 +597,7 @@ function ItemCard({
       )}
       {!done &&
         (item.status === "needs_check" ? (
-          // 전송은 9개 항목이 모두 확인([확인 완료]·[해당 없음])되거나 작성자가 고친 것이어야 한다(DB 제출 검사, 10/28).
+          // 전송은 9개 항목이 모두 확인([확인 완료]·[해당 없음])되어야 한다(DB 전송 검사, 이슈 #236).
           // ‘확인 필요’도 [확인 완료]로 확인하고 보낼 수 있고, 남은 판단은 관리자가 한다.
           <div className="btn-row">
             <Link
