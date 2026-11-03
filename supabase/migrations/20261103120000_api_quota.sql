@@ -6,7 +6,7 @@ create table public.api_usage (
   id bigint generated always as identity primary key,
   org_id uuid not null references public.organizations (id),
   user_id uuid not null references public.profiles (id) on delete cascade,
-  kind text not null check (kind in ('agent', 'audio', 'item', 'helper')),
+  kind text not null check (kind in ('agent', 'audio', 'item', 'helper', 'translate')),
   created_at timestamptz not null default now()
 );
 create index api_usage_user_kind_idx on public.api_usage (user_id, kind, created_at desc);

@@ -8,6 +8,7 @@ export const API_LIMITS = {
   audio: { limit: 30, windowSeconds: 3600 },
   item: { limit: 30, windowSeconds: 3600 },
   helper: { limit: 60, windowSeconds: 3600 },
+  translate: { limit: 120, windowSeconds: 3600 },
 } as const;
 
 export type ApiKind = keyof typeof API_LIMITS;
