@@ -1,5 +1,5 @@
 // 지난 도우미 대화 불러오기(W6를 열 때). 작성자 본인의 helper_messages만 최근부터 나눠 준다(이슈 #218).
-// 근거: 문서/설계/데이터구조-v2.1.1.md '공통 계약' GET /api/helper/messages
+// 근거: 문서/설계/데이터구조-v2.2.0.md '공통 계약' GET /api/helper/messages
 // DB 읽기는 HelperMessagesDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 import type { Role } from "@/lib/auth/signup";
 import type { ApiResult } from "@/lib/records/transition";
