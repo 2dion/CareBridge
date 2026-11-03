@@ -1,5 +1,6 @@
 // 실제 Supabase에서 읽은 줄을 화면이 쓰는 모양(DemoDb)으로 바꾼다. 화면 코드는 Mock과 같은 모양을 그대로 읽는다.
 // 근거: 문서/설계/데이터구조-v2.1.1.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
+import { parseNativeLang } from "@/lib/auth/signup";
 import type { ItemKey, ItemStatus, RecordStatus, Resolution } from "../demo/state";
 import type {
   Assignment,
@@ -20,7 +21,7 @@ export type ProfileRow = {
   id: string;
   role: "worker" | "reviewer";
   name: string;
-  native_lang: "ko" | "vi";
+  native_lang: string;
   font_size: number;
   onboarded: boolean;
   org_name: string;
@@ -470,12 +471,12 @@ export function toDemoDb(rows: RealRows, today: string): DemoDb {
   };
 }
 
-/** list_org_staff 한 줄 → 화면 직원. 모국어는 ko가 아니면 vi(MVP는 두 값만) */
+/** list_org_staff 한 줄 → 화면 직원. 모르는 모국어 값은 ko로 둔다(parseNativeLang) */
 function mapStaff(row: StaffRow): StaffMember {
   return {
     id: row.id,
     name: row.name,
     role: row.role,
-    nativeLang: row.native_lang === "ko" ? "ko" : "vi",
+    nativeLang: parseNativeLang(row.native_lang),
   };
 }

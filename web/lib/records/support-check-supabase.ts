@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseNativeLang } from "@/lib/auth/signup";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { saveItemCheck } from "@/lib/agent/draft-repository";
@@ -51,7 +52,7 @@ export function createSupportCheckDeps(
           : null;
       return {
         careType: "home",
-        nativeLang: profile?.native_lang === "ko" ? "ko" : "vi",
+        nativeLang: parseNativeLang(profile?.native_lang),
         visitMinutes: resolveVisitMinutes(
           known,
           (record.form_fields as Record<string, unknown> | null) ?? {},

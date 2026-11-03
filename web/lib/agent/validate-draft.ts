@@ -2,6 +2,7 @@
 // 근거: 문서/설계/ai규칙-v2.0.1.md '서버 검사와 예외 처리' 검사 1~6,
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
+import type { NativeLang } from "@/lib/auth/signup";
 
 export const ITEM_KEYS = [
   "visit_time",
@@ -45,7 +46,7 @@ export type ValidateContext = {
   // records.transcript (받아쓴 글 원문). evidence는 이 글과 비교한다.
   transcript: string;
   careType: CareType;
-  nativeLang?: "ko" | "vi";
+  nativeLang?: NativeLang;
   // 재가 방문 시간(분). records.visit_start~visit_end로 서버가 계산한다.
   // 없으면 form_fields.total_minutes를 쓴다.
   visitMinutes?: number | null;
@@ -514,7 +515,7 @@ function parseItem(raw: unknown, index: number): ParsedItem | Problem {
 
 // 코드 이유의 번역. "지원별 제공시간 합이 방문 시간보다 김 (200분 > 180분)"처럼 숫자가 붙은 이유는
 // 앞부분으로 찾아 뒤의 숫자를 그대로 붙인다. 모르는 이유는 빈칸(번역 완료가 아님).
-export function reasonTranslation(reason: string, lang: "ko" | "vi" = "vi"): string {
+export function reasonTranslation(reason: string, lang: NativeLang = "vi"): string {
   if (lang === "ko") return reason;
   const exact = REASONS_VI[reason];
   if (exact !== undefined) return exact;
@@ -522,7 +523,7 @@ export function reasonTranslation(reason: string, lang: "ko" | "vi" = "vi"): str
   return prefix ? `${REASONS_VI[prefix]}${reason.slice(prefix.length)}` : "";
 }
 
-const downgrade = (item: DraftItem, reason: string, lang?: "ko" | "vi"): DraftItem => ({
+const downgrade = (item: DraftItem, reason: string, lang?: NativeLang): DraftItem => ({
   ...item,
   status: "needs_check",
   reason: item.reason ? `${item.reason}; ${reason}` : reason,
@@ -867,7 +868,7 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 export function allNeedsCheckDraft(
   reason: string,
   transcriptKo = "",
-  nativeLang?: "ko" | "vi",
+  nativeLang?: NativeLang,
 ): Draft {
   return {
     transcript_ko: transcriptKo,
