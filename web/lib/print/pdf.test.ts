@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { createDemoDb } from "../demo/store";
 import { legalForms, printFields } from "./fields";
-import { createRecordPdf, wrapText } from "./pdf";
+import { createPeriodPdf, createRecordPdf, wrapText } from "./pdf";
 
 const db = createDemoDb("2026-10-27");
 const fontBytes = readFileSync(resolve("public/fonts/noto-sans-kr.ttf"));
@@ -84,4 +84,57 @@ describe("법정 원문 기록 PDF", () => {
     },
     20000,
   );
+
+  it.each(["16", "12"] as const)(
+    "제%s호 기간 인쇄: 여러 날을 한 장의 날짜 열에 찍고 마지막 열도 원문 안에 있다",
+    async (formType) => {
+      const record = Object.values(db.records).find(
+        (entry) => entry.formType === formType && entry.status === "approved",
+      )!;
+      const days = legalForms[formType].days;
+      const from = "2026-10-26";
+      const dated = (offset: number) => ({
+        ...record,
+        careDate: `2026-10-${String(26 + offset).padStart(2, "0")}`,
+      });
+      const template = readFileSync(resolve("public" + legalForms[formType].href));
+      const pdf = await createPeriodPdf({
+        template,
+        fontBytes,
+        formType,
+        days: [
+          { record: dated(0), column: 0, notesArea: "physical" },
+          { record: dated(days - 1), column: days - 1, notesArea: "cognition" },
+        ],
+        residentName: "김○○ 어르신",
+        org: db.worker.org,
+        from,
+        to: `2026-10-${26 + days - 1}`,
+        training: true,
+      });
+      const loaded = await PDFDocument.load(pdf.bytes);
+      const original = await PDFDocument.load(template);
+      expect(loaded.getPageCount()).toBe(pdf.recordPages + original.getPageCount() - 1);
+      expect(loaded.getTitle()).toContain(`${from}~`);
+      const outputDir = mkdtempSync(resolve(tmpdir(), `carebridge-period-${formType}-`));
+      writeFileSync(resolve(outputDir, "period.pdf"), pdf.bytes);
+      console.info(`법정 제${formType}호 기간 인쇄 시각 확인: ${outputDir}/period.pdf`);
+    },
+    20000,
+  );
+
+  it("기간 인쇄에 넣을 날이 없으면 만들지 않는다", async () => {
+    await expect(
+      createPeriodPdf({
+        template: readFileSync(resolve("public" + legalForms["12"].href)),
+        fontBytes,
+        formType: "12",
+        days: [],
+        residentName: "",
+        org: "",
+        from: "2026-10-26",
+        to: "2026-11-01",
+      }),
+    ).rejects.toThrow("승인한 기록");
+  });
 });

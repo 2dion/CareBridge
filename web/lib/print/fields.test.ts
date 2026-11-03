@@ -5,7 +5,17 @@ import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
 import { createDemoDb, type DemoRecord } from "../demo/store";
-import { checkMatches, form12Checks, legalForms, type PrintMark, printFields } from "./fields";
+import {
+  checkMatches,
+  columnOffset,
+  dateColumns,
+  dayFields,
+  form12Checks,
+  legalForms,
+  periodFields,
+  type PrintMark,
+  printFields,
+} from "./fields";
 import { createRecordPdf } from "./pdf";
 
 const db = createDemoDb("2026-10-27");
@@ -196,4 +206,98 @@ describe("제12호 인쇄 칸 채우기", () => {
     for (const field of fields) expect(field.x + field.width).toBeLessThanOrEqual(width);
     expect(marks.filter((mark) => mark.top === box("body_wash").top)).toHaveLength(1);
   }, 20000);
+});
+
+// 기간 인쇄(이슈 #261): k번째 날짜 열로 옮긴 좌표가 그 열의 세로 경계 안에 있는지
+describe("날짜 열 좌표(기간 인쇄)", () => {
+  const facility = Object.values(db.records).find(
+    (entry) => entry.formType === "16" && entry.status === "approved",
+  )!;
+  const home = withSupport(
+    { checks: ["목욕", "청소"], minutes: { physical: 60, housework: 60, emotional: 60 } },
+    { formFields: { body_trend: "same", stool_accidents: 1, urine_accidents: 2 } },
+  );
+
+  it("제12호는 열 7개, 제16호는 열 3개이고 그 밖의 열은 오류", () => {
+    expect(columnOffset("12", 0)).toBe(0);
+    expect(columnOffset("12", 6)).toBeCloseTo(238.1, 5);
+    expect(columnOffset("16", 2)).toBeCloseTo(244.5, 5);
+    expect(() => columnOffset("12", 7)).toThrow("8번째");
+    expect(() => columnOffset("16", 3)).toThrow("4번째");
+    expect(() => columnOffset("16", -1)).toThrow();
+  });
+
+  it.each([0, 3, 6])("제12호 %i번째 열의 글·체크가 모두 그 열 안에 찍힌다", (column) => {
+    const [left, right] = [dateColumns["12"][column], dateColumns["12"][column + 1]];
+    const { fields, marks } = dayFields(home, "", column);
+    expect(fields.length).toBeGreaterThan(5);
+    expect(marks.length).toBeGreaterThan(2);
+    for (const field of fields) {
+      expect(field.x, field.key).toBeGreaterThanOrEqual(left);
+      expect(field.x + field.width, field.key).toBeLessThanOrEqual(right);
+    }
+    for (const mark of marks) {
+      expect(mark.x).toBeGreaterThanOrEqual(left);
+      expect(mark.x + 6).toBeLessThanOrEqual(right);
+    }
+    expect(fields.find((field) => field.key === "day")?.text).toBe(
+      String(Number(home.careDate.slice(8))),
+    );
+  });
+
+  it.each([0, 1, 2])("제16호 %i번째 열의 글·체크가 모두 그 열 안에 찍힌다", (column) => {
+    const [left, right] = [dateColumns["16"][column], dateColumns["16"][column + 1]];
+    const { fields, marks } = dayFields(facility, "physical", column);
+    expect(fields.some((field) => field.key.startsWith("notes-"))).toBe(true);
+    for (const field of fields) {
+      expect(field.x, field.key).toBeGreaterThanOrEqual(left);
+      expect(field.x + field.width, field.key).toBeLessThanOrEqual(right);
+      expect(field.width, field.key).toBeGreaterThan(30);
+    }
+    for (const mark of marks) {
+      expect(mark.x).toBeGreaterThanOrEqual(left);
+      expect(mark.x + 6).toBeLessThanOrEqual(right);
+    }
+  });
+
+  it("기간 인쇄는 머리말을 한 번만, 제12호 특이사항은 날짜를 붙여 잇는다", () => {
+    const day1 = { ...home, careDate: "2026-10-27" };
+    const day3 = { ...home, careDate: "2026-10-29" };
+    const { fields } = periodFields(
+      "12",
+      [
+        { record: day3, column: 2, notesArea: "" },
+        { record: day1, column: 0, notesArea: "" },
+      ],
+      "이○○ 어르신",
+      org,
+      "2026-10-27",
+    );
+    expect(fields.filter((field) => field.key === "name")).toHaveLength(1);
+    expect(fields.find((field) => field.key === "year")?.text).toBe("2026");
+    expect(fields.filter((field) => field.key === "day").map((field) => field.text)).toEqual([
+      "27",
+      "29",
+    ]);
+    const notes = fields.find((field) => field.key === "notes")!;
+    expect(notes.text.startsWith("10/27 ")).toBe(true);
+    expect(notes.text).toContain(" 10/29 ");
+    expect(notes.text.indexOf("10/27")).toBeLessThan(notes.text.indexOf("10/29"));
+    expect(fields.filter((field) => field.key === "notes")).toHaveLength(1);
+    expect(() =>
+      periodFields("16", [{ record: day1, column: 0, notesArea: "" }], "이○○", org, "2026-10-27"),
+    ).toThrow("다른 서식");
+  });
+
+  it("제16호 기간 인쇄는 notes가 있는 날마다 영역을 골라야 한다", () => {
+    expect(() =>
+      periodFields(
+        "16",
+        [{ record: facility, column: 1, notesArea: "" }],
+        "김○○",
+        org,
+        "2026-10-26",
+      ),
+    ).toThrow("영역");
+  });
 });
