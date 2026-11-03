@@ -81,6 +81,10 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
     vi: "Nội dung này đã được xử lý. Hãy tải lại trang.",
   },
   not_signed_in: { ko: "다시 로그인해 주세요.", vi: "Hãy đăng nhập lại." },
+  rate_limited: {
+    ko: "요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.",
+    vi: "Có quá nhiều yêu cầu. Hãy thử lại sau ít phút.",
+  },
   stt_failed: {
     ko: "음성을 글자로 바꾸지 못했어요. 다시 올리거나 글로 써 주세요.",
     vi: "Không chuyển được giọng nói thành văn bản. Hãy gửi lại hoặc viết trực tiếp.",
