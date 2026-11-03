@@ -1,5 +1,5 @@
 // 기록 검증 (Agent 도구 ③ validate_draft). AI 판단이 아니라 서버 코드 검사다.
-// 근거: 문서/설계/ai규칙-v2.0.2.md '서버 검사와 예외 처리' 검사 1~6,
+// 근거: 문서/설계/ai규칙-v2.0.3.md '서버 검사와 예외 처리' 검사 1~6,
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
 import type { NativeLang } from "@/lib/auth/signup";
@@ -133,6 +133,63 @@ export type Intake = (typeof INTAKE_VALUES)[number];
 
 export const isIntake = (value: unknown): value is Intake =>
   typeof value === "string" && (INTAKE_VALUES as readonly string[]).includes(value);
+
+// 섭취량을 말로 한 표현 → 서식 선택지(이슈 #245, 결정 2026-11-03-실제ai검증후속 1번). 앞에서부터 처음 맞는 것을 쓴다.
+// 딱 절반('절반 정도', 'khoảng một nửa')은 선택지가 1 / 1/2 이상 / 1/2 미만뿐이라 1/2 이상이다. 언어와 상관없이 같은 값.
+// '반' 한 글자는 반찬·반복 등과 섞여 쓰지 않는다.
+const INTAKE_PHRASES: readonly [Intake, RegExp][] = [
+  [
+    "under_half",
+    /반도\s*(못|안)|반\s*(안|못)\s*(되|돼|먹|드)|절반\s*(도\s*)?(못|안)|chưa\s+(được|đến|tới)\s+(một\s+)?nửa|ít\s+hơn\s+(một\s+)?nửa|dưới\s+(một\s+)?nửa/i,
+  ],
+  ["half_or_more", /(반|절반)\s*(넘게|넘|이상)|hơn\s+(một\s+)?nửa|trên\s+(một\s+)?nửa/i],
+  [
+    "half_or_more",
+    /절반|반\s*(정도|쯤|만|그릇|공기|밖에|가량)|(khoảng|chừng|gần)?\s*một\s+nửa|nửa\s+(suất|bữa|phần|bát|chén)/i,
+  ],
+  [
+    "full",
+    /다\s*드(셨|심|시)|전량|한\s*그릇\s*다|남김\s*없이|ăn\s+hết|hết\s+(suất|phần|bát|chén)/i,
+  ],
+];
+
+/** 근거·내용의 말로 한 섭취량을 서식 선택지로. 정할 수 없으면 null */
+export function intakeFromText(text: string): Intake | null {
+  const normalized = text.normalize("NFC").toLowerCase();
+  for (const [intake, pattern] of INTAKE_PHRASES) if (pattern.test(normalized)) return intake;
+  return null;
+}
+
+// 검사 7 보강: AI가 섭취량 경계만을 이유로 '확인 필요'로 두었는지(서버가 섭취량을 정하면 '관찰'로 올린다)
+const INTAKE_REASON = /섭취량|절반|반\s*그릇|1\/2|경계|lượng\s*ăn|một\s+nửa/i;
+
+// 검사 11: 복약 근거가 작성자의 추정인지(이슈 #245). 직접 본 것·어르신 진술은 걸지 않는다.
+export const MEDICATION_GUESS_WORDS =
+  /것\s*같|같아요|같습니다|듯|확인(하지|을)?\s*못|확인\s*(못|안)\s*(했|함|됨)|못\s*봤|보지\s*못|모르겠|불확실|hình\s+như|có\s+lẽ|không\s+chắc|chưa\s+(kiểm tra|xác nhận|thấy)|không\s+(kiểm tra|xác nhận|thấy)/i;
+const MEDICATION_WORDS = /약|복약|복용|thuốc/i;
+// 추정을 진술·확인으로 바꿔 쓴 내용. 서버가 고정 문장으로 바꾼다(결정 2026-11-03-실제ai검증후속 3번)
+const MEDICATION_ASSERTED =
+  /드셨다고\s*하심|하셨다고\s*하심|복약\s*확인함|복용\s*확인함|복약\s*확인됨|드신\s*것\s*확인함|복용\s*하심|복약\s*하심/;
+export const MEDICATION_UNCONFIRMED_KO = "복약 여부 직접 확인하지 못함(작성자 추정)";
+
+/** 복약 근거(없으면 원문에서 약 이야기가 든 문장)가 작성자의 추정인지 */
+export function isMedicationGuess(evidence: string, transcript: string): boolean {
+  const source = evidence.trim()
+    ? evidence
+    : transcript
+        .split(/(?<=[.!?。])\s+|\n+/)
+        .filter((sentence) => MEDICATION_WORDS.test(sentence))
+        .join(" ");
+  return MEDICATION_WORDS.test(source) && MEDICATION_GUESS_WORDS.test(source);
+}
+
+// 검사 9 한정: 원문에 인지 이야기가 없으면 인지 변화는 '언급 없음'이다(이슈 #245). "언급 없음"을 내용에 쓴 항목을 되돌린다
+const COGNITION_WORDS =
+  /인지|기억|알아보|알아봤|못\s*알아|헷갈|혼동|혼란|치매|날짜|요일|이름을|사람을|물어보|물으|반복|같은\s*말|대화|의사소통|말벗|nhớ|nhận\s+ra|lẫn|quên|mất\s+trí|ngày\s+tháng|hỏi\s+(đi\s+)?hỏi\s+lại/i;
+const NOT_MENTIONED_PHRASE =
+  /언급\s*(이\s*)?없|언급되지\s*않|말씀\s*없|이야기\s*없|내용\s*없음|không\s+(được\s+)?(đề\s+cập|nhắc)|không\s+có\s+thông\s+tin/i;
+export const hasCognitionMention = (text: string): boolean =>
+  COGNITION_WORDS.test(text.normalize("NFC"));
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -725,19 +782,88 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
 
     // 검사 7: 식사 섭취량 값은 full / half_or_more / under_half 중 하나다 (이슈 #133).
     // 다른 값("1/2 이상", "needs_check" 등)은 서식에 체크를 찍지 못하므로 빼고, 식사를 '확인 필요'로 둔다.
-    if (key === "meal" && item.detail.intake !== undefined && item.detail.intake !== null) {
-      if (!isIntake(item.detail.intake)) {
+    // 보강(이슈 #245): 값이 비었거나 틀렸어도 근거·내용에 '절반·반 넘게·반도 못·다 드심' 같은 말이 있으면 서버가 선택지를 넣는다.
+    // 언어(한국어·베트남어)와 상관없이 같은 값이다. AI가 섭취량 경계만을 이유로 '확인 필요'로 두었으면 '관찰'로 올린다.
+    if (key === "meal" && item.status !== "not_mentioned") {
+      const given = item.detail.intake;
+      const derived = isIntake(given) ? null : intakeFromText(`${item.evidence}\n${item.value_ko}`);
+      if (given !== undefined && given !== null && !isIntake(given)) {
         problems.push({
           code: "invalid_intake",
           item_key: key,
-          message: `detail.intake(${String(item.detail.intake)})가 ${INTAKE_VALUES.join(" / ")} 중 하나가 아니어서 뺐습니다. 섭취량을 정하지 못하면 intake를 넣지 않고 '확인 필요'로 두세요.`,
+          message: `detail.intake(${String(given)})가 ${INTAKE_VALUES.join(" / ")} 중 하나가 아니어서 ${derived ? `근거대로 ${derived}로 바꿨습니다` : "뺐습니다"}. 섭취량을 정하지 못하면 intake를 넣지 않고 '확인 필요'로 두세요.`,
         });
+      }
+      if (derived) {
+        item = { ...item, detail: { ...item.detail, intake: derived } };
+        if (item.status === "needs_check") {
+          const parts = item.reason
+            .split(";")
+            .map((part) => part.trim())
+            .filter(Boolean);
+          const others = parts.filter((part) => !INTAKE_REASON.test(part));
+          if (parts.length > 0 && others.length === 0) {
+            item = { ...item, status: "observed", reason: "", reason_native: "" };
+          }
+        }
+      } else if (given !== undefined && given !== null) {
         const rest = Object.fromEntries(
           Object.entries(item.detail).filter(([field]) => field !== "intake"),
         );
         item = { ...item, detail: rest };
-        if (item.status !== "not_mentioned") lower(REASONS.intakeUnknown);
+        lower(REASONS.intakeUnknown);
       }
+    }
+
+    // 검사 11: 복약 근거가 작성자의 추정("드신 것 같다", "확인하지 못했다")이면 '확인 필요'(이슈 #245).
+    // 추정을 "드셨다고 하심"처럼 진술·확인으로 바꿔 썼으면 고정 문장으로 바꿔 불확실성을 내용에도 남긴다.
+    if (
+      key === "medication" &&
+      item.status !== "not_mentioned" &&
+      isMedicationGuess(item.evidence, ctx.transcript)
+    ) {
+      if (MEDICATION_ASSERTED.test(item.value_ko)) {
+        problems.push({
+          code: "medication_guess_asserted",
+          item_key: key,
+          message:
+            "작성자가 복약을 직접 확인하지 못했는데 내용이 진술·확인처럼 쓰여 고정 문장으로 바꿨습니다.",
+        });
+        item = { ...item, value_ko: MEDICATION_UNCONFIRMED_KO, value_native: "" };
+      }
+      if (item.status === "observed") {
+        problems.push({
+          code: "medication_guess",
+          item_key: key,
+          message: "복약 근거가 작성자의 추정이라 '확인 필요'로 두세요.",
+        });
+        lower(REASONS.medicationGuess);
+      }
+    }
+
+    // 검사 9 한정(이슈 #245): 원문에 인지 이야기가 없는데 "언급 없음"을 내용으로 채운 인지 항목은 '언급 없음'으로 되돌린다
+    if (
+      key === "cognition" &&
+      item.status !== "not_mentioned" &&
+      NOT_MENTIONED_PHRASE.test(item.value_ko) &&
+      !hasCognitionMention(ctx.transcript)
+    ) {
+      problems.push({
+        code: "cognition_not_mentioned",
+        item_key: key,
+        message:
+          "원문에 인지 이야기가 없으면 인지 변화는 not_mentioned이고 내용을 비웁니다(규칙 1).",
+      });
+      item = {
+        ...item,
+        status: "not_mentioned",
+        value_ko: "",
+        value_native: "",
+        evidence: "",
+        reason: "",
+        reason_native: "",
+        detail: {},
+      };
     }
 
     // 검사 5: 재가 제공시간 합 ≤ 방문 시간 (분 칸 형식 포함). 틀린 값은 합에 넣지 않고 확인 필요로 둔다.

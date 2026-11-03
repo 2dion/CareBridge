@@ -20,6 +20,7 @@ export const REASONS_VI: Record<string, string> = {
     "Không có lời so sánh nên không xác định được thay đổi chức năng nhận thức (cải thiện/giữ nguyên/xấu đi)",
   [REASONS.visibleSign]:
     "Thay đổi nhìn thấy trên da/cơ thể (đỏ, vết thương, bầm, sưng...) nên người quản lý cần xác nhận",
+  [REASONS.medicationGuess]: "Người ghi chưa trực tiếp xác nhận việc uống thuốc (phỏng đoán)",
   [REASONS.invalidShape]: "Định dạng không hợp lệ",
   [REASONS.autoStop]: "Đã dừng tự động sắp xếp nội dung",
 };
