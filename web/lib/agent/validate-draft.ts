@@ -81,7 +81,10 @@ export type ProblemCode =
   | "real_name"
   | "form_field_without_evidence"
   | "trend_without_comparison"
-  | "visible_sign_observed";
+  | "visible_sign_observed"
+  | "medication_guess"
+  | "medication_guess_asserted"
+  | "cognition_not_mentioned";
 
 export type Problem = {
   code: ProblemCode;
