@@ -1,11 +1,12 @@
 // ⑤ 도우미 답(W6): 교재 매뉴얼(manual_sections)과 용어 목록(glossary)에서 찾은 내용만으로 답한다. 답한 질문은 helper_messages에 남긴다(이슈 #218).
-// 근거: 문서/설계/ai규칙-v2.0.1.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.2.0.md '공통 계약' helper/ask
+// 근거: 문서/설계/ai규칙-v2.0.1.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.0.md '공통 계약' helper/ask
 // DB·Claude 호출은 HelperDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 // 이슈 #122: 교재 검색과 search_glossary는 한국어만 맞으므로, 한글이 없는 질문(베트남어 등)은 먼저 한국어로 옮겨 검색한다.
 // 건강·안전 안내 문구는 모델에 맡기지 않고 서버가 낱말 검사로 붙인다(질문 언어와 상관없이).
 
-import type { NativeLang, Role } from "@/lib/auth/signup";
+import type { Role } from "@/lib/auth/signup";
 import { type RoleNames, roleNames } from "@/lib/demo/roles";
+import { languageNameKo, type NativeLang } from "@/lib/i18n/languages";
 import { isNotKorean } from "@/lib/records/item-patch";
 import type { ApiResult } from "@/lib/records/transition";
 
@@ -13,12 +14,14 @@ export type ManualSection = { chapter: string; title: string; page: string; body
 export type GlossaryTerm = {
   matched_expression: string;
   term_ko: string;
-  term_vi: string;
+  /** 작성자 모국어 고정 번역(search_glossary의 term_native). 그 언어 번역이 없으면 빈값 */
+  term_native: string;
   plain_ko: string;
   chapter: string;
   page: string;
 };
-export type HelperAnswer = { ko: string; vi: string; source: string | null; found: boolean };
+/** native = 작성자 모국어 답. API 출력에는 옛 이름 vi도 같은 값으로 함께 보낸다(이슈 #259 전환 기간) */
+export type HelperAnswer = { ko: string; native: string; source: string | null; found: boolean };
 
 /** helper_messages에 넣는 1행(질문 1개 + 답 1개). org_id·id·created_at은 DB가 채운다 */
 export type HelperMessageRow = {
@@ -42,7 +45,8 @@ export type HelperDeps = {
   } | null>;
   /** keywords: 번역할 때 AI가 뽑은 핵심 낱말(이슈 #219). 한국어 질문은 빈 배열 */
   searchManual(question: string, keywords: string[]): Promise<ManualSection[]>;
-  searchGlossary(question: string): Promise<GlossaryTerm[]>;
+  /** lang: 작성자 모국어. 그 언어의 고정 번역(term_native)을 함께 받는다 */
+  searchGlossary(question: string, lang: NativeLang): Promise<GlossaryTerm[]>;
   /** 한글이 없는 질문을 한국어로 옮기고 교재 검색용 핵심 낱말을 뽑는다(가벼운 모델 한 번). 키가 없으면 null */
   translateQuestion(question: string): Promise<{ text: string; keywords: string[] } | null>;
   /** 가벼운 모델 한 번 호출. 키가 없으면 null */
@@ -58,7 +62,7 @@ export const MAX_QUESTION_CHARS = 500;
 export function notFoundAnswer(names: RoleNames = roleNames(false)): HelperAnswer {
   return {
     ko: `교재에서 찾지 못했어요. ${names.reviewer}에게 물어보세요.`,
-    vi: `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${names.reviewerVi}.`,
+    native: `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${names.reviewerVi}.`,
     source: null,
     found: false,
   };
@@ -71,7 +75,7 @@ export const NOT_FOUND: HelperAnswer = notFoundAnswer();
 export function safetyNotice(names: RoleNames = roleNames(false)) {
   return {
     ko: `${names.reviewer}에게 바로 보고하세요.`,
-    vi: `Hãy báo ngay cho ${names.reviewerVi}.`,
+    native: `Hãy báo ngay cho ${names.reviewerVi}.`,
   };
 }
 
@@ -134,32 +138,34 @@ export function isSafetyQuestion(...texts: string[]) {
   );
 }
 
-/** 안전 안내 문구를 ko·vi 맨 앞에 붙인다. 모델이 이미 썼으면 두 번 붙이지 않는다. vi가 비어 있으면 그대로 둔다. */
+/** 안전 안내 문구를 ko·native 맨 앞에 붙인다. 모델이 이미 썼으면 두 번 붙이지 않는다. native가 비어 있으면 그대로 둔다. */
 export function withSafetyNotice(
   answer: HelperAnswer,
-  notice: { ko: string; vi: string } = SAFETY_NOTICE,
+  notice: { ko: string; native: string } = SAFETY_NOTICE,
 ): HelperAnswer {
   const ko = answer.ko.includes(notice.ko) ? answer.ko : `${notice.ko} ${answer.ko}`.trim();
-  const vi =
-    answer.vi === "" || answer.vi.includes(notice.vi)
-      ? answer.vi
-      : `${notice.vi} ${answer.vi}`.trim();
-  return { ...answer, ko, vi };
+  const native =
+    answer.native === "" || answer.native.includes(notice.native)
+      ? answer.native
+      : `${notice.native} ${answer.native}`.trim();
+  return { ...answer, ko, native };
 }
 
 export function helperSystemPrompt(nativeLang: NativeLang) {
-  const viRule =
-    nativeLang === "vi"
-      ? "vi에는 ko의 베트남어 번역을 쓴다. 교재 용어는 [용어]의 괄호 안 베트남어를 그대로 쓰고 다른 말로 옮기지 않는다."
-      : 'vi는 ""로 둔다.';
+  // 언어 이름은 언어 목록(web/lib/i18n/languages.ts)에서 넣는다(이슈 #259)
+  const name = languageNameKo(nativeLang);
+  const nativeRule =
+    nativeLang === "ko"
+      ? 'native는 ""로 둔다.'
+      : `native에는 ko의 ${name} 번역을 쓴다. 교재 용어는 [용어]의 괄호 안 ${name}를 그대로 쓰고 다른 말로 옮기지 않는다.`;
   return `너는 외국인 요양보호사를 돕는 도우미다. 아래 [교재]와 [용어]에 있는 내용만으로 답한다.
 1. 답은 [교재]·[용어]에 있는 내용만 쓴다. 상식·일반 조언·짐작을 보태지 않는다.
-2. [교재]·[용어]에 답이 없으면 found=false로 두고 ko·vi는 ""로 둔다. 대신할 조언을 쓰지 않는다.
+2. [교재]·[용어]에 답이 없으면 found=false로 두고 ko·native는 ""로 둔다. 대신할 조언을 쓰지 않는다.
 3. 사투리·일상 표현 풀이는 '짐작'이라고 밝히고, 여러 뜻이 가능하면 모두 쓴다.
 4. 기록을 고치거나 대신 쓰지 않는다. 건강·안전 보고 안내는 서버가 붙이므로 쓰지 않는다.
-5. 쉬운 한국어로 짧게 쓴다. ${viRule}
+5. 쉬운 한국어로 짧게 쓴다. ${nativeRule}
 6. source에는 답에 쓴 교재의 장·절·쪽을 쓴다.
-다른 말 없이 JSON 한 개로만 답한다: {"ko":"","vi":"","source":"","found":true}`;
+다른 말 없이 JSON 한 개로만 답한다: {"ko":"","native":"","source":"","found":true}`;
 }
 
 export function helperUserMessage(
@@ -174,7 +180,7 @@ export function helperUserMessage(
   const glossary = terms
     .map(
       (t) =>
-        `- ${t.matched_expression} → ${t.term_ko} (${t.term_vi}) ${t.plain_ko} [${t.chapter}${t.page ? ` ${t.page}쪽` : ""}]`,
+        `- ${t.matched_expression} → ${t.term_ko}${t.term_native ? ` (${t.term_native})` : ""} ${t.plain_ko} [${t.chapter}${t.page ? ` ${t.page}쪽` : ""}]`,
     )
     .join("\n");
   // 질문을 한국어로 옮겨 검색했으면 원문도 함께 건넨다(뜻이 어긋났을 때 모델이 바로잡게)
@@ -190,11 +196,18 @@ export function parseHelperAnswer(raw: string): HelperAnswer | null {
   try {
     const parsed = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
     if (typeof parsed.ko !== "string" || typeof parsed.found !== "boolean") return null;
-    // found=false면 모델이 쓴 ko·vi는 버리고 고정 문구만 쓴다(W6 2번)
+    // found=false면 모델이 쓴 ko·native는 버리고 고정 문구만 쓴다(W6 2번)
     if (!parsed.found) return NOT_FOUND;
+    // 옛 프롬프트로 답한 vi 칸도 받아 준다(전환 기간)
+    const native =
+      typeof parsed.native === "string"
+        ? parsed.native
+        : typeof parsed.vi === "string"
+          ? parsed.vi
+          : "";
     return {
       ko: parsed.ko,
-      vi: typeof parsed.vi === "string" ? parsed.vi : "",
+      native,
       source: typeof parsed.source === "string" && parsed.source ? parsed.source : null,
       found: true,
     };
@@ -203,7 +216,7 @@ export function parseHelperAnswer(raw: string): HelperAnswer | null {
   }
 }
 
-// POST /api/helper/ask — 작성자. 입력 question. 출력 ko·vi·source·found + id·created_at(저장한 행, 저장이 실패하면 null)
+// POST /api/helper/ask — 작성자. 입력 question. 출력 ko·native(옛 이름 vi도 같은 값)·source·found + id·created_at(저장한 행, 저장이 실패하면 null)
 export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiResult> {
   const user = await deps.currentUser();
   if (!user) return { status: 401, body: { error: "not_signed_in" } };
@@ -240,20 +253,26 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
       question,
       question_ko: questionKo !== question ? questionKo : "",
       answer_ko: shown.ko,
-      answer_native: shown.vi,
+      answer_native: shown.native,
       source: shown.source ?? "",
       found: shown.found,
       safety,
     });
     return {
       status: 200,
-      body: { ...shown, id: saved?.id ?? null, created_at: saved?.created_at ?? null },
+      // vi는 옛 칸 이름. 화면이 native로 옮길 때까지 같은 값을 함께 보낸다(이슈 #259)
+      body: {
+        ...shown,
+        vi: shown.native,
+        id: saved?.id ?? null,
+        created_at: saved?.created_at ?? null,
+      },
     };
   };
 
   const [sections, terms] = await Promise.all([
     deps.searchManual(questionKo, keywords),
-    deps.searchGlossary(questionKo),
+    deps.searchGlossary(questionKo, user.nativeLang),
   ]);
   if (sections.length === 0 && terms.length === 0) return finish(notFound);
 
@@ -280,4 +299,4 @@ async function saveQuietly(deps: HelperDeps, row: HelperMessageRow) {
 }
 
 const localized = (answer: HelperAnswer, lang: NativeLang) =>
-  lang === "ko" ? { ...answer, vi: "" } : answer;
+  lang === "ko" ? { ...answer, native: "" } : answer;

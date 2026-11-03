@@ -1,0 +1,52 @@
+term_id,term,reviewed
+T01,Hỗ trợ rửa mặt,false
+T02,Vệ sinh răng miệng,false
+T03,Hỗ trợ thay quần áo,false
+T04,Hỗ trợ gội đầu,false
+T05,"Chăm sóc ngoại hình (cạo râu, cắt móng)",false
+T06,Hỗ trợ tắm,false
+T07,Hỗ trợ ăn uống,false
+T08,Ăn hết khẩu phần,false
+T09,Ăn được hơn một nửa,false
+T10,Ăn chưa được một nửa,false
+T11,Ăn một ít (cần hỏi lại lượng),false
+T12,Cháo,false
+T13,Nuôi ăn qua ống,false
+T14,Đổi tư thế,false
+T15,Nằm liệt giường,false
+T16,Hỗ trợ di chuyển,false
+T17,Hỗ trợ đi vệ sinh,false
+T18,Thay tã,false
+T19,Tiểu không tự chủ,false
+T20,Bị sặc / khó nuốt,false
+T21,Bà nói ngủ không ngon,false
+T22,Kêu đau,false
+T23,Da bị đỏ,false
+T24,Bị sưng / phù,false
+T25,Đã thấy uống thuốc,false
+T26,"Trò chuyện, động viên",false
+T27,Hỗ trợ hoạt động nhận thức,false
+T28,Đi dạo cùng,false
+T29,Té ngã,false
+T30,Không đi ngoài được / đi ngoài phân lỏng,false
+T31,Nằm liệt một phần (ngồi được khi có hỗ trợ),false
+T32,Loét tì đè,false
+T33,Liệt nửa người,false
+T34,Ống thông dạ dày qua mũi,false
+T35,Ống thông tiểu lưu,false
+T36,Hậu môn nhân tạo,false
+T37,Lỗ dẫn lưu nước tiểu ra da,false
+T38,Viêm da do tã,false
+T39,Hăm da ở nếp gấp,false
+T40,Thức ăn mềm cho người khó nuốt,false
+T41,Tím tái,false
+T42,Chóng mặt,false
+T43,Mê sảng,false
+T44,Đi lang thang,false
+T45,Ảo giác,false
+T46,Rối loạn ý thức,false
+T47,Gãy xương,false
+T48,Vết bầm (ban xuất huyết tuổi già),false
+T49,Nhiễm trùng đường tiết niệu,false
+T50,Máy trợ thính,false
+T51,Mời ông/bà dùng bữa (cách nói kính trọng),false

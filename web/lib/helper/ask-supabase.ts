@@ -55,10 +55,11 @@ export async function createHelperDeps(): Promise<HelperDeps> {
       if (error) throw new Error(`교재 검색 실패: ${error.message}`);
       return rankSections((data ?? []) as ManualSection[], question, keywords, MAX_SECTIONS);
     },
-    async searchGlossary(question) {
+    async searchGlossary(question, lang) {
       const { data, error } = await supabase.rpc("search_glossary", {
         expression: question,
         max_results: 5,
+        lang,
       });
       if (error) throw new Error(`용어 검색 실패: ${error.message}`);
       return (data ?? []) as GlossaryTerm[];

@@ -4,7 +4,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 
 - **목적:** 표와 RLS를 대시보드에서 손으로 만들지 않고 파일로 남겨, 누가 언제 무엇을 바꿨는지 PR로 보이게 합니다.
 - **배경:** 모든 표를 기관별 RLS로 나눠야 하고(AGENTS.md 원칙 7), 여러 사람이 동시에 개발합니다.
-- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v2.2.0.md`), 기술 선택 v1.1 §3.
+- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v2.3.0.md`), 기술 선택 v1.1 §3.
 - **사유:** Supabase CLI의 기본 구조(`config.toml`, `migrations/`, `seed.sql`)를 그대로 써서 새로 배울 것을 줄입니다.
 
 ## 공모전 DB 변경 금지
@@ -33,6 +33,7 @@ DB 쓰기 전에 CLI/MCP·환경 변수의 대상 ref가 코디세이 `fffgpgrnp
 | `migrations/20261029130000_english_names.sql` | 영어 이름 세 개: `confirmed` → `confirmed_by_worker`, Agent 도구 `search_glossary`·`return_draft`, 칸 이름을 쓰는 함수 다시 만들기 |
 | `migrations/20261029160000_save_ai_item_check.sql` | `save_ai_item` mode `check`: 재가 제공 지원 재검사(검사 5) 결과로 status·reason·reason_native만 바꿈(작성자, draft·returned) |
 | `migrations/20261031100000_helper_messages.sql` | W6(도우미) 대화 표 `helper_messages`(#218, 표 14개): 넣기는 서버(service_role)만, 작성자는 내 행·관리자·강사는 같은 기관 읽기, `org_id`는 DB가 작성자 프로필에서 채움 |
+| `migrations/20261103150000_glossary_translations.sql` | 다국어 확장 단계 2(#259): 용어 번역 표 `glossary_translations`(표 17개), `search_glossary(expression, max_results, lang)` 결과 `term_native`, `records.native_lang`(DB가 작성자 프로필에서 채움, 고정). 회귀 SQL `tests/glossary-translations.sql` |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 | `demo-data.sql` | 시연 데이터 다시 채우기(#156): 데모 두 기관의 기록을 지우고 합성 어르신 8명·시연용 배경 기록 14건을 넣음. `data/demo/build_demo_sql.py`가 만듦 |
 | `reset-demo.sql` | 리허설 뒤 시나리오 1·2·3 어르신의 '오늘' 기록만 지움 |

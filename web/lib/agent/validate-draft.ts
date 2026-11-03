@@ -3,6 +3,7 @@
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
 import type { NativeLang } from "@/lib/auth/signup";
+import { REASONS, reasonTranslation } from "./reasons";
 
 export const ITEM_KEYS = [
   "visit_time",
@@ -99,42 +100,8 @@ export type ValidateResult = {
   downgraded: ItemKey[];
 };
 
-export const REASONS = {
-  evidenceNotFound: "근거를 찾지 못함",
-  evidenceTooShort: "근거가 너무 짧음",
-  observedWithoutEvidence: "근거 문장 없음",
-  supportMinutesExceed: "지원별 제공시간 합이 방문 시간보다 김",
-  visitMinutesMissing: "방문 시간이 없어 제공시간 합을 확인하지 못함",
-  realName: "실명이 들어 있음",
-  invalidMinutes: "제공시간 형식 오류",
-  noReason: "AI가 이유를 남기지 않음",
-  observedWithoutValue: "내용 없음",
-  intakeUnknown: "섭취량을 정하지 못함",
-  questionInValue: "기록 내용에 있던 확인 요청 문장을 이유로 옮김",
-  trendWithoutComparison: "비교 표현이 없어 인지기능 변화상태(호전·유지·악화)를 정할 수 없음",
-  visibleSign: "피부·몸에 보이는 변화(발적·상처·멍·부기 등)라 관리자가 확인",
-} as const;
-
-// 서버가 추가한 이유도 한국어와 번역을 함께 바꾼다. Agent가 준 번역은 그대로 보존한다.
-export const REASONS_VI: Record<string, string> = {
-  [REASONS.evidenceNotFound]: "Không tìm thấy căn cứ trong lời ghi chú",
-  [REASONS.evidenceTooShort]: "Câu làm căn cứ quá ngắn",
-  [REASONS.observedWithoutEvidence]: "Không có câu làm căn cứ",
-  [REASONS.supportMinutesExceed]: "Tổng thời gian hỗ trợ dài hơn thời gian thăm",
-  [REASONS.visitMinutesMissing]: "Không có thời gian thăm để kiểm tra tổng thời gian hỗ trợ",
-  [REASONS.realName]: "Có tên thật trong nội dung",
-  [REASONS.invalidMinutes]: "Định dạng thời gian hỗ trợ không hợp lệ",
-  [REASONS.noReason]: "AI không cung cấp lý do",
-  [REASONS.observedWithoutValue]: "Không có nội dung",
-  [REASONS.intakeUnknown]: "Chưa xác định được lượng ăn",
-  [REASONS.questionInValue]: "Câu yêu cầu xác nhận trong nội dung đã được chuyển sang lý do",
-  [REASONS.trendWithoutComparison]:
-    "Không có lời so sánh nên không xác định được thay đổi chức năng nhận thức (cải thiện/giữ nguyên/xấu đi)",
-  [REASONS.visibleSign]:
-    "Thay đổi nhìn thấy trên da/cơ thể (đỏ, vết thương, bầm, sưng...) nên người quản lý cần xác nhận",
-  "형식 오류": "Định dạng không hợp lệ",
-  "자동 정리 중단": "Đã dừng tự động sắp xếp nội dung",
-};
+// 코드 이유의 한국어 원문과 언어별 번역은 ./reasons 폴더에 있다(이슈 #259). 예전 import 경로를 위해 다시 내보낸다.
+export { REASONS, reasonTranslation };
 
 // 재가 지원별 분 칸 키 6개 (별지 제12호). 다른 키는 쓰지 않는다.
 // 근거: 문서/결정/2026-10-21-재가분칸-실명목록.md 결정 1
@@ -148,7 +115,7 @@ export const MINUTE_KEYS = [
 ] as const;
 
 // 재가(별지 제12호)에만 있는 form_fields 칸. 시설(별지 제16호) 기록에는 두지 않는다.
-// 근거: 문서/설계/데이터구조-v2.2.0.md 'form_fields (재가 제12호 전용)'
+// 근거: 문서/설계/데이터구조-v2.3.0.md 'form_fields (재가 제12호 전용)'
 export const HOME_ONLY_FORM_FIELDS = [
   "total_minutes",
   "body_trend",
@@ -511,16 +478,6 @@ function parseItem(raw: unknown, index: number): ParsedItem | Problem {
     detail: isRecord(raw.detail) ? raw.detail : {},
   };
   return { item, problems };
-}
-
-// 코드 이유의 번역. "지원별 제공시간 합이 방문 시간보다 김 (200분 > 180분)"처럼 숫자가 붙은 이유는
-// 앞부분으로 찾아 뒤의 숫자를 그대로 붙인다. 모르는 이유는 빈칸(번역 완료가 아님).
-export function reasonTranslation(reason: string, lang: NativeLang = "vi"): string {
-  if (lang === "ko") return reason;
-  const exact = REASONS_VI[reason];
-  if (exact !== undefined) return exact;
-  const prefix = Object.keys(REASONS_VI).find((known) => reason.startsWith(known));
-  return prefix ? `${REASONS_VI[prefix]}${reason.slice(prefix.length)}` : "";
 }
 
 const downgrade = (item: DraftItem, reason: string, lang?: NativeLang): DraftItem => ({

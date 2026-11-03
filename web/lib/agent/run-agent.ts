@@ -1,14 +1,14 @@
 // ② 기록 검토 준비 Agent: Claude가 도구 4개를 골라 부르고, 서버가 도구를 실행한다.
 // 근거: 문서/설계/ai규칙-v2.0.1.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
-//       문서/설계/데이터구조-v2.2.0.md 'Agent 도구 입출력'
+//       문서/설계/데이터구조-v2.3.0.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
-import type { NativeLang } from "@/lib/auth/signup";
+import { languageNameKo, type NativeLang } from "@/lib/i18n/languages";
 import { getFormSpec } from "./form-spec";
+import { REASONS, reasonTranslation } from "./reasons";
 import {
   allNeedsCheckDraft,
   ITEM_KEYS,
-  REASONS_VI,
   validateDraft,
   type CareType,
   type Draft,
@@ -16,7 +16,7 @@ import {
 } from "./validate-draft";
 
 export const MAX_RESPONSES = 4;
-export const AUTO_STOP_REASON = "자동 정리 중단";
+export const AUTO_STOP_REASON: string = REASONS.autoStop;
 
 export type AgentTool = "get_form_spec" | "search_glossary" | "validate_draft" | "return_draft";
 
@@ -147,7 +147,7 @@ export const AGENT_TOOLS = [
   {
     name: "search_glossary",
     description:
-      "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 고정 베트남어 번역으로 찾는다. 결과가 비어도 뜻이 분명한 일상 표현은 교재 용어 없이 기록체로 정리한다(observed). 뜻을 짐작해야 하는 말만 needs_check로 두고, 짐작한 내용을 reason에 쓴다.",
+      "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 작성자 모국어 고정 번역(term_native)으로 찾는다. 결과가 비어도 뜻이 분명한 일상 표현은 교재 용어 없이 기록체로 정리한다(observed). 뜻을 짐작해야 하는 말만 needs_check로 두고, 짐작한 내용을 reason에 쓴다.",
     input_schema: {
       type: "object",
       properties: {
@@ -192,7 +192,7 @@ export function agentSystemPrompt(careType: CareType, nativeLang: NativeLang) {
 9개 항목 초안을 만든다. 너의 결과는 초안이며, 작성자가 확인하고 관리자가 승인한다.
 
 [어르신] 급여 종류: ${careType === "home" ? "재가" : "시설"}
-[작성자 모국어] ${nativeLang}
+[작성자 모국어] ${nativeLang} (${languageNameKo(nativeLang)})
 [항목] visit_time, support, meal, sleep, discomfort, medication, cognition, notes, next_check
 
 일하는 순서:
@@ -381,7 +381,9 @@ async function runTool(
 
 /** 자동 정리 중단 초안: 마지막 초안을 고쳐 쓰고, 문제가 남은 항목은 '확인 필요' + 자동 정리 중단 */
 export function autoStopDraft(lastDraft: unknown, input: AgentInput): Draft {
-  const reasonNative = input.nativeLang === "vi" ? REASONS_VI[AUTO_STOP_REASON] : "";
+  // 그 언어 고정문이 없으면 빈칸(화면은 한국어 이유만 보임). ko는 번역이 없다
+  const reasonNative =
+    input.nativeLang === "ko" ? "" : reasonTranslation(AUTO_STOP_REASON, input.nativeLang);
   const check = lastDraft ? validateDraft(lastDraft, input.context) : null;
   if (!check?.fixed) return allNeedsCheckDraft(AUTO_STOP_REASON, "", input.nativeLang);
   const unresolved = new Set([

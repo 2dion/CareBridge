@@ -1,16 +1,12 @@
 // 회원가입: 가입 코드가 기관·역할을 정하고, 서버가 계정과 profiles 1행을 함께 만든다.
-// 근거: 문서/결정/2026-10-25-로그인가입.md, 문서/설계/데이터구조-v2.2.0.md '공통 계약' POST /api/auth/signup
+// 근거: 문서/결정/2026-10-25-로그인가입.md, 문서/설계/데이터구조-v2.3.0.md '공통 계약' POST /api/auth/signup
 // DB·Supabase Auth 호출은 SignupDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
-export type Role = "worker" | "reviewer";
-// 작성자 모국어 목록(MVP는 vi 하나). 언어를 더하면 여기와 profiles.native_lang 제약을 함께 고친다.
-export const NATIVE_LANGS = ["ko", "vi"] as const;
-export type NativeLang = (typeof NATIVE_LANGS)[number];
+import { NATIVE_LANGS, type NativeLang, parseNativeLang } from "@/lib/i18n/languages";
 
-/** DB·요청의 모국어 값을 읽는다. 목록에 없는 값은 다른 언어 번역을 주지 않도록 ko(번역 없음)로 둔다. */
-export function parseNativeLang(value: unknown): NativeLang {
-  return NATIVE_LANGS.find((lang) => lang === value) ?? "ko";
-}
+export type Role = "worker" | "reviewer";
+// 작성자 모국어 목록은 web/lib/i18n/languages.ts 한 곳에 있다(이슈 #259). 예전 import 경로를 위해 여기서도 내보낸다.
+export { NATIVE_LANGS, type NativeLang, parseNativeLang };
 
 export type SignupInput = {
   code: string;
