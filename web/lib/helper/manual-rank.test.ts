@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ManualSection } from "./ask";
-import { queryTerms, rankSections } from "./manual-rank";
+import { excerptSection, queryTerms, rankSections } from "./manual-rank";
 
 const make = (title: string, body: string, page = "1"): ManualSection => ({
   chapter: "14장",
@@ -57,5 +57,43 @@ describe("rankSections", () => {
   it("맞는 절이 없으면 빈 배열, 많으면 limit개만 돌려준다", () => {
     expect(rankSections(SECTIONS, "전혀 없는낱말입니다")).toEqual([]);
     expect(rankSections(SECTIONS, "어르신", [], 2)).toHaveLength(2);
+  });
+});
+
+describe("점수 낮은 절 빼기(이슈 #229)", () => {
+  it("1위 점수의 1/3 미만인 절은 돌려주지 않는다", () => {
+    // '질식'은 그 절에만 있어 점수가 높고, '어르신'은 모든 절에 있어 점수가 낮다
+    const ranked = rankSections(SECTIONS, "어르신이 질식 어떻게 해야 하나요", [], 5);
+    expect(ranked[0].title).toBe("질식");
+    expect(ranked.length).toBeLessThan(5);
+    expect(ranked.map((s) => s.title)).not.toContain("업무보고");
+  });
+});
+
+describe("excerptSection", () => {
+  const body = ["하나", "둘 식사 거부", "셋", "넷", "다섯"].join("\n");
+
+  it("맞는 문단과 앞뒤 문단만 남기고 뺀 자리는 '…'", () => {
+    expect(excerptSection(body, ["식사"])).toBe("하나\n둘 식사 거부\n셋\n…");
+    expect(excerptSection(["하나", "둘", "셋 낙상", "넷"].join("\n"), ["낙상"])).toBe(
+      "…둘\n셋 낙상\n넷",
+    );
+  });
+
+  it("맞는 문단이 없으면 앞부분, 상한을 넘지 않는다", () => {
+    expect(excerptSection(body, ["없는말"])).toBe(body);
+    const out = excerptSection("가".repeat(100), ["없는말"], 10);
+    expect(Array.from(out)).toHaveLength(10);
+    const fit = excerptSection(
+      ["짧은 문단", "식사 문단", "가".repeat(100)].join("\n"),
+      ["식사"],
+      20,
+    );
+    expect(Array.from(fit).length).toBeLessThanOrEqual(20);
+    expect(fit).toContain("식사 문단");
+  });
+
+  it("대소문자가 달라도 찾는다", () => {
+    expect(excerptSection("Intro\nHeimlich 방법\nEnd", ["heimlich"])).toContain("Heimlich 방법");
   });
 });

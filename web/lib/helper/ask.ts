@@ -1,5 +1,5 @@
 // ⑤ 도우미 답(W6): 교재 매뉴얼(manual_sections)과 용어 목록(glossary)에서 찾은 내용만으로 답한다. 답한 질문은 helper_messages에 남긴다(이슈 #218).
-// 근거: 문서/설계/ai규칙-v2.0.1.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.1.md '공통 계약' helper/ask
+// 근거: 문서/설계/ai규칙-v2.0.2.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.1.md '공통 계약' helper/ask
 // DB·Claude 호출은 HelperDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 // 이슈 #122: 교재 검색과 search_glossary는 한국어만 맞으므로, 한글이 없는 질문(베트남어 등)은 먼저 한국어로 옮겨 검색한다.
 // 건강·안전 안내 문구는 모델에 맡기지 않고 서버가 낱말 검사로 붙인다(질문 언어와 상관없이).
@@ -11,6 +11,7 @@ import { isNotKorean } from "@/lib/records/item-patch";
 import type { ApiResult } from "@/lib/records/transition";
 
 import { conversationTitle } from "./conversations";
+import { excerptSection, queryTerms } from "./manual-rank";
 import type { ConversationRef } from "./messages";
 
 export type ManualSection = { chapter: string; title: string; page: string; body: string };
@@ -62,6 +63,11 @@ export type HelperDeps = {
   findConversation(conversationId: string, workerId: string): Promise<ConversationRef | null>;
   /** 새 대화를 만든다(서버 전용). 제목은 첫 질문 앞 30자. 만들지 못하면 null */
   createConversation(workerId: string, title: string): Promise<ConversationRef | null>;
+  /**
+   * 같은 기관·같은 모국어 작성자가 같은 질문(검색용 한국어, 빈칸·문장부호 무시)을 물어 교재에서 찾은 답이 있으면
+   * 그 답(서버 전용 find_helper_answer). 없으면 null(이슈 #229)
+   */
+  findSavedAnswer(workerId: string, questionKo: string): Promise<HelperAnswer | null>;
 };
 
 export const MAX_QUESTION_CHARS = 500;
@@ -172,7 +178,7 @@ export function helperSystemPrompt(nativeLang: NativeLang) {
 2. [교재]·[용어]에 답이 없으면 found=false로 두고 ko·native는 ""로 둔다. 대신할 조언을 쓰지 않는다.
 3. 사투리·일상 표현 풀이는 '짐작'이라고 밝히고, 여러 뜻이 가능하면 모두 쓴다.
 4. 기록을 고치거나 대신 쓰지 않는다. 건강·안전 보고 안내는 서버가 붙이므로 쓰지 않는다.
-5. 쉬운 한국어로 짧게 쓴다. ${nativeRule}
+5. 쉬운 한국어로 3문장 이내로 짧게 쓴다. ${nativeRule}
 6. source에는 답에 쓴 교재의 장·절·쪽을 쓴다.
 다른 말 없이 JSON 한 개로만 답한다: {"ko":"","native":"","source":"","found":true}`;
 }
@@ -182,9 +188,15 @@ export function helperUserMessage(
   sections: ManualSection[],
   terms: GlossaryTerm[],
   originalQuestion?: string,
+  keywords: readonly string[] = [],
 ) {
+  // 절 전체 대신 질문 낱말이 든 문단과 앞뒤 문단만, 절당 1,500자까지(이슈 #229). 출처는 그대로
+  const searchTerms = [...queryTerms(question), ...keywords];
   const manual = sections
-    .map((s) => `- ${s.chapter} ${s.title}${s.page ? ` (${s.page}쪽)` : ""}\n${s.body}`)
+    .map(
+      (s) =>
+        `- ${s.chapter} ${s.title}${s.page ? ` (${s.page}쪽)` : ""}\n${excerptSection(s.body, searchTerms)}`,
+    )
     .join("\n");
   const glossary = terms
     .map(
@@ -294,6 +306,11 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
     };
   };
 
+  // 같은 기관에서 같은 질문에 교재에서 찾은 답이 이미 있으면 Claude를 부르지 않는다(W6 9번, 이슈 #229).
+  // 이번 질문도 새 행으로 남기고, 안전 안내는 위 finish가 다시 붙인다
+  const reused = await deps.findSavedAnswer(user.id, questionKo);
+  if (reused?.found) return finish(reused);
+
   const [sections, terms] = await Promise.all([
     deps.searchManual(questionKo, keywords),
     deps.searchGlossary(questionKo, user.nativeLang),
@@ -301,7 +318,7 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   if (sections.length === 0 && terms.length === 0) return finish(notFound);
 
   const system = helperSystemPrompt(user.nativeLang);
-  const message = helperUserMessage(questionKo, sections, terms, question);
+  const message = helperUserMessage(questionKo, sections, terms, question, keywords);
   // 형식이 틀리면 한 번 다시 요청한다(기술 선택 v1.1)
   for (let attempt = 0; attempt < 2; attempt++) {
     const raw = await deps.askClaude(system, message);

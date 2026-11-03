@@ -53,6 +53,7 @@ function fakeDeps(overrides: Partial<HelperDeps> = {}): HelperDeps {
     saveMessage: vi.fn(async () => SAVED),
     findConversation: vi.fn(async (id: string) => (id === "c1" ? CONVERSATION : null)),
     createConversation: vi.fn(async (_workerId: string, title: string) => ({ id: "c1", title })),
+    findSavedAnswer: vi.fn(async () => null),
     ...overrides,
   };
 }
@@ -502,5 +503,96 @@ describe("도우미 대화 묶음(이슈 #251)", () => {
     expect(r.body.conversation_id).toBeNull();
     expect(r.body.id).toBeNull();
     expect(deps.saveMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("같은 질문 재사용(이슈 #229)", () => {
+  const stored = {
+    ko: "억지로 권하지 마세요.",
+    native: "Đừng ép ăn.",
+    source: "10장 120쪽",
+    found: true,
+  };
+
+  it("저장된 답이 있으면 Claude·교재 검색 없이 그 답을 주고 이번 질문도 저장", async () => {
+    const deps = fakeDeps({ findSavedAnswer: vi.fn(async () => stored) });
+    const r = await askHelper({ question: "어르신이 밥을 안 드셔요?" }, deps);
+    expect(r.status).toBe(200);
+    expect(r.body.ko).toBe(stored.ko);
+    expect(r.body.native).toBe(stored.native);
+    expect(r.body.source).toBe("10장 120쪽");
+    expect(deps.findSavedAnswer).toHaveBeenCalledWith("w1", "어르신이 밥을 안 드셔요?");
+    expect(deps.askClaude).not.toHaveBeenCalled();
+    expect(deps.searchManual).not.toHaveBeenCalled();
+    expect(vi.mocked(deps.saveMessage).mock.calls[0][0]).toMatchObject({
+      question: "어르신이 밥을 안 드셔요?",
+      answer_ko: stored.ko,
+      found: true,
+    });
+  });
+
+  it("베트남어 질문은 옮긴 한국어로 저장된 답을 찾는다", async () => {
+    const deps = fakeDeps({ findSavedAnswer: vi.fn(async () => stored) });
+    await askHelper({ question: "Cụ không chịu ăn cơm" }, deps);
+    expect(deps.findSavedAnswer).toHaveBeenCalledWith("w1", "밥을 안 드셔요");
+  });
+
+  it("재사용한 답에도 건강·안전 안내를 붙인다(두 번 붙이지 않음)", async () => {
+    const withNotice = {
+      ...stored,
+      ko: `${SAFETY_NOTICE.ko} 바로 일으키지 마세요.`,
+      native: `${SAFETY_NOTICE.native} Đừng vội đỡ dậy.`,
+    };
+    const deps = fakeDeps({ findSavedAnswer: vi.fn(async () => withNotice) });
+    const r = await askHelper({ question: "어르신이 넘어지셨어요" }, deps);
+    expect(r.body.ko).toBe(withNotice.ko);
+    expect(String(r.body.ko).split(SAFETY_NOTICE.ko)).toHaveLength(2);
+  });
+
+  it("저장된 답이 없으면 지금처럼 교재를 검색해 Claude를 부른다", async () => {
+    const deps = fakeDeps();
+    await askHelper({ question: "밥을 안 드셔요" }, deps);
+    expect(deps.findSavedAnswer).toHaveBeenCalled();
+    expect(deps.askClaude).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("교재 문단만 보내기(이슈 #229)", () => {
+  it("질문 낱말이 든 문단과 앞뒤 문단만 보내고 절당 1,500자를 넘지 않는다", () => {
+    const long = {
+      chapter: "10장",
+      title: "식사 돕기",
+      page: "120",
+      body: [
+        "첫 문단 안내",
+        "식사를 거부하면 억지로 권하지 않는다.",
+        "셋째 문단",
+        "넷째 문단",
+        "가".repeat(2000),
+      ].join("\n"),
+    };
+    const message = helperUserMessage("식사 거부", [long], []);
+    expect(message).toContain("억지로 권하지 않는다");
+    expect(message).toContain("첫 문단 안내");
+    expect(message).toContain("셋째 문단");
+    expect(message).not.toContain("넷째 문단");
+    expect(message).not.toContain("가".repeat(1600));
+    expect(message).toContain("10장 식사 돕기 (120쪽)");
+  });
+
+  it("핵심 낱말(keywords)로도 문단을 고른다", () => {
+    const section = {
+      chapter: "12장",
+      title: "응급",
+      page: "300",
+      body: ["소개 문단", "넘김 문단", "건너뜀 문단", "호흡이 멈추면 119.", "마지막"].join("\n"),
+    };
+    const message = helperUserMessage("숨쉬기 힘들다", [section], [], undefined, ["호흡"]);
+    expect(message).toContain("호흡이 멈추면 119.");
+    expect(message).not.toContain("소개 문단");
+  });
+
+  it("답 길이를 3문장 이내로 지시한다", () => {
+    expect(helperSystemPrompt("vi")).toContain("3문장 이내");
   });
 });

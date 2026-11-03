@@ -66,6 +66,26 @@ export async function createHelperDeps(): Promise<HelperDeps> {
       if (error) throw new Error(`도우미 대화 만들기 실패: ${error.message}`);
       return data as ConversationRef;
     },
+    // 같은 기관의 저장된 답 찾기는 서버 전용 함수(다른 작성자 행은 RLS로 못 읽으므로 admin 키, 이슈 #229)
+    async findSavedAnswer(workerId, questionKo) {
+      const { data, error } = await createSupabaseAdminClient().rpc("find_helper_answer", {
+        p_worker_id: workerId,
+        p_question_ko: questionKo,
+      });
+      if (error) throw new Error(`저장된 답 찾기 실패: ${error.message}`);
+      const row = (
+        data as
+          { answer_ko: string; answer_native: string; source: string; found: boolean }[] | null
+      )?.[0];
+      return row
+        ? {
+            ko: row.answer_ko,
+            native: row.answer_native,
+            source: row.source || null,
+            found: row.found,
+          }
+        : null;
+    },
     // helper_messages 넣기는 서버(service_role)만 된다. 화면 키로는 답·출처를 꾸며 넣지 못하게 막아 두었다(이슈 #218)
     async saveMessage(row) {
       const { data, error } = await createSupabaseAdminClient()
