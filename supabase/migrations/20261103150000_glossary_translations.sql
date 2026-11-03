@@ -106,11 +106,14 @@ alter table public.records
 comment on column public.records.native_lang is
   '기록을 만든 때 작성자 모국어(profiles.native_lang). DB가 채우고 만든 뒤 바꾸지 않음. value_native 등 번역 칸의 언어';
 
--- 있던 기록은 지금 작성자 언어로 채운다
+-- 있던 기록은 지금 작성자 언어로 채운다. 승인한 기록은 records_before_update가 record_locked로 막고,
+-- 이력 트리거가 남을 수 있어 채우는 동안만 이 표의 사용자 트리거를 끈다(상태·내용은 바꾸지 않음)
+alter table public.records disable trigger user;
 update public.records r
   set native_lang = p.native_lang
   from public.profiles p
   where p.id = r.worker_id and r.native_lang is distinct from p.native_lang;
+alter table public.records enable trigger user;
 
 -- 기록 만들기: 기관·서식은 어르신에서, 언어는 작성자 프로필에서. 보내온 native_lang은 믿지 않는다
 create or replace function private.records_before_insert() returns trigger
