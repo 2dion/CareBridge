@@ -146,7 +146,7 @@ describe("draftStateOf", () => {
       status,
       created_at: at,
     });
-    expect(draftStateOf(blank, [], [job("filling", "2")])).toBe("processing");
+    expect(draftStateOf(blank, [], [job("filling", "2")], Date.parse("2"))).toBe("processing");
     expect(draftStateOf(blank, [], [job("done", "1"), job("failed", "2")])).toBe("failed");
   });
 
