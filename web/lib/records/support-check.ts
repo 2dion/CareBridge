@@ -6,14 +6,8 @@
 // DB 호출은 SupportCheckDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
 import type { NativeLang } from "@/lib/auth/signup";
-import {
-  checkSupportMinutes,
-  REASONS,
-  REASONS_VI,
-  reasonTranslation,
-  type CareType,
-  type ItemStatus,
-} from "@/lib/agent/validate-draft";
+import { nativeReasonForms, REASONS, reasonTranslation } from "@/lib/agent/reasons";
+import { checkSupportMinutes, type CareType, type ItemStatus } from "@/lib/agent/validate-draft";
 
 export type SupportCheckItem = {
   value_ko: string;
@@ -52,7 +46,8 @@ const SERVER_REASONS = [
   REASONS.visitMinutesMissing,
   REASONS.invalidMinutes,
 ] as const;
-const SERVER_REASONS_VI = SERVER_REASONS.map((reason) => REASONS_VI[reason]);
+// 모국어 쪽은 모든 언어의 고정문을 본다(작성자가 언어를 바꿨어도 옛 번역을 걷어 내도록, 이슈 #259)
+const SERVER_REASONS_NATIVE = nativeReasonForms(SERVER_REASONS);
 
 const splitReasons = (text: string) =>
   text
@@ -62,7 +57,7 @@ const splitReasons = (text: string) =>
 
 const isServerReason = (part: string) =>
   SERVER_REASONS.some((known) => part.startsWith(known)) ||
-  SERVER_REASONS_VI.some((known) => part.startsWith(known));
+  SERVER_REASONS_NATIVE.some((known) => part.startsWith(known));
 
 /**
  * 지금 제공 지원 항목에 맞는 status·reason·reason_native. 바꿀 것이 없으면 null.

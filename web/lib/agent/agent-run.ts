@@ -36,6 +36,20 @@ export class AgentRunError extends Error {
 // 받아쓰기 시간을 뺀 여유를 두고, 넘으면 실패로 끝내 [다시 시도]를 보이게 한다.
 const AGENT_TIME_LIMIT_MS = 240_000;
 
+/** DB 함수 search_glossary(expression, max_results, lang)의 결과 한 줄 */
+type GlossaryRow = {
+  id: string;
+  matched_expression: string;
+  term_ko: string;
+  /** 옛 칸(베트남어). 전환 기간에만 남는다 */
+  term_vi: string;
+  /** lang의 고정 번역. 그 언어 번역이 없으면 빈값 */
+  term_native: string;
+  plain_ko: string;
+  chapter: string;
+  page: string;
+};
+
 type RecordForContext = {
   form_type: string | number; // DB는 smallint(16 / 12)
   visit_start: string | null;
@@ -154,9 +168,21 @@ export async function runAgentForRecord(
       const { data, error } = await userClient.rpc("search_glossary", {
         expression,
         max_results: 5,
+        lang: nativeLang,
       });
       if (error) throw new Error(`용어 검색 실패: ${error.message}`);
-      return data ?? [];
+      // Agent에는 작성자 모국어 번역(term_native)만 건넨다. 옛 칸 term_vi는 전환 기간에만 남아 있다(이슈 #259)
+      return ((data ?? []) as GlossaryRow[]).map(
+        ({ id, matched_expression, term_ko, term_native, plain_ko, chapter, page }) => ({
+          id,
+          matched_expression,
+          term_ko,
+          term_native,
+          plain_ko,
+          chapter,
+          page,
+        }),
+      );
     },
     async saveDraft(draft) {
       const { validation } = await saveValidatedDraft(userClient, serverClient, recordId, draft);

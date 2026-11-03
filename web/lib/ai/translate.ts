@@ -1,7 +1,7 @@
 import "server-only";
 
-import type { NativeLang } from "@/lib/auth/signup";
 import { getAiMode, getAiModels } from "@/lib/config";
+import { languageNameKo, type NativeLang } from "@/lib/i18n/languages";
 
 import { getClaudeClient } from "./claude";
 
@@ -10,11 +10,10 @@ import { getClaudeClient } from "./claude";
 // Mock 모드는 빈 문자열을 돌려준다. 빈칸은 번역 완료가 아니다(결정 2026-10-27-피그마상충점).
 // 도우미 질문 번역(translateQuestionKo)도 같은 방식이다(이슈 #122).
 
-const LANG_NAME: Record<Exclude<NativeLang, "ko">, string> = { vi: "베트남어" };
-
+// 언어 이름은 언어 목록(web/lib/i18n/languages.ts)에서 넣는다(이슈 #259)
 function systemPrompt(lang: Exclude<NativeLang, "ko">) {
   return [
-    `너는 요양 돌봄 기록의 짧은 한국어 문장을 ${LANG_NAME[lang]}로 번역한다.`,
+    `너는 요양 돌봄 기록의 짧은 한국어 문장을 ${languageNameKo(lang)}로 번역한다.`,
     "뜻을 더하거나 빼지 않는다.",
     '다른 말 없이 JSON 한 줄로만 답한다: {"text": "번역문"}',
   ].join("\n");

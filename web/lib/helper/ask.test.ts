@@ -13,6 +13,7 @@ import {
   type HelperDeps,
 } from "./ask";
 import { roleNames } from "@/lib/demo/roles";
+import type { NativeLang } from "@/lib/i18n/languages";
 
 const section = { chapter: "10장", title: "식사 돕기", page: "120", body: "억지로 권하지 않는다." };
 const fallSection = {
@@ -24,7 +25,7 @@ const fallSection = {
 const term = {
   matched_expression: "신체활동지원",
   term_ko: "신체활동지원",
-  term_vi: "hỗ trợ hoạt động thể chất",
+  term_native: "hỗ trợ hoạt động thể chất",
   plain_ko: "씻기·식사·이동을 돕는 일",
   chapter: "7장",
   page: "88",
@@ -44,7 +45,7 @@ function fakeDeps(overrides: Partial<HelperDeps> = {}): HelperDeps {
     translateQuestion: vi.fn(async () => ({ text: "밥을 안 드셔요", keywords: [] })),
     askClaude: vi.fn(
       async () =>
-        '{"ko":"억지로 권하지 마세요.","vi":"Đừng ép ăn.","source":"10장 120쪽","found":true}',
+        '{"ko":"억지로 권하지 마세요.","native":"Đừng ép ăn.","source":"10장 120쪽","found":true}',
     ),
     saveMessage: vi.fn(async () => SAVED),
     ...overrides,
@@ -59,6 +60,7 @@ describe("askHelper", () => {
       status: 200,
       body: {
         ko: "억지로 권하지 마세요.",
+        native: "Đừng ép ăn.",
         vi: "Đừng ép ăn.",
         source: "10장 120쪽",
         found: true,
@@ -66,6 +68,18 @@ describe("askHelper", () => {
       },
     });
     expect(vi.mocked(deps.askClaude).mock.calls[0][1]).toContain("억지로 권하지 않는다.");
+    // 용어 검색에는 작성자 모국어를 건넨다(이슈 #259)
+    expect(deps.searchGlossary).toHaveBeenCalledWith("밥을 안 드셔요", "vi");
+  });
+
+  it("옛 프롬프트대로 vi 칸으로 답해도 native로 받는다(전환 기간)", async () => {
+    const deps = fakeDeps({
+      askClaude: vi.fn(async () => '{"ko":"답","vi":"Trả lời","source":"1장","found":true}'),
+    });
+    const r = await askHelper({ question: "밥" }, deps);
+    expect(r.body.native).toBe("Trả lời");
+    expect(r.body.vi).toBe("Trả lời");
+    expect(vi.mocked(deps.saveMessage).mock.calls[0][0].answer_native).toBe("Trả lời");
   });
 
   it("한글이 있는 질문은 번역하지 않고 그대로 검색", async () => {
@@ -86,7 +100,7 @@ describe("askHelper", () => {
     expect(deps.translateQuestion).toHaveBeenCalledWith("Cụ không chịu ăn cơm");
     // 번역할 때 뽑은 핵심 낱말도 교재 검색에 건넨다(이슈 #219)
     expect(deps.searchManual).toHaveBeenCalledWith("밥을 안 드셔요", ["식사", "거부"]);
-    expect(deps.searchGlossary).toHaveBeenCalledWith("밥을 안 드셔요");
+    expect(deps.searchGlossary).toHaveBeenCalledWith("밥을 안 드셔요", "vi");
     const message = vi.mocked(deps.askClaude).mock.calls[0][1];
     expect(message).toContain("[질문]\n밥을 안 드셔요");
     expect(message).toContain("[질문 원문]\nCụ không chịu ăn cơm");
@@ -108,7 +122,7 @@ describe("askHelper", () => {
     const deps = fakeDeps({ searchManual: vi.fn(async () => []) });
     expect(await askHelper({ question: "주식 시세" }, deps)).toEqual({
       status: 200,
-      body: { ...NOT_FOUND, ...SAVED },
+      body: { ...NOT_FOUND, vi: NOT_FOUND.native, ...SAVED },
     });
     expect(deps.askClaude).not.toHaveBeenCalled();
   });
@@ -116,12 +130,13 @@ describe("askHelper", () => {
   it("모델이 found=false로 답하면 모델이 쓴 조언은 버리고 고정 문구만", async () => {
     const deps = fakeDeps({
       askClaude: vi.fn(
-        async () => '{"ko":"물을 자주 드리세요.","vi":"Cho uống nước.","source":"","found":false}',
+        async () =>
+          '{"ko":"물을 자주 드리세요.","native":"Cho uống nước.","source":"","found":false}',
       ),
     });
     expect(await askHelper({ question: "밥" }, deps)).toEqual({
       status: 200,
-      body: { ...NOT_FOUND, ...SAVED },
+      body: { ...NOT_FOUND, vi: NOT_FOUND.native, ...SAVED },
     });
   });
 
@@ -131,12 +146,13 @@ describe("askHelper", () => {
       searchManual: vi.fn(async () => [fallSection]),
       askClaude: vi.fn(
         async () =>
-          '{"ko":"바로 일으키지 마세요.","vi":"Đừng vội đỡ dậy.","source":"12장 300쪽","found":true}',
+          '{"ko":"바로 일으키지 마세요.","native":"Đừng vội đỡ dậy.","source":"12장 300쪽","found":true}',
       ),
     });
     const r = await askHelper({ question: "Cụ bị ngã rồi" }, deps);
     expect(r.body).toEqual({
       ko: "관리자에게 바로 보고하세요. 바로 일으키지 마세요.",
+      native: "Hãy báo ngay cho người quản lý. Đừng vội đỡ dậy.",
       vi: "Hãy báo ngay cho người quản lý. Đừng vội đỡ dậy.",
       source: "12장 300쪽",
       found: true,
@@ -164,7 +180,7 @@ describe("askHelper", () => {
     const deps = fakeDeps({
       askClaude: vi.fn(
         async () =>
-          '{"ko":"관리자에게 바로 보고하세요. 바로 일으키지 마세요.","vi":"Hãy báo ngay cho người quản lý. Đừng vội đỡ dậy.","source":"12장","found":true}',
+          '{"ko":"관리자에게 바로 보고하세요. 바로 일으키지 마세요.","native":"Hãy báo ngay cho người quản lý. Đừng vội đỡ dậy.","source":"12장","found":true}',
       ),
     });
     const r = await askHelper({ question: "낙상하셨어요" }, deps);
@@ -194,7 +210,9 @@ describe("askHelper", () => {
         nativeLang: "ko" as const,
       })),
     });
-    expect((await askHelper({ question: "밥" }, deps)).body.vi).toBe("");
+    const body = (await askHelper({ question: "밥" }, deps)).body;
+    expect(body.native).toBe("");
+    expect(body.vi).toBe("");
   });
 
   it("형식이 틀리면 한 번 더, 또 틀리면 502", async () => {
@@ -357,10 +375,10 @@ describe("isSafetyQuestion", () => {
 });
 
 describe("withSafetyNotice", () => {
-  it("vi가 비어 있으면(한국어 작성자) ko에만 붙임", () => {
-    expect(withSafetyNotice({ ko: "답", vi: "", source: null, found: true })).toEqual({
+  it("native가 비어 있으면(한국어 작성자) ko에만 붙임", () => {
+    expect(withSafetyNotice({ ko: "답", native: "", source: null, found: true })).toEqual({
       ko: "관리자에게 바로 보고하세요. 답",
-      vi: "",
+      native: "",
       source: null,
       found: true,
     });
@@ -370,7 +388,8 @@ describe("withSafetyNotice", () => {
 describe("helperSystemPrompt / helperUserMessage", () => {
   it("found=false면 조언을 쓰지 말라고 지시하고, 안전 안내는 서버가 붙인다고 알림", () => {
     const system = helperSystemPrompt("vi");
-    expect(system).toContain('found=false로 두고 ko·vi는 ""로 둔다');
+    expect(system).toContain('found=false로 두고 ko·native는 ""로 둔다');
+    expect(system).toContain("native에는 ko의 베트남어 번역을 쓴다");
     expect(system).toContain("건강·안전 보고 안내는 서버가 붙이므로 쓰지 않는다");
   });
 
@@ -387,7 +406,7 @@ describe("parseHelperAnswer", () => {
 });
 
 describe("교육용 기관 고정 안내(이슈 #180)", () => {
-  const trainee = (nativeLang: "ko" | "vi") =>
+  const trainee = (nativeLang: NativeLang) =>
     vi.fn(async () => ({ id: "t1", role: "worker" as const, nativeLang, isTraining: true }));
 
   it("교재에서 못 찾으면 '강사에게 물어보세요'", async () => {
@@ -401,10 +420,10 @@ describe("교육용 기관 고정 안내(이슈 #180)", () => {
   it("모델이 found=false로 답해도 '강사'", async () => {
     const deps = fakeDeps({
       currentUser: trainee("ko"),
-      askClaude: vi.fn(async () => '{"ko":"","vi":"","source":"","found":false}'),
+      askClaude: vi.fn(async () => '{"ko":"","native":"","source":"","found":false}'),
     });
     const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
-    expect(r.body).toEqual({ ...notFoundAnswer(roleNames(true)), vi: "", ...SAVED });
+    expect(r.body).toEqual({ ...notFoundAnswer(roleNames(true)), native: "", vi: "", ...SAVED });
   });
 
   it("건강·안전 질문은 '강사에게 바로 보고하세요'", async () => {

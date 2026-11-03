@@ -59,7 +59,8 @@ AI가 짐작하지 않고 이 자료에서 찾아 쓰게 해서 "지어내지 �
 - `terms-v0.3.csv` = **사람이 고치는 원본**(표현, 검색 줄기, 교재 용어, 쉬운 풀이, 베트남어, 영문, 서식 칸, AI 사용 규칙, 교재 장·쪽 등).
 - `glossary-v0.3.csv`, `seed-glossary.sql` = 원본에서 만든 `glossary` 표용 파일(칸: expression, aliases, term_ko, term_vi, plain_ko, chapter, page — 결정 2026-10-21-용어표). `aliases`에는 다른 표현과 **검색 줄기**(어미를 뺀 말: 세수, 자세 바꿔 …)가 들어갑니다. `search_glossary`가 받아쓴 문장 속 활용형도 찾게 하려는 것입니다.
 - **v0.3 (10/22): T51 '진지 잡수세요' 추가 → 51개.** 시나리오 3 W6 질문용. 교재에 없는 표현이라 교재 쪽이 없고 뜻은 표준국어대사전 기준. 시드를 이미 넣었다면 다시 돌리면 T51만 추가됩니다(on conflict).
-- 교재 쪽은 「2026년 요양보호사 양성 표준교재」 인쇄 쪽. ⚠️ 베트남어는 Claude 초안(검수 전).
+- **번역은 언어별 파일(11/03, #259):** `translations-vi.csv`(`term_id`, `term`, `reviewed`) = 베트남어 번역 원본. `seed-glossary-translations-vi.sql` = `glossary_translations` 표용(용어는 `expression`·`term_ko`로 찾아 잇고, 다시 돌려도 안전). 언어를 더하면 `translations-<lang>.csv`를 따로 채웁니다. `terms-v0.3.csv`의 베트남어 열은 다음 판까지 그대로 둡니다(둘이 다르면 CSV 원본이 기준).
+- 교재 쪽은 「2026년 요양보호사 양성 표준교재」 인쇄 쪽. ⚠️ 베트남어는 Claude 초안(검수 전, `reviewed = false`).
 
 ## 교재 매뉴얼 (manual/)
 
