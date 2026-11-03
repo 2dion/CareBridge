@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { type HelperMessagesDeps, listHelperMessages, type StoredHelperRow } from "./messages";
 
+const LATEST = { id: "c1", title: "질문 1" };
+
 // 최근 것이 먼저(내림차순)로 n개 만든다. created_at은 1분씩 앞선다
 function rows(n: number): StoredHelperRow[] {
   return Array.from({ length: n }, (_, i) => ({
@@ -18,6 +20,8 @@ function rows(n: number): StoredHelperRow[] {
 function fakeDeps(overrides: Partial<HelperMessagesDeps> = {}): HelperMessagesDeps {
   return {
     currentUser: vi.fn(async () => ({ id: "w1", role: "worker" as const })),
+    findConversation: vi.fn(async (id: string) => (id === "c1" ? LATEST : null)),
+    latestConversation: vi.fn(async () => LATEST),
     fetchMessages: vi.fn(async () => rows(2)),
     ...overrides,
   };
@@ -30,6 +34,7 @@ describe("listHelperMessages", () => {
     const deps = fakeDeps();
     const r = await listHelperMessages(params(), deps);
     expect(r.status).toBe(200);
+    expect(r.body.conversation).toEqual(LATEST);
     expect(r.body.next_before).toBeNull();
     const messages = r.body.messages as Array<{ id: string }>;
     expect(messages.map((m) => m.id)).toEqual(["m1", "m2"]);
@@ -41,7 +46,7 @@ describe("listHelperMessages", () => {
       created_at: "2026-10-31T01:59:00.123456+00:00",
     });
     // 기본 50개 + 더 있는지 보려고 1개 더
-    expect(deps.fetchMessages).toHaveBeenCalledWith("w1", null, 51);
+    expect(deps.fetchMessages).toHaveBeenCalledWith("c1", null, 51);
   });
 
   it("limit보다 많으면 가장 오래된 행의 created_at을 next_before로 줌", async () => {
@@ -50,14 +55,14 @@ describe("listHelperMessages", () => {
     const messages = r.body.messages as Array<{ id: string; created_at: string }>;
     expect(messages.map((m) => m.id)).toEqual(["m2", "m3", "m4"]);
     expect(r.body.next_before).toBe(messages[0].created_at);
-    expect(deps.fetchMessages).toHaveBeenCalledWith("w1", null, 4);
+    expect(deps.fetchMessages).toHaveBeenCalledWith("c1", null, 4);
   });
 
   it("before를 문자열 그대로 넘김(마이크로초 유지)", async () => {
     const deps = fakeDeps();
     const before = "2026-10-31T01:30:00.123456+00:00";
     await listHelperMessages(params(`before=${encodeURIComponent(before)}&limit=100`), deps);
-    expect(deps.fetchMessages).toHaveBeenCalledWith("w1", before, 101);
+    expect(deps.fetchMessages).toHaveBeenCalledWith("c1", before, 101);
   });
 
   it("로그인 안 함 401, 작성자가 아니면 403이고 DB를 읽지 않음", async () => {
@@ -82,9 +87,38 @@ describe("listHelperMessages", () => {
     },
   );
 
-  it("대화가 없으면 빈 목록", async () => {
+  it("대화에 질문이 없으면 빈 목록", async () => {
     const deps = fakeDeps({ fetchMessages: vi.fn(async () => []) });
     const r = await listHelperMessages(params(), deps);
-    expect(r).toEqual({ status: 200, body: { messages: [], next_before: null } });
+    expect(r).toEqual({
+      status: 200,
+      body: { conversation: LATEST, messages: [], next_before: null },
+    });
+  });
+
+  it("대화가 하나도 없으면 conversation이 null이고 질문을 읽지 않음(이슈 #251)", async () => {
+    const deps = fakeDeps({ latestConversation: vi.fn(async () => null) });
+    const r = await listHelperMessages(params(), deps);
+    expect(r).toEqual({
+      status: 200,
+      body: { conversation: null, messages: [], next_before: null },
+    });
+    expect(deps.fetchMessages).not.toHaveBeenCalled();
+  });
+
+  it("conversation_id를 보내면 그 대화를 읽고, 남의 것이거나 없으면 404(이슈 #251)", async () => {
+    const deps = fakeDeps();
+    const r = await listHelperMessages(params("conversation_id=c1"), deps);
+    expect(r.status).toBe(200);
+    expect(deps.findConversation).toHaveBeenCalledWith("c1", "w1");
+    expect(deps.latestConversation).not.toHaveBeenCalled();
+    expect(deps.fetchMessages).toHaveBeenCalledWith("c1", null, 51);
+
+    const other = fakeDeps();
+    expect(await listHelperMessages(params("conversation_id=c9"), other)).toEqual({
+      status: 404,
+      body: { error: "conversation_not_found" },
+    });
+    expect(other.fetchMessages).not.toHaveBeenCalled();
   });
 });

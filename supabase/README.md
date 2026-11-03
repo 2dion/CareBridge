@@ -34,6 +34,7 @@ DB 쓰기 전에 CLI/MCP·환경 변수의 대상 ref가 코디세이 `fffgpgrnp
 | `migrations/20261029160000_save_ai_item_check.sql` | `save_ai_item` mode `check`: 재가 제공 지원 재검사(검사 5) 결과로 status·reason·reason_native만 바꿈(작성자, draft·returned) |
 | `migrations/20261031100000_helper_messages.sql` | W6(도우미) 대화 표 `helper_messages`(#218, 표 14개): 넣기는 서버(service_role)만, 작성자는 내 행·관리자·강사는 같은 기관 읽기, `org_id`는 DB가 작성자 프로필에서 채움 |
 | `migrations/20261103150000_glossary_translations.sql` | 다국어 확장 단계 2(#259): 용어 번역 표 `glossary_translations`(표 17개), `search_glossary(expression, max_results, lang)` 결과 `term_native`, `records.native_lang`(DB가 작성자 프로필에서 채움, 고정). 회귀 SQL `tests/glossary-translations.sql` |
+| `migrations/20261103160000_helper_conversations.sql` | W6 도우미 대화 묶음(#251, 표 18개): `helper_conversations`(제목·마지막 질문 시각·질문 수, 넣기는 서버만, 시각·수는 트리거만), `helper_messages.conversation_id`(필수, 대화의 작성자와 같은지 DB가 검사), 있던 행은 작성자·한국 날짜별 대화로 묶음. 회귀 SQL `tests/helper-conversations.sql` |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 | `demo-data.sql` | 시연 데이터 다시 채우기(#156): 데모 두 기관의 기록을 지우고 합성 어르신 8명·시연용 배경 기록 14건을 넣음. `data/demo/build_demo_sql.py`가 만듦 |
 | `reset-demo.sql` | 리허설 뒤 시나리오 1·2·3 어르신의 '오늘' 기록만 지움 |

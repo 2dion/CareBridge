@@ -63,6 +63,8 @@ function HelperChat({ userId }: { userId: string }) {
   // 지난 대화 불러오기: 실제 모드만. 실패하면 맨 위에 안내를 두고 새 질문은 그대로 할 수 있다
   const [history, setHistory] = useState<"loading" | "done" | "error">(real ? "loading" : "done");
   const historyLoaded = useRef(false);
+  // 지금 보고 있는 대화(이슈 #251). 열 때 가장 최근 대화를 받고, 새 질문은 이 대화에 붙인다. [새 대화]·[이전 대화] 화면은 FE가 더한다
+  const conversationId = useRef<string | null>(null);
   const nextId = useRef(messages.reduce((max, row) => Math.max(max, row.id), 0) + 1);
   const bottom = useRef<HTMLDivElement>(null);
 
@@ -75,6 +77,7 @@ function HelperChat({ userId }: { userId: string }) {
         return;
       }
       historyLoaded.current = true;
+      conversationId.current = result.data.conversation?.id ?? conversationId.current;
       // 불러오는 사이 새로 물은 질문이 있어도 지난 대화는 그 위쪽에 놓는다
       const past: Message[] = result.data.messages.flatMap((row) => {
         const meId = nextId.current;
@@ -128,7 +131,9 @@ function HelperChat({ userId }: { userId: string }) {
     }
     if (demo?.real) {
       // POST /api/helper/ask: 교재에서 찾은 내용만으로 답한다. 서버가 답한 질문을 helper_messages에 남긴다
-      void demo.real.actions.askHelper(q).then((result) => {
+      void demo.real.actions.askHelper(q, conversationId.current).then((result) => {
+        if (result.ok && result.data.conversation_id)
+          conversationId.current = result.data.conversation_id;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === botId

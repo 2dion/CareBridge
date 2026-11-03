@@ -8,8 +8,25 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import type { GlossaryTerm, HelperDeps, ManualSection } from "./ask";
+import type { HelperConversationsDeps, StoredConversationRow } from "./conversations";
 import { rankSections } from "./manual-rank";
-import type { HelperMessagesDeps, StoredHelperRow } from "./messages";
+import type { ConversationRef, HelperMessagesDeps, StoredHelperRow } from "./messages";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/** 내 대화 하나. 읽기는 로그인한 사람 권한(RLS)이고 worker_id로 한 번 더 거른다 */
+async function findOwnConversation(
+  supabase: SupabaseClient,
+  conversationId: string,
+  workerId: string,
+): Promise<ConversationRef | null> {
+  const { data } = await supabase
+    .from("helper_conversations")
+    .select("id, title")
+    .eq("id", conversationId)
+    .eq("worker_id", workerId)
+    .maybeSingle();
+  return (data as ConversationRef | null) ?? null;
+}
 
 // 교재 검색은 로그인한 사람 권한(manual_sections·glossary는 기관 공통 읽기). 상위 3절만 Claude에 건넨다(W6 1번).
 const MAX_SECTIONS = 3;
@@ -36,6 +53,18 @@ export async function createHelperDeps(): Promise<HelperDeps> {
           (profile.organizations as unknown as { is_training: boolean } | null)?.is_training,
         ),
       };
+    },
+    findConversation: (conversationId, workerId) =>
+      findOwnConversation(supabase, conversationId, workerId),
+    // 대화 만들기도 서버(service_role)만. org_id는 DB가 작성자 프로필에서 채운다(이슈 #251)
+    async createConversation(workerId, title) {
+      const { data, error } = await createSupabaseAdminClient()
+        .from("helper_conversations")
+        .insert({ worker_id: workerId, title })
+        .select("id, title")
+        .single();
+      if (error) throw new Error(`도우미 대화 만들기 실패: ${error.message}`);
+      return data as ConversationRef;
     },
     // helper_messages 넣기는 서버(service_role)만 된다. 화면 키로는 답·출처를 꾸며 넣지 못하게 막아 두었다(이슈 #218)
     async saveMessage(row) {
@@ -98,17 +127,61 @@ export async function createHelperMessagesDeps(): Promise<HelperMessagesDeps> {
       if (!profile) return null;
       return { id: auth.user.id, role: profile.role as Role };
     },
-    async fetchMessages(workerId, before, count) {
+    findConversation: (conversationId, workerId) =>
+      findOwnConversation(supabase, conversationId, workerId),
+    async latestConversation(workerId) {
+      const { data, error } = await supabase
+        .from("helper_conversations")
+        .select("id, title")
+        .eq("worker_id", workerId)
+        .order("last_message_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new Error(`도우미 대화 읽기 실패: ${error.message}`);
+      return (data as ConversationRef | null) ?? null;
+    },
+    async fetchMessages(conversationId, before, count) {
       let query = supabase
         .from("helper_messages")
         .select("id, question, answer_ko, answer_native, source, found, created_at")
-        .eq("worker_id", workerId)
+        .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false })
         .limit(count);
       if (before) query = query.lt("created_at", before);
       const { data, error } = await query;
       if (error) throw new Error(`도우미 대화 읽기 실패: ${error.message}`);
       return (data ?? []) as StoredHelperRow[];
+    },
+  };
+}
+
+/** 대화 목록(W6 · 이전 대화). 읽기는 로그인한 사람 권한(RLS)이고 작성자 id로 한 번 더 거른다 */
+export async function createHelperConversationsDeps(): Promise<HelperConversationsDeps> {
+  const supabase = await createSupabaseServerClient();
+
+  return {
+    async currentUser() {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return null;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+      if (!profile) return null;
+      return { id: auth.user.id, role: profile.role as Role };
+    },
+    async fetchConversations(workerId, before, count) {
+      let query = supabase
+        .from("helper_conversations")
+        .select("id, title, last_message_at, message_count")
+        .eq("worker_id", workerId)
+        .order("last_message_at", { ascending: false })
+        .limit(count);
+      if (before) query = query.lt("last_message_at", before);
+      const { data, error } = await query;
+      if (error) throw new Error(`도우미 대화 목록 읽기 실패: ${error.message}`);
+      return (data ?? []) as StoredConversationRow[];
     },
   };
 }

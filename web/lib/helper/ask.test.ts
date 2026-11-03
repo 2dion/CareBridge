@@ -32,6 +32,9 @@ const term = {
 };
 
 const SAVED = { id: "m1", created_at: "2026-10-31T01:00:00.123456+00:00" };
+// 새 대화를 만든 뒤의 응답(이슈 #251). createConversation 목이 c1을 돌려준다
+const CONVERSATION = { id: "c1", title: "밥을 안 드셔요" };
+const SAVED_IN_NEW = { ...SAVED, conversation_id: "c1" };
 
 function fakeDeps(overrides: Partial<HelperDeps> = {}): HelperDeps {
   return {
@@ -48,6 +51,8 @@ function fakeDeps(overrides: Partial<HelperDeps> = {}): HelperDeps {
         '{"ko":"억지로 권하지 마세요.","native":"Đừng ép ăn.","source":"10장 120쪽","found":true}',
     ),
     saveMessage: vi.fn(async () => SAVED),
+    findConversation: vi.fn(async (id: string) => (id === "c1" ? CONVERSATION : null)),
+    createConversation: vi.fn(async (_workerId: string, title: string) => ({ id: "c1", title })),
     ...overrides,
   };
 }
@@ -64,7 +69,7 @@ describe("askHelper", () => {
         vi: "Đừng ép ăn.",
         source: "10장 120쪽",
         found: true,
-        ...SAVED,
+        ...SAVED_IN_NEW,
       },
     });
     expect(vi.mocked(deps.askClaude).mock.calls[0][1]).toContain("억지로 권하지 않는다.");
@@ -122,7 +127,7 @@ describe("askHelper", () => {
     const deps = fakeDeps({ searchManual: vi.fn(async () => []) });
     expect(await askHelper({ question: "주식 시세" }, deps)).toEqual({
       status: 200,
-      body: { ...NOT_FOUND, vi: NOT_FOUND.native, ...SAVED },
+      body: { ...NOT_FOUND, vi: NOT_FOUND.native, ...SAVED_IN_NEW },
     });
     expect(deps.askClaude).not.toHaveBeenCalled();
   });
@@ -136,7 +141,7 @@ describe("askHelper", () => {
     });
     expect(await askHelper({ question: "밥" }, deps)).toEqual({
       status: 200,
-      body: { ...NOT_FOUND, vi: NOT_FOUND.native, ...SAVED },
+      body: { ...NOT_FOUND, vi: NOT_FOUND.native, ...SAVED_IN_NEW },
     });
   });
 
@@ -156,7 +161,7 @@ describe("askHelper", () => {
       vi: "Hãy báo ngay cho người quản lý. Đừng vội đỡ dậy.",
       source: "12장 300쪽",
       found: true,
-      ...SAVED,
+      ...SAVED_IN_NEW,
     });
   });
 
@@ -251,6 +256,7 @@ describe("답 저장(이슈 #218)", () => {
     await askHelper({ question: "  밥을 안 드셔요 " }, deps);
     expect(deps.saveMessage).toHaveBeenCalledWith({
       worker_id: "w1",
+      conversation_id: "c1",
       question: "밥을 안 드셔요",
       question_ko: "",
       answer_ko: "억지로 권하지 마세요.",
@@ -423,7 +429,12 @@ describe("교육용 기관 고정 안내(이슈 #180)", () => {
       askClaude: vi.fn(async () => '{"ko":"","native":"","source":"","found":false}'),
     });
     const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
-    expect(r.body).toEqual({ ...notFoundAnswer(roleNames(true)), native: "", vi: "", ...SAVED });
+    expect(r.body).toEqual({
+      ...notFoundAnswer(roleNames(true)),
+      native: "",
+      vi: "",
+      ...SAVED_IN_NEW,
+    });
   });
 
   it("건강·안전 질문은 '강사에게 바로 보고하세요'", async () => {
@@ -440,5 +451,56 @@ describe("교육용 기관 고정 안내(이슈 #180)", () => {
     const r = await askHelper({ question: "넘어지셨어요" }, deps);
     expect(r.body.ko).toBe(`${SAFETY_NOTICE.ko} ${NOT_FOUND.ko}`);
     expect(SAFETY_NOTICE.ko).toBe("관리자에게 바로 보고하세요.");
+  });
+});
+
+describe("도우미 대화 묶음(이슈 #251)", () => {
+  it("conversation_id 없이 물으면 첫 질문 앞 30자로 새 대화를 만들고 그 대화에 저장", async () => {
+    const deps = fakeDeps();
+    const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
+    expect(r.body.conversation_id).toBe("c1");
+    expect(deps.findConversation).not.toHaveBeenCalled();
+    expect(deps.createConversation).toHaveBeenCalledWith("w1", "밥을 안 드셔요");
+    expect(vi.mocked(deps.saveMessage).mock.calls[0][0].conversation_id).toBe("c1");
+  });
+
+  it("긴 첫 질문은 제목을 30자 + '…'로", async () => {
+    const deps = fakeDeps();
+    await askHelper({ question: `${"가".repeat(40)}` }, deps);
+    expect(vi.mocked(deps.createConversation).mock.calls[0][1]).toBe(`${"가".repeat(30)}…`);
+  });
+
+  it("conversation_id를 보내면 내 대화인지 확인하고 그 대화에 붙임(새 대화 없음)", async () => {
+    const deps = fakeDeps();
+    const r = await askHelper({ question: "밥을 안 드셔요", conversation_id: "c1" }, deps);
+    expect(r.status).toBe(200);
+    expect(r.body.conversation_id).toBe("c1");
+    expect(deps.findConversation).toHaveBeenCalledWith("c1", "w1");
+    expect(deps.createConversation).not.toHaveBeenCalled();
+    expect(vi.mocked(deps.saveMessage).mock.calls[0][0].conversation_id).toBe("c1");
+  });
+
+  it("남의 대화(없는 대화)면 404이고 답을 만들지도 저장하지도 않음", async () => {
+    const deps = fakeDeps();
+    expect(await askHelper({ question: "밥", conversation_id: "c9" }, deps)).toEqual({
+      status: 404,
+      body: { error: "conversation_not_found" },
+    });
+    expect(deps.askClaude).not.toHaveBeenCalled();
+    expect(deps.saveMessage).not.toHaveBeenCalled();
+  });
+
+  it("새 대화를 만들지 못하면 답은 주되 저장하지 않고 conversation_id·id는 null", async () => {
+    const deps = fakeDeps({
+      createConversation: vi.fn(async () => {
+        throw new Error("db down");
+      }),
+    });
+    const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
+    expect(r.status).toBe(200);
+    expect(r.body.ko).toBe("억지로 권하지 마세요.");
+    expect(r.body.conversation_id).toBeNull();
+    expect(r.body.id).toBeNull();
+    expect(deps.saveMessage).not.toHaveBeenCalled();
   });
 });
