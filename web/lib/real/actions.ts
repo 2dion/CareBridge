@@ -10,8 +10,9 @@ import type { ItemKey } from "../demo/state";
 import type { FontSize, NoCareReason } from "../demo/store";
 import { FONT_VALUE } from "./map";
 
-/** GET /api/helper/messages 응답(데이터 구조 v1.7 공통 계약) */
+/** GET /api/helper/messages 응답(데이터 구조 v2.1.0 공통 계약). conversation은 대화가 하나도 없으면 null */
 export type HelperMessagesPage = {
+  conversation: { id: string; title: string } | null;
   messages: Array<{
     id: string;
     question: string;
@@ -397,16 +398,30 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
     async translateReturnReason(recordId: string) {
       return callApi(`/api/records/${recordId}/return/translate`);
     },
-    /** W6 도우미. 서버가 답한 뒤 helper_messages에 남기고 id·created_at을 더해 준다(저장이 실패하면 null, 이슈 #218) */
-    async askHelper(question: string) {
-      return callApi<HelperAnswer & { id: string | null; created_at: string | null }>(
-        "/api/helper/ask",
-        { body: { question } },
-      );
+    /**
+     * W6 도우미. 서버가 답한 뒤 helper_messages에 남기고 id·created_at을 더해 준다(저장이 실패하면 null, 이슈 #218).
+     * conversationId가 있으면 그 대화에 붙고, 없으면 새 대화를 만든다(이슈 #251). 응답의 conversation_id를 다음 질문에 쓴다
+     */
+    async askHelper(question: string, conversationId?: string | null) {
+      return callApi<
+        HelperAnswer & {
+          id: string | null;
+          created_at: string | null;
+          conversation_id: string | null;
+        }
+      >("/api/helper/ask", {
+        body: conversationId ? { question, conversation_id: conversationId } : { question },
+      });
     },
-    /** W6를 열 때 지난 대화(내 최근 50개, 오래된 순)를 서버에서 불러온다. before는 앞서 받은 created_at */
-    async helperMessages(before?: string) {
-      const query = before ? `?before=${encodeURIComponent(before)}` : "";
+    /**
+     * W6를 열 때 지난 대화(대화 하나, 최근 50개, 오래된 순)를 서버에서 불러온다. before는 앞서 받은 created_at.
+     * conversationId가 없으면 가장 최근 대화(이슈 #251)
+     */
+    async helperMessages(before?: string, conversationId?: string | null) {
+      const params = new URLSearchParams();
+      if (before) params.set("before", before);
+      if (conversationId) params.set("conversation_id", conversationId);
+      const query = params.size > 0 ? `?${params.toString()}` : "";
       return callApi<HelperMessagesPage>(`/api/helper/messages${query}`, { method: "GET" });
     },
     /** M2 'AI 작업 기록'(관리자는 같은 기관 agent_steps 읽기) */

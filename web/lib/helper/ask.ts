@@ -10,6 +10,9 @@ import { languageNameKo, type NativeLang } from "@/lib/i18n/languages";
 import { isNotKorean } from "@/lib/records/item-patch";
 import type { ApiResult } from "@/lib/records/transition";
 
+import { conversationTitle } from "./conversations";
+import type { ConversationRef } from "./messages";
+
 export type ManualSection = { chapter: string; title: string; page: string; body: string };
 export type GlossaryTerm = {
   matched_expression: string;
@@ -26,6 +29,8 @@ export type HelperAnswer = { ko: string; native: string; source: string | null; 
 /** helper_messages에 넣는 1행(질문 1개 + 답 1개). org_id·id·created_at은 DB가 채운다 */
 export type HelperMessageRow = {
   worker_id: string;
+  /** 대화(helper_conversations.id, 이슈 #251). DB가 대화의 작성자와 같은지 검사한다 */
+  conversation_id: string;
   question: string;
   question_ko: string;
   answer_ko: string;
@@ -53,6 +58,10 @@ export type HelperDeps = {
   askClaude(system: string, user: string): Promise<string | null>;
   /** 답한 질문을 helper_messages에 넣는다(서버 전용). 넣지 못하면 null — 답은 그대로 돌려준다 */
   saveMessage(row: HelperMessageRow): Promise<{ id: string; created_at: string } | null>;
+  /** 내 대화 하나(로그인한 사람 권한 + worker_id). 남의 것이거나 없으면 null(이슈 #251) */
+  findConversation(conversationId: string, workerId: string): Promise<ConversationRef | null>;
+  /** 새 대화를 만든다(서버 전용). 제목은 첫 질문 앞 30자. 만들지 못하면 null */
+  createConversation(workerId: string, title: string): Promise<ConversationRef | null>;
 };
 
 export const MAX_QUESTION_CHARS = 500;
@@ -216,20 +225,27 @@ export function parseHelperAnswer(raw: string): HelperAnswer | null {
   }
 }
 
-// POST /api/helper/ask — 작성자. 입력 question. 출력 ko·native(옛 이름 vi도 같은 값)·source·found + id·created_at(저장한 행, 저장이 실패하면 null)
+// POST /api/helper/ask — 작성자. 입력 question, conversation_id(없으면 새 대화).
+// 출력 ko·native(옛 이름 vi도 같은 값)·source·found + id·created_at(저장한 행, 저장이 실패하면 null) + conversation_id(새 대화를 만들다 실패하면 null)
 export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiResult> {
   const user = await deps.currentUser();
   if (!user) return { status: 401, body: { error: "not_signed_in" } };
   if (user.role !== "worker") return { status: 403, body: { error: "not_record_worker" } };
 
-  const question =
-    body &&
-    typeof body === "object" &&
-    typeof (body as { question?: unknown }).question === "string"
-      ? (body as { question: string }).question.trim()
-      : "";
+  const input = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const question = typeof input.question === "string" ? input.question.trim() : "";
   if (!question || question.length > MAX_QUESTION_CHARS) {
     return { status: 400, body: { error: "invalid_input" } };
+  }
+  // 이어 묻는 대화는 내 것인지 먼저 확인한다. 아니면 답을 만들지도 저장하지도 않는다(이슈 #251)
+  const requestedConversation =
+    typeof input.conversation_id === "string" && input.conversation_id.trim()
+      ? input.conversation_id.trim()
+      : null;
+  let conversation: ConversationRef | null = null;
+  if (requestedConversation) {
+    conversation = await deps.findConversation(requestedConversation, user.id);
+    if (!conversation) return { status: 404, body: { error: "conversation_not_found" } };
   }
 
   // 한글이 없는 질문(베트남어 등)은 한국어로 옮겨 검색한다. 키가 없으면(null) 원문 그대로 검색한다.
@@ -248,16 +264,23 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
       safety ? withSafetyNotice(base, safetyNotice(names)) : base,
       user.nativeLang,
     );
-    const saved = await saveQuietly(deps, {
-      worker_id: user.id,
-      question,
-      question_ko: questionKo !== question ? questionKo : "",
-      answer_ko: shown.ko,
-      answer_native: shown.native,
-      source: shown.source ?? "",
-      found: shown.found,
-      safety,
-    });
+    // 새 대화는 첫 질문을 저장할 때 만든다(빈 대화 없음). 못 만들면 저장도 건너뛰고 답만 준다
+    if (!conversation) {
+      conversation = await createQuietly(deps, user.id, conversationTitle(question));
+    }
+    const saved = conversation
+      ? await saveQuietly(deps, {
+          worker_id: user.id,
+          conversation_id: conversation.id,
+          question,
+          question_ko: questionKo !== question ? questionKo : "",
+          answer_ko: shown.ko,
+          answer_native: shown.native,
+          source: shown.source ?? "",
+          found: shown.found,
+          safety,
+        })
+      : null;
     return {
       status: 200,
       // vi는 옛 칸 이름. 화면이 native로 옮길 때까지 같은 값을 함께 보낸다(이슈 #259)
@@ -266,6 +289,7 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
         vi: shown.native,
         id: saved?.id ?? null,
         created_at: saved?.created_at ?? null,
+        conversation_id: conversation?.id ?? null,
       },
     };
   };
@@ -289,6 +313,15 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
 }
 
 // 저장이 실패해도 작성자는 답을 받아야 하므로 오류는 서버 기록에만 남기고 null을 돌려준다
+async function createQuietly(deps: HelperDeps, workerId: string, title: string) {
+  try {
+    return await deps.createConversation(workerId, title);
+  } catch (error) {
+    console.error("helper_conversations 만들기 실패", error);
+    return null;
+  }
+}
+
 async function saveQuietly(deps: HelperDeps, row: HelperMessageRow) {
   try {
     return await deps.saveMessage(row);
