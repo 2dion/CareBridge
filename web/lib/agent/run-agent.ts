@@ -3,6 +3,7 @@
 //       문서/설계/데이터구조-v2.2.0.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
+import type { NativeLang } from "@/lib/auth/signup";
 import { getFormSpec } from "./form-spec";
 import {
   allNeedsCheckDraft,
@@ -58,7 +59,7 @@ export type AgentDeps = {
 export type AgentInput = {
   transcript: string;
   careType: CareType;
-  nativeLang: "ko" | "vi";
+  nativeLang: NativeLang;
   context: ValidateContext;
 };
 
@@ -185,7 +186,7 @@ export const AGENT_TOOLS = [
 ] as const;
 
 // AI 규칙 v1.1.3 '프롬프트 초안'. 어르신 조건은 DB에 칸이 없어 급여 종류만 넣는다.
-export function agentSystemPrompt(careType: CareType, nativeLang: "ko" | "vi") {
+export function agentSystemPrompt(careType: CareType, nativeLang: NativeLang) {
   return `너는 요양기관의 돌봄 기록 초안을 준비하는 Agent다.
 외국인 요양보호사가 돌봄을 마친 뒤 말한 메모를 받아쓴 글을 보고,
 9개 항목 초안을 만든다. 너의 결과는 초안이며, 작성자가 확인하고 관리자가 승인한다.

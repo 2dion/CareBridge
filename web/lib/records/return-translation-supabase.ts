@@ -1,7 +1,7 @@
 import "server-only";
 
 import { translateShort } from "@/lib/ai/translate";
-import type { NativeLang, Role } from "@/lib/auth/signup";
+import { parseNativeLang, type Role } from "@/lib/auth/signup";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -24,7 +24,7 @@ export async function createReturnTranslationDeps(): Promise<ReturnTranslationDe
       return {
         id: auth.user.id,
         role: profile.role as Role,
-        nativeLang: (profile.native_lang === "ko" ? "ko" : "vi") as NativeLang,
+        nativeLang: parseNativeLang(profile.native_lang),
       };
     },
     async findRecord(recordId) {

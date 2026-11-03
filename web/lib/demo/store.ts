@@ -1,6 +1,7 @@
 // 작성자·관리자 화면이 함께 쓰는 Mock 데이터(브라우저 저장).
 // 실제 API·Supabase가 붙기 전까지 화면이 같은 규칙(데이터구조 v1.6.2 공통 계약)으로 움직이게 한다.
 // 상태 변화·승인 조건·못 쓴 기록 계산은 여기 코드가 맡고, AI에게 맡기지 않는다(AGENTS.md 원칙 5).
+import type { NativeLang } from "@/lib/auth/signup";
 import f01 from "./s-f01.json";
 import f05 from "./s-f05.json";
 import h01 from "./s-h01.json";
@@ -101,7 +102,7 @@ export type StaffMember = {
   name: string;
   role: "worker" | "reviewer";
   /** 모국어(ko / vi). M4 작성자 탭에 보임(결정 2026-10-30-명단모국어) */
-  nativeLang: "ko" | "vi";
+  nativeLang: NativeLang;
 };
 /** 담당 연결 한 줄(assignments: 어르신·작성자 한 쌍마다 한 줄). visitTime은 표시용 schedule */
 export type Assignment = {

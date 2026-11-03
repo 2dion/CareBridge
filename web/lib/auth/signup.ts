@@ -3,7 +3,14 @@
 // DB·Supabase Auth 호출은 SignupDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
 export type Role = "worker" | "reviewer";
-export type NativeLang = "ko" | "vi";
+// 작성자 모국어 목록(MVP는 vi 하나). 언어를 더하면 여기와 profiles.native_lang 제약을 함께 고친다.
+export const NATIVE_LANGS = ["ko", "vi"] as const;
+export type NativeLang = (typeof NATIVE_LANGS)[number];
+
+/** DB·요청의 모국어 값을 읽는다. 목록에 없는 값은 다른 언어 번역을 주지 않도록 ko(번역 없음)로 둔다. */
+export function parseNativeLang(value: unknown): NativeLang {
+  return NATIVE_LANGS.find((lang) => lang === value) ?? "ko";
+}
 
 export type SignupInput = {
   code: string;
@@ -65,9 +72,9 @@ export function parseSignupInput(
   const email = text(b.email).toLowerCase();
   const password = typeof b.password === "string" ? b.password : "";
   const name = text(b.name);
-  const nativeLang = b.native_lang;
+  const nativeLang = NATIVE_LANGS.find((lang) => lang === b.native_lang);
 
-  if (!name || (nativeLang !== "ko" && nativeLang !== "vi")) {
+  if (!name || !nativeLang) {
     return { ok: false, response: fail(400, "invalid_input") };
   }
   if (!code) return { ok: false, response: fail(404, "invalid_code") };
