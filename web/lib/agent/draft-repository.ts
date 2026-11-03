@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseNativeLang } from "@/lib/auth/signup";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { careTypeOf } from "@/lib/records/form-type";
@@ -57,7 +58,7 @@ export async function saveValidatedDraft(
     .single();
   if (profileError || !profile) throw new Error("profile_not_found");
   const context: ValidateContext = {
-    nativeLang: profile.native_lang === "ko" ? "ko" : "vi",
+    nativeLang: parseNativeLang(profile.native_lang),
     transcript: record.transcript,
     careType: careTypeOf(record.form_type),
     blockedNames: await getBlockedNames(serverClient, recordId, auth.user.id),

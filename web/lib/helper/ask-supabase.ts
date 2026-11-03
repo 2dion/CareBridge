@@ -2,7 +2,7 @@ import "server-only";
 
 import { getClaudeClient } from "@/lib/ai/claude";
 import { translateQuestionKo } from "@/lib/ai/translate";
-import type { NativeLang, Role } from "@/lib/auth/signup";
+import { parseNativeLang, type Role } from "@/lib/auth/signup";
 import { getAiMode, getAiModels } from "@/lib/config";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -30,7 +30,7 @@ export async function createHelperDeps(): Promise<HelperDeps> {
       return {
         id: auth.user.id,
         role: profile.role as Role,
-        nativeLang: (profile.native_lang === "ko" ? "ko" : "vi") as NativeLang,
+        nativeLang: parseNativeLang(profile.native_lang),
         // 교육용 기관이면 고정 안내에 '강사'(이슈 #180)
         isTraining: Boolean(
           (profile.organizations as unknown as { is_training: boolean } | null)?.is_training,

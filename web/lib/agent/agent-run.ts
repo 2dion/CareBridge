@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseNativeLang } from "@/lib/auth/signup";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -57,7 +58,7 @@ export async function buildValidateContext(
   const context: ValidateContext = {
     transcript,
     careType: careTypeOf(record.form_type),
-    nativeLang: profile?.native_lang === "ko" ? "ko" : "vi",
+    nativeLang: parseNativeLang(profile?.native_lang),
     blockedNames: await getBlockedNames(serverClient, record.id, workerId),
   };
   if (record.visit_start && record.visit_end) {
