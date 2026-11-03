@@ -48,7 +48,7 @@ export async function createHelperDeps(): Promise<HelperDeps> {
       return data as { id: string; created_at: string };
     },
     async searchManual(question, keywords) {
-      // 교재는 13절뿐이라 전부 가져와 앱에서 순위를 매긴다(이슈 #219): 흔한 말에 밀려 필요한 절이 빠지지 않게
+      // 교재는 15절뿐이라 전부 가져와 앱에서 순위를 매긴다(이슈 #219): 흔한 말에 밀려 필요한 절이 빠지지 않게
       const { data, error } = await supabase
         .from("manual_sections")
         .select("chapter, title, page, body");
