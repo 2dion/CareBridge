@@ -5,6 +5,7 @@
 // reason·reason_native는 서버만 쓰는 칸이라 저장은 service_role 전용 save_ai_item(check)으로 한다.
 // DB 호출은 SupportCheckDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
+import type { NativeLang } from "@/lib/auth/signup";
 import {
   checkSupportMinutes,
   REASONS,
@@ -24,7 +25,7 @@ export type SupportCheckItem = {
 
 export type SupportCheckTarget = {
   careType: CareType;
-  nativeLang: "ko" | "vi";
+  nativeLang: NativeLang;
   /** 방문 시간(분). records.visit_start~visit_end → form_fields.total_minutes → visit_time detail 순. 모르면 null */
   visitMinutes: number | null;
   support: SupportCheckItem;

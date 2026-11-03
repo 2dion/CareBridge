@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { parseSignupInput, signup, type JoinCode, type SignupDeps } from "./signup";
+import {
+  parseNativeLang,
+  parseSignupInput,
+  signup,
+  type JoinCode,
+  type SignupDeps,
+} from "./signup";
 
 const body = {
   code: " abcd2345 ",
@@ -32,6 +38,19 @@ function input() {
   if (!parsed.ok) throw new Error("parse failed");
   return parsed.input;
 }
+
+describe("parseNativeLang", () => {
+  it("목록에 있는 값은 그대로", () => {
+    expect(parseNativeLang("ko")).toBe("ko");
+    expect(parseNativeLang("vi")).toBe("vi");
+  });
+
+  it("모르는 언어·빈값은 베트남어가 아니라 ko(번역 없음)", () => {
+    for (const value of ["en", "VI", "", null, undefined, 1]) {
+      expect(parseNativeLang(value)).toBe("ko");
+    }
+  });
+});
 
 describe("parseSignupInput", () => {
   it("코드는 대문자, 이메일은 소문자, 앞뒤 공백 정리", () => {
