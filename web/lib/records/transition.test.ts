@@ -98,13 +98,15 @@ describe("submitRecord", () => {
     expect((await submitRecord("rec-1", deps)).status).toBe(200);
   });
 
-  it("source = worker 항목은 confirmed_by_worker가 아니어도 됨", async () => {
+  it("source = worker여도 confirmed_by_worker가 아니면 전송할 수 없음(이슈 #236)", async () => {
     const deps = fakeDeps(draft, {
       listItems: vi.fn(async () =>
         items({ meal: { source: "worker", confirmed_by_worker: false } }),
       ),
     });
-    expect((await submitRecord("rec-1", deps)).status).toBe(200);
+    const result = await submitRecord("rec-1", deps);
+    expect(result.status).toBe(409);
+    expect(result.body).toMatchObject({ error: "unconfirmed_items", items: ["meal"] });
   });
 
   it("확인 안 된 항목이 있으면 409 unconfirmed_items와 항목 이름", async () => {
