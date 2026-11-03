@@ -11,7 +11,7 @@ import { getBlockedNames } from "./blocked-names";
 import { readRecordItems, saveValidatedDraft } from "./draft-repository";
 import { cachedSystem, totalTokens, withConversationCache } from "./prompt-cache";
 import { AGENT_TOOLS, runAgent, type AgentDeps, type ContentBlock } from "./run-agent";
-import type { ValidateContext } from "./validate-draft";
+import { minutesBetween, type ValidateContext } from "./validate-draft";
 
 // 기록 하나에 Agent를 돌린다. 받아쓰기가 끝나면 서버가(/audio), [다시 시도]·[글로 쓰기] 뒤에는 작성자가(/agent-run) 부른다.
 // 읽기·원문 저장은 작성자 권한, 초안 저장(save_record_ai_draft)·작업 기록(agent_steps)은 서버(service_role).
@@ -34,11 +34,6 @@ export class AgentRunError extends Error {
 // 응답 전체 제한. Vercel이 maxDuration(300초)에 함수를 끊으면 실패를 기록하지 못해 W3가 '정리 중'에 남는다(이슈 #235).
 // 받아쓰기 시간을 뺀 여유를 두고, 넘으면 실패로 끝내 [다시 시도]를 보이게 한다.
 const AGENT_TIME_LIMIT_MS = 240_000;
-
-const minutes = (time: string) => {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-};
 
 type RecordForContext = {
   form_type: string | number; // DB는 smallint(16 / 12)
@@ -66,7 +61,7 @@ export async function buildValidateContext(
     blockedNames: await getBlockedNames(serverClient, record.id, workerId),
   };
   if (record.visit_start && record.visit_end) {
-    context.visitMinutes = minutes(record.visit_end) - minutes(record.visit_start);
+    context.visitMinutes = minutesBetween(record.visit_start, record.visit_end);
   }
   return context;
 }

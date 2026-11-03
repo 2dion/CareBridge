@@ -15,18 +15,27 @@ npm run dev                  # http://localhost:3000
 
 Node.js 22 이상이 필요합니다. 키 넣는 법, 검사 명령, 폴더 구조는 [web/README.md](web/README.md)에 있습니다. AI 코딩 도구로 작업한다면 먼저 [AGENTS.md](AGENTS.md)를 읽습니다. 작업은 브랜치 → PR로 올리고(남은 문제와 큰 일은 GitHub 이슈 먼저, 기준은 AGENTS.md), PR 본문에 무엇을 바꿨나·어떻게 확인했나·남은 것 세 제목을 씁니다(AGENTS.md '작업 올리는 방법').
 
-배포 주소(Vercel Production): https://care-bridge-kappa.vercel.app
+## 배포 환경
+
+| 용도 | 기준 브랜치 | 사이트 | Supabase |
+| --- | --- | --- | --- |
+| 공모전 보존 | `main` | https://care-bridge-kappa.vercel.app | 기존 `CareBridge` |
+| 코디세이 개발 | `main-codyssey` | https://carebridge-codyssey.vercel.app | 새 `CareBridge-Codyssey` |
+
+**기존 공모전 사이트와 DB는 변경하지 않습니다.** 공모전 `main`·Vercel `care-bridge`·Supabase `CareBridge`는 보존 대상입니다. 사용자가 공모전 환경 변경을 명시적으로 요청한 경우에만 해당 범위에서 작업합니다. 자세한 금지 범위와 대상 확인 절차는 [AGENTS.md](AGENTS.md#공모전-환경-변경-금지)를 따릅니다.
+
+코디세이 기능 브랜치는 `main-codyssey`에서 만들고 PR도 이 브랜치로 올립니다. GitHub 기본 브랜치는 현재 `main`을 유지하므로 PR 대상을 직접 확인합니다. 두 사이트는 별도 Vercel 프로젝트이며 모두 각 프로젝트의 Production 배포를 사용합니다. [환경 분리 결정](문서/결정/2026-11-02-공모전코디세이분리.md)을 봅니다.
 
 ## 기술 구성
 
 | 부분 | 쓰는 것 | 자세히 |
 | --- | --- | --- |
 | 화면 + 서버 | Next.js 16 (TypeScript), Tailwind CSS | [web/README.md](web/README.md) |
-| 배포 | Vercel (Root Directory `web`) | [기술 선택 v1.1](문서/설계/기술선택-v1.1.md) |
+| 배포 | Vercel (Root Directory `web`) | [기술 선택 v2.0.0](문서/설계/기술선택-v2.0.0.md) |
 | DB·로그인·파일 | Supabase (Postgres + RLS + Storage) | [supabase/README.md](supabase/README.md) |
-| 기록 초안 Agent·번역·도우미 | Claude, 코디세이 공개 API(Anthropic 규격) | [코디세이 API 사용 방법](문서/설계/코디세이api-v1.0.md) |
+| 기록 초안 Agent·번역·도우미 | Claude, 코디세이 공개 API(Anthropic 규격) | [코디세이 API 사용 방법](문서/설계/코디세이api-v2.0.0.md) |
 | 받아쓰기(STT) | Groq Whisper `whisper-large-v3` (OpenAI 호환) | [결정 기록](문서/결정/2026-10-20-stt-groq.md) |
-| 녹음·듣기·인쇄 | 브라우저 MediaRecorder(최대 5분), 브라우저 TTS, 인쇄 CSS | [기술 선택 v1.1](문서/설계/기술선택-v1.1.md) |
+| 녹음·듣기·인쇄 | 브라우저 MediaRecorder(최대 5분), 브라우저 TTS, 인쇄 CSS | [기술 선택 v2.0.0](문서/설계/기술선택-v2.0.0.md) |
 
 ## 외부 API와 키
 
@@ -42,17 +51,17 @@ Node.js 22 이상이 필요합니다. 키 넣는 법, 검사 명령, 폴더 구�
 
 ## 앱 API
 
-화면과 서버가 주고받는 API 경로·입출력, 상태 값, Agent 도구 4개는 [데이터 구조 v1.7 '공통 계약'](문서/설계/데이터구조-v1.7.md)에만 적습니다. 바꾸려면 `문서/결정/`에 결정 기록을 먼저 씁니다([AGENTS.md](AGENTS.md) '공통 계약 위치').
+화면과 서버가 주고받는 API 경로·입출력, 상태 값, Agent 도구 4개는 [데이터 구조 v2.0.0 '공통 계약'](문서/설계/데이터구조-v2.0.0.md)에만 적습니다. 바꾸려면 `문서/결정/`에 결정 기록을 먼저 씁니다([AGENTS.md](AGENTS.md) '공통 계약 위치').
 
 ## 문서 지도
 
 | 무엇을 알고 싶나 | 문서 |
 | --- | --- |
-| 무엇을 왜 만드나 | [기획안 v1.1.2](문서/기획/기획-v1.1.2.md) |
-| 화면 W0~W6, R1~R4 | [화면 설계 v1.3.2](문서/설계/화면-v1.3.2.md) |
-| 표·권한·공통 계약 | [데이터 구조 v1.7](문서/설계/데이터구조-v1.7.md) |
-| AI가 지켜야 할 규칙 | [AI 규칙 v1.1.5](문서/설계/ai규칙-v1.1.6.md) |
-| 시연·일정·테스트 | [시연·일정 v1.1](문서/설계/시연-일정-v1.1.md) |
+| 무엇을 왜 만드나 | [기획안 v2.0.0](문서/기획/기획-v2.0.0.md) |
+| 화면 W0~W6, R1~R4 | [화면 설계 v2.0.0](문서/설계/화면-v2.0.0.md) |
+| 표·권한·공통 계약 | [데이터 구조 v2.0.0](문서/설계/데이터구조-v2.0.0.md) |
+| AI가 지켜야 할 규칙 | [AI 규칙 v2.0.0](문서/설계/ai규칙-v2.0.1.md) |
+| 시연·일정·테스트 | [시연·일정 v2.0.0](문서/설계/시연-일정-v2.0.0.md) |
 | 무엇을 언제 왜 정했나 | [결정 기록](문서/결정/README.md) |
 
 ## 폴더

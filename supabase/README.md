@@ -4,8 +4,14 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 
 - **목적:** 표와 RLS를 대시보드에서 손으로 만들지 않고 파일로 남겨, 누가 언제 무엇을 바꿨는지 PR로 보이게 합니다.
 - **배경:** 모든 표를 기관별 RLS로 나눠야 하고(AGENTS.md 원칙 7), 여러 사람이 동시에 개발합니다.
-- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v1.7.md`), 기술 선택 v1.1 §3.
+- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v2.0.0.md`), 기술 선택 v1.1 §3.
 - **사유:** Supabase CLI의 기본 구조(`config.toml`, `migrations/`, `seed.sql`)를 그대로 써서 새로 배울 것을 줄입니다.
+
+## 공모전 DB 변경 금지
+
+**기존 공모전 DB `CareBridge`(`mswdkdjtpysvxqdzjbqh`)는 변경하지 않습니다.** 사용자에게 공모전 환경 변경을 명시적으로 요청받은 경우만 예외입니다. 마이그레이션·시드·초기화·데이터 정리·Auth·Storage·RLS·권한·키 변경과 실제 AI 검증은 코디세이 프로젝트에서만 진행합니다.
+
+DB 쓰기 전에 CLI/MCP·환경 변수의 대상 ref가 코디세이 `fffgpgrnppxxqccncstf`인지 확인합니다. 기존 공모전 예약 작업도 임의로 수정하거나 중단하지 않습니다. [공통 작업 규칙](../AGENTS.md#공모전-환경-변경-금지)을 따릅니다.
 
 ## 들어 있는 것
 
@@ -33,7 +39,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 
 ## 쓰는 법
 
-클라우드 Supabase 프로젝트 하나를 팀이 같이 쓰는 것을 기본으로 합니다. 로컬 Supabase는 Docker가 있어야 해서 선택입니다.
+코디세이는 별도 클라우드 프로젝트 `CareBridge-Codyssey`(`fffgpgrnppxxqccncstf`, 서울)를 팀이 같이 씁니다. 공모전 `CareBridge`와 같은 조직의 기존 역할을 유지합니다. 기존 DB의 Auth 사용자·기록·파일을 복제하지 않고 합성 데이터로 새로 구성합니다. 로컬 Supabase는 Docker가 있어야 해서 선택입니다.
 
 ```bash
 # 저장소 루트에서
@@ -47,10 +53,10 @@ npx supabase db push                               # migrations/ 를 클라우�
 
 | 이메일 | 기관 | 역할 | 시나리오 |
 | --- | --- | --- | --- |
-| worker@carebridge.test | 데모 요양센터 (일반) | 작성자 '마이' (vi) | 1·2 |
-| reviewer@carebridge.test | 데모 요양센터 (일반) | 관리자 '박 사회복지사' | 1·2 |
-| trainee@carebridge.test | 데모 교육원 (교육용) | 교육생 '응옥' (vi) | 3 |
-| trainer@carebridge.test | 데모 교육원 (교육용) | 강사 | 3 |
+| worker@codyssey.carebridge.test | 데모 요양센터 (일반) | 작성자 '마이' (vi) | 1·2 |
+| reviewer@codyssey.carebridge.test | 데모 요양센터 (일반) | 관리자 '박 사회복지사' | 1·2 |
+| trainee@codyssey.carebridge.test | 데모 교육원 (교육용) | 교육생 '응옥' (vi) | 3 |
+| trainer@codyssey.carebridge.test | 데모 교육원 (교육용) | 강사 | 3 |
 
 - 어르신: 김○○(시설, 별지 제16호), 이○○(재가, 제12호, 평일 14:00~17:00)은 '마이' 담당, 최○○(시설)은 교육생 '응옥' 담당. 이름이 역할과 같으면 화면에 '교육생 교육생'으로 보여 가명을 씁니다(#181).
 - **로컬**(`npx supabase db reset`): 계정이 없으면 비밀번호 `carebridge-local-only`로 만듭니다. 로컬 전용입니다.

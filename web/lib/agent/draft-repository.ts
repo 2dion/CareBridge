@@ -5,7 +5,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { careTypeOf } from "@/lib/records/form-type";
 
 import { getBlockedNames } from "./blocked-names";
-import { ITEM_KEYS, validateDraft, type DraftItem, type ValidateContext } from "./validate-draft";
+import {
+  ITEM_KEYS,
+  validateDraft,
+  type DraftItem,
+  type ValidateContext,
+  minutesBetween,
+} from "./validate-draft";
 
 export type StoredDraftItem = DraftItem & {
   id: string;
@@ -57,11 +63,7 @@ export async function saveValidatedDraft(
     blockedNames: await getBlockedNames(serverClient, recordId, auth.user.id),
   };
   if (record.visit_start && record.visit_end) {
-    const minutes = (time: string) => {
-      const [h, m] = time.split(":").map(Number);
-      return h * 60 + m;
-    };
-    context.visitMinutes = minutes(record.visit_end) - minutes(record.visit_start);
+    context.visitMinutes = minutesBetween(record.visit_start, record.visit_end);
   }
   const validation = validateDraft(rawDraft, context);
   if (!validation.fixed) throw new Error("invalid_draft");

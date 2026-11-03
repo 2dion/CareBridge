@@ -4,7 +4,7 @@ name: GitHub 라벨 맞추기
 
 on:
   push:
-    branches: [main]
+    branches: [main-codyssey]
     paths: [.github/labels.yml]
   workflow_dispatch:
 

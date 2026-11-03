@@ -1,4 +1,4 @@
-# GitHub 라벨 목록(결정 2026-10-29-이슈운영.md). main에 합치면 'GitHub 라벨 맞추기' 작업이 만들거나 고친다.
+# GitHub 라벨 목록(결정 2026-10-29-이슈운영.md). main-codyssey에 합치면 'GitHub 라벨 맞추기' 작업이 만들거나 고친다.
 # 지우는 일은 하지 않는다. 이름을 바꾸려면 GitHub 화면에서 바꾼 뒤 여기도 고친다.
 # 담당
 - name: BE
@@ -39,3 +39,7 @@
 - name: 11/08 전
   color: "fef2c0"
   description: 파이널 제출(11/08) 전에 끝낼 것
+
+- name: 코디세이
+  color: "0e8a16"
+  description: "개발·PR 기준 브랜치 main-codyssey (공모전 main과 분리)"

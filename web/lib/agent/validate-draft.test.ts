@@ -20,7 +20,7 @@ import {
 } from "./validate-draft";
 import { getFormSpec } from "./form-spec";
 
-// 시나리오 1(시설 기록 한 건)의 말할 문장. 합성 사례다(문서/설계/시연-일정-v1.1.md).
+// 시나리오 1(시설 기록 한 건)의 말할 문장. 합성 사례다(문서/설계/시연-일정-v2.0.0.md).
 const TRANSCRIPT =
   "아침에 세수해 드리고 두 시간마다 자세 바꿨어요. 점심은 조금 드셨어요. Bà ngủ không ngon. 약은 드셨어요. 엉덩이 쪽이 조금 빨개요.";
 

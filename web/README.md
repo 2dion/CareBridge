@@ -61,11 +61,21 @@ PR 전에 `npm run check`가 통과해야 합니다. GitHub Actions "web 검사"
 - `lib/ai`, `lib/stt`, `lib/supabase/server.ts`는 맨 위에 `import "server-only"`가 있어, 브라우저 코드에서 부르면 빌드가 깨집니다. 키가 새는 것을 막는 장치이니 지우지 않습니다.
 - 지금은 뼈대만 있습니다. 화면(W0~W6, M1~M4), API, Agent 반복, Mock 응답 내용은 각 담당이 채웁니다.
 
+## 공모전 사이트 변경 금지
+
+**기존 공모전 사이트 `https://care-bridge-kappa.vercel.app`와 연결 DB는 변경하지 않습니다.** Vercel `care-bridge`의 재배포·환경 변수·도메인·Git 연결·운영 설정 변경은 사용자가 공모전 환경을 대상으로 명시적으로 요청한 경우에만 진행합니다.
+
+코디세이 배포·실제 AI 검증은 Vercel `carebridge-codyssey`와 새 Supabase 프로젝트를 사용합니다. 로컬 환경 변수와 배포 프로젝트가 코디세이 대상인지 먼저 확인합니다. [공통 작업 규칙](../AGENTS.md#공모전-환경-변경-금지)을 따릅니다.
+
 ## Vercel 연결
 
-Vercel 프로젝트 설정에서 **Root Directory = `web`**, **Framework Preset = Next.js**로 둡니다. 환경 변수는 위 표와 `.env.example`의 이름 그대로 넣고, Production은 `USE_MOCK_AI=false`여야 합니다(아니면 `/api/health`가 문제로 알림). 녹음 정리용 `CRON_SECRET`은 Vercel과 GitHub 저장소 Secrets에 같은 값으로 둡니다(`.github/workflows/audio-cleanup.yml`, 10/28).
+Vercel 프로젝트 설정에서 **Root Directory = `web`**, **Framework Preset = Next.js**로 둡니다. 환경 변수는 위 표와 `.env.example`의 이름 그대로 넣고, Production은 `USE_MOCK_AI=false`여야 합니다(아니면 `/api/health`가 문제로 알림). 녹음 정리용 `CRON_SECRET`은 새 Supabase Vault의 `codyssey_audio_cleanup_token`, GitHub의 `CODYSSEY_CRON_SECRET`과 같은 값으로 둡니다. 비밀 값은 저장소에 넣지 않습니다.
 
-모든 브랜치를 자동 배포합니다(`vercel.json`의 `git.deploymentEnabled: true`, 10/31 다시 켬). main에 합치면 운영 사이트가, 다른 브랜치에 올리면 미리보기 배포가 생깁니다. 무료 요금제는 하루 배포 100번, 동시 빌드 1개라서 한도에 걸리면 main 배포가 막힐 수 있습니다. 그때는 다음 날 Vercel 대시보드 **Deployments → Create Deployment**에서 `main`을 지정해 수동 배포합니다. 기존 배포의 Redeploy와 최신 main 배포는 구분합니다.
+코디세이 배포 프로젝트는 `carebridge-codyssey`이며 Production Branch는 `main-codyssey`입니다. 다른 기능 브랜치는 이 프로젝트의 Preview를 사용합니다. Production·Preview 모두 새 `CareBridge-Codyssey` DB 키를 사용하고, 공모전 DB 키는 넣지 않습니다. 환경 변수 변경 후에는 새 배포가 필요합니다.
+
+공모전 프로젝트 `care-bridge`와 주소 `https://care-bridge-kappa.vercel.app`는 유지합니다. 기존 프로젝트의 Ignored Build Step을 `exit 0`으로 설정해 Git 빌드를 건너뜁니다. CLI 수동 Production 배포는 별도이므로 기존 프로젝트를 대상으로 실행하지 않습니다.
+
+GitHub 기본 브랜치는 `main`을 유지하고, 기존 공모전 녹음 정리 workflow도 그대로 둡니다. 코디세이는 새 Supabase Cron `codyssey-audio-cleanup`이 매시간 17분에 새 사이트를 호출합니다. 설정 SQL은 `supabase/operations/codyssey-audio-cleanup.sql`입니다. Actions에서 `main-codyssey`를 선택하면 `CODYSSEY_CRON_SECRET`으로 수동 진단할 수도 있습니다.
 
 **Pause Project**는 운영 사이트의 서비스를 멈추는 별도 설정입니다. 자동 배포 중단과 다르며, 사이트를 다시 열 때는 **Settings → General → Resume Project**를 선택합니다. 자동 배포 설정을 바꿨다고 Pause를 해제하거나 수동 배포하지 않습니다.
 

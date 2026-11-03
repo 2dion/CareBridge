@@ -571,7 +571,11 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
   return {
     version: 5,
     seededOn: today,
-    worker: { name: worker, email: "worker@carebridge.test", org: "케어브릿지 데모 요양센터" },
+    worker: {
+      name: worker,
+      email: "worker@codyssey.carebridge.test",
+      org: "케어브릿지 데모 요양센터",
+    },
     reviewer: { name: reviewer },
     onboarded: false,
     fontSize: "normal",
