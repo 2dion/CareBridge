@@ -4,6 +4,7 @@
 // - 실제 모드(Supabase 설정이 있음): 로그인한 사람 권한(RLS)으로 읽고, 바꾸는 일은 서버 API·Supabase로 한다(real).
 // - Mock 모드(Supabase 설정이 없는 로컬 개발): 브라우저(localStorage)에 두고 같은 브라우저의 다른 탭과 맞춘다.
 // 로그인과 같은 기준(supabaseConfigured)으로 가른다.
+import type { NativeLang } from "@/lib/auth/signup";
 import {
   createContext,
   type ReactNode,
@@ -36,7 +37,7 @@ export type RealContext = {
   role: "worker" | "reviewer";
   userId: string;
   isTraining: boolean;
-  nativeLang: "ko" | "vi";
+  nativeLang: NativeLang;
   /** M5 설정: 내 기관의 켜진 가입 코드(관리자만 읽음, 작성자는 빈 목록) */
   joinCodes: JoinCode[];
   /** 서버·DB에서 다시 읽는다 */
@@ -110,7 +111,7 @@ function RealProvider({ children }: { children: ReactNode }) {
     role: RealContext["role"];
     userId: string;
     isTraining: boolean;
-    nativeLang: "ko" | "vi";
+    nativeLang: NativeLang;
     joinCodes: JoinCode[];
   } | null>(null);
   const [draftRuns, setDraftRuns] = useState<Record<string, DraftRun>>(() =>

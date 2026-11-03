@@ -2,6 +2,7 @@
 // 근거: 문서/설계/ai규칙-v2.0.1.md 'AI가 하는 일' ③·'쓰기 원칙'·'서버 검사와 예외 처리', 결정 2026-10-28-항목하나저장
 // 결과는 기존 validateDraft로 검사한다(근거가 원문·새로 말한 글에 있는지, 실명, 재가 분 합 등).
 
+import type { NativeLang } from "@/lib/auth/signup";
 import {
   ITEM_KEYS,
   validateDraft,
@@ -11,7 +12,7 @@ import {
 } from "./validate-draft";
 import { isNotKorean } from "@/lib/records/item-patch";
 
-export function addItemSystemPrompt(itemKey: ItemKey, nativeLang: "ko" | "vi") {
+export function addItemSystemPrompt(itemKey: ItemKey, nativeLang: NativeLang) {
   return `너는 요양 돌봄 기록의 항목 하나를 다시 쓴다. 결과는 초안이며 작성자가 확인한다.
 [항목] ${itemKey}
 [작성자 모국어] ${nativeLang}
