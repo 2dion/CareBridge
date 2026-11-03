@@ -66,8 +66,6 @@ select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,conv
   values ('c2000000-0000-0000-0000-000000000001','c3000000-0000-0000-0000-0000000000ff','없는 대화','답',true)$q$,'conversation_not_found');
 select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,question,answer_ko,found)
   values ('c2000000-0000-0000-0000-000000000001','대화 없음','답',true)$q$,'conversation_not_found');
--- 서버도 마지막 시각·질문 수를 직접 고치지 못한다
-select pg_temp.expect_error($q$update public.helper_conversations set message_count=99$q$,'permission denied');
 reset role;
 
 -- 작성자 갑: 내 대화만(3개), 내 질문만

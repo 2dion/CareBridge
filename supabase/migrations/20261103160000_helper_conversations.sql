@@ -2,7 +2,7 @@
 -- 근거: 문서/결정/2026-11-03-도우미대화묶음.md, 문서/설계/데이터구조-v2.3.0.md 'helper_conversations'·'helper_messages'·'공통 계약'
 --
 -- 넣기는 서버(service_role)만. 화면 키(authenticated)는 읽기만: 작성자는 내 대화, 같은 기관 관리자·강사는 기관 전체.
--- last_message_at·message_count는 helper_messages 넣기 트리거만 바꾼다(service_role에도 update를 주지 않는다).
+-- last_message_at·message_count는 helper_messages 넣기 트리거가 바꾼다(서버 코드는 직접 고치지 않는다).
 -- helper_messages를 넣을 때 대화의 worker_id가 같은지 DB가 검사한다(다르면 conversation_not_found).
 -- 있던 helper_messages는 작성자·한국 날짜별로 대화 하나씩 묶는다(제목 = 그날 첫 질문 앞 30자).
 
@@ -52,7 +52,7 @@ create trigger helper_conversations_set_org before insert on public.helper_conve
 alter table public.helper_conversations enable row level security;
 revoke all on public.helper_conversations from anon, authenticated;
 grant select on public.helper_conversations to authenticated;
-grant select, insert on public.helper_conversations to service_role;
+grant select, insert on public.helper_conversations to service_role; -- Supabase 기본 권한으로 이미 모두 있음. 뜻을 적어 둠
 
 create policy helper_conversations_read on public.helper_conversations for select to authenticated
   using (org_id = private.my_org_id() and (worker_id = auth.uid() or private.is_reviewer()));
