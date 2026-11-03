@@ -2,6 +2,7 @@ import { addItemByText } from "@/lib/audio/audio-service";
 import { ITEM_KEYS, type ItemKey } from "@/lib/agent/validate-draft";
 import { patchItem } from "@/lib/records/item-patch";
 import { createItemPatchDeps } from "@/lib/records/item-patch-supabase";
+import { enforceQuota } from "@/lib/security/rate-limit-supabase";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -19,7 +20,13 @@ async function readJson(request: Request): Promise<unknown> {
 // 근거: 문서/설계/데이터구조-v2.2.0.md '공통 계약' PATCH 규칙, 문서/결정/2026-10-28-항목하나저장.md
 export async function PATCH(request: Request, ctx: RouteContext<"/api/records/[id]/items/[key]">) {
   const { id, key } = await ctx.params;
-  const result = await patchItem(id, key, await readJson(request), await createItemPatchDeps());
+  const body = await readJson(request);
+  // value_ko를 바꾸면 서버가 다시 번역(Claude)하므로 호출 제한을 센다(이슈 #256)
+  if (body && typeof body === "object" && "value_ko" in body) {
+    const limited = await enforceQuota("translate");
+    if (limited) return limited;
+  }
+  const result = await patchItem(id, key, body, await createItemPatchDeps());
   return Response.json(result.body, { status: result.status });
 }
 
@@ -30,6 +37,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/records/[id
   if (!ITEM_KEYS.includes(key as ItemKey)) {
     return Response.json({ error: "invalid_item" }, { status: 400 });
   }
+  const limited = await enforceQuota("item");
+  if (limited) return limited;
   const result = await addItemByText(
     await createSupabaseServerClient(),
     createSupabaseAdminClient(),

@@ -1,6 +1,7 @@
 import { after } from "next/server";
 
 import { receiveAudio } from "@/lib/audio/audio-service";
+import { enforceQuota } from "@/lib/security/rate-limit-supabase";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -12,6 +13,8 @@ export const maxDuration = 300; // 받아쓰기 + 응답 뒤 Agent(Claude 응답
 
 export async function POST(request: Request, ctx: RouteContext<"/api/records/[id]/audio">) {
   const { id } = await ctx.params;
+  const limited = await enforceQuota("audio");
+  if (limited) return limited;
   let body: unknown;
   try {
     body = await request.json();

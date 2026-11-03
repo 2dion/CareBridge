@@ -1,4 +1,5 @@
 import { AgentRunError, runAgentForRecord } from "@/lib/agent/agent-run";
+import { enforceQuota } from "@/lib/security/rate-limit-supabase";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -18,6 +19,8 @@ const STATUS: Record<AgentRunError["code"], number> = {
 
 export async function POST(request: Request, ctx: RouteContext<"/api/records/[id]/agent-run">) {
   const { id } = await ctx.params;
+  const limited = await enforceQuota("agent");
+  if (limited) return limited;
   let text: string | undefined;
   try {
     const body = (await request.json()) as { text?: unknown };

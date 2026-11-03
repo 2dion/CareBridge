@@ -176,7 +176,9 @@ export async function receiveAudio(
     .select("id");
   if (saveError) {
     await setJob({ status: "failed", error: saveError.message });
-    return { status: 409, body: { id: job.id, status: "failed", error: saveError.message } };
+    // DB 오류 원문은 응답에 담지 않는다(이슈 #256). 트리거 오류 키만 그대로 돌려준다
+    const key = saveError.message === "record_locked" ? "record_locked" : "invalid_transition";
+    return { status: 409, body: { id: job.id, status: "failed", error: key } };
   }
   await setJob({ status: "filling" });
   runAfterResponse(async () => {
