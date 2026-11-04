@@ -1,5 +1,5 @@
 // ② 기록 검토 준비 Agent: Claude가 도구 4개를 골라 부르고, 서버가 도구를 실행한다.
-// 근거: 문서/설계/ai규칙-v2.0.4.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
+// 근거: 문서/설계/ai규칙-v2.0.5.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
 //       문서/설계/데이터구조-v2.3.4.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
@@ -214,6 +214,8 @@ export function agentSystemPrompt(careType: CareType, nativeLang: NativeLang) {
    search_glossary 결과가 비어도 뜻이 분명한 일상 표현("화장실에 한 번 모시고 감", "날짜를 두 번 물으심",
    "실수 없음", "잘 주무심")은 교재 용어 없이 기록체로 정리하고 observed로 둔다.
    "용어 검색 결과 없음"만으로 needs_check로 두지 않는다. 뜻을 짐작해야 하는 말만 needs_check다.
+   search_glossary 결과의 chapter가 "우리말샘"으로 시작하면 사전의 방언 풀이다. 어르신이 쓴 뜻과 다를 수 있으니
+   짐작한 것으로 보고 needs_check로 두며, reason에 "'징허게'를 우리말샘(전라 방언) 뜻 '몹시'로 짐작"처럼 쓴다.
    받아쓴 글이 베트남어 등 모국어여도 같다. 수면·식사처럼 뜻이 분명하면 observed로 정리한다.
 4. 진단하지 말고 본 것만 쓴다. 호전/유지/악화는 원문에 비교가 있을 때만.
    비교가 없으면 form_fields의 body_trend·meal_trend·cognition_trend와 cognition.detail.trend를 비우고,
