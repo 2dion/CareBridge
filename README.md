@@ -162,9 +162,9 @@ Node.js 22 이상이 필요합니다. 환경 변수와 키, 검사 명령, 폴�
 | 용도 | 기준 브랜치 | 사이트 | Supabase |
 | --- | --- | --- | --- |
 | 코디세이 개발 | `main-codyssey` | https://carebridge-codyssey.vercel.app | `CareBridge-Codyssey` |
-| 공모전 보존 | `main` | (보존용, 변경하지 않음) | `CareBridge` |
+| 공모전 보존 | `main-contest` (11/04 전 이름 `main`) | (보존용, 변경하지 않음) | `CareBridge` |
 
-**공모전 환경(`main`, Vercel `care-bridge`, Supabase `CareBridge`)은 변경하지 않습니다.** 코디세이 작업 브랜치는 `main-codyssey`에서 만들고 PR도 `main-codyssey`로 올립니다. GitHub 기본 브랜치는 `main`이라 PR 대상을 직접 확인합니다. 자세한 기준은 [AGENTS.md](AGENTS.md#공모전-환경-변경-금지)와 [환경 분리 결정](문서/결정/2026-11-02-공모전코디세이분리.md)에 있습니다.
+**공모전 환경(`main-contest`, Vercel `care-bridge`, Supabase `CareBridge`)은 변경하지 않습니다.** 코디세이 작업 브랜치는 `main-codyssey`에서 만들고 PR도 `main-codyssey`로 올립니다. GitHub 기본 브랜치도 `main-codyssey`입니다. 자세한 기준은 [AGENTS.md](AGENTS.md#공모전-환경-변경-금지), [환경 분리 결정](문서/결정/2026-11-02-공모전코디세이분리.md), [기본 브랜치 전환 결정](문서/결정/2026-11-04-기본브랜치전환.md)에 있습니다.
 
 | 폴더 | 넣는 것 |
 | --- | --- |
