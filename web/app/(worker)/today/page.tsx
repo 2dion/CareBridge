@@ -47,7 +47,7 @@ function cardAction(resident: Resident, today: string, record?: DemoRecord): Car
         primary: true,
       };
     case "returned":
-      return { ko: "고쳐 쓰기", vi: "Sửa bản ghi", href: `/records/${record.id}`, primary: true };
+      return { ko: "기록 수정", vi: "Sửa bản ghi", href: `/records/${record.id}`, primary: true };
     default:
       return {
         ko: "기록 보기",
