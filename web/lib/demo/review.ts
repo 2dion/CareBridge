@@ -367,6 +367,19 @@ export function residentHasRecords(db: DemoDb, residentId: string): boolean {
   return Object.values(db.records).some((record) => record.residentId === residentId);
 }
 
+/** M4 어르신 삭제(이슈 #103): 기록이 하나도 없을 때만. 기록 없음 처리 줄도 같이 지운다(DB on delete cascade와 같게) */
+export function removeResident(db: DemoDb, residentId: string): DemoDb | { error: "has_records" } {
+  if (residentHasRecords(db, residentId)) return { error: "has_records" };
+  return {
+    ...db,
+    residents: db.residents.filter((resident) => resident.id !== residentId),
+    noCareDays: db.noCareDays.filter((day) => day.residentId !== residentId),
+    ...(db.assignments
+      ? { assignments: db.assignments.filter((link) => link.residentId !== residentId) }
+      : {}),
+  };
+}
+
 export function updateResident(
   db: DemoDb,
   residentId: string,
