@@ -4,7 +4,7 @@
 // 답변은 남이 쓴 내용이라 병기(원칙 ②), 내 질문은 그대로(①).
 // 대화는 서버(helper_messages)에 남기고, 열 때 GET /api/helper/messages로 지난 대화를 불러와 이어 보인다(이슈 #218).
 // 실제 모드는 브라우저 저장을 쓰지 않는다. Supabase 설정이 없는 Mock만 계정별로 이 브라우저 안에 남긴다(이슈 #152, lib/helper/history.ts).
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
@@ -19,9 +19,10 @@ import {
   browserStorage,
   clearHelperHistory,
   type LoadingMessage,
-  loadHelperHistory,
+  loadMockConversations,
+  deleteMockConversation,
   MOCK_HELPER_USER,
-  saveHelperHistory,
+  saveMockConversation,
   type StoredMessage,
 } from "@/lib/helper/history";
 
@@ -42,145 +43,183 @@ function withDayLabels(messages: Message[], today: string): Row[] {
 
 export default function HelperPage() {
   const demo = useDemo();
+  const search = useSearchParams();
   if (!demo) return <Loading tab="helper" />;
-  // 실제 모드는 로그인한 계정 id, Mock은 고정 값. 계정이 바뀌면(key) 그 계정의 대화로 다시 시작한다
   const userId = demo.real?.userId ?? MOCK_HELPER_USER;
-  return <HelperChat key={userId} userId={userId} />;
+  const selected = search.get("conversation");
+  const fresh = search.get("new") === "1";
+  return (
+    <HelperChat
+      key={`${userId}:${selected ?? ""}:${fresh}`}
+      userId={userId}
+      selected={selected}
+      fresh={fresh}
+    />
+  );
 }
 
-function HelperChat({ userId }: { userId: string }) {
-  const demo = useDemo();
+function HelperChat({
+  userId,
+  selected,
+  fresh,
+}: {
+  userId: string;
+  selected: string | null;
+  fresh: boolean;
+}) {
+  const demo = useDemo()!;
   const search = useSearchParams();
-  const real = demo?.real;
-  // Mock만 화면을 열 때 이 브라우저에 남은 대화를 되살린다. 실제 모드는 서버에서 불러온다(아래). 데이터가 읽힌 뒤(브라우저)에만 마운트된다
-  const [messages, setMessages] = useState<Message[]>(() =>
-    real ? [] : loadHelperHistory(browserStorage(), userId),
-  );
-  // 교육용 기관이면 보고 상대가 '강사'(이슈 #146)
+  const router = useRouter();
+  const real = demo.real;
+  const actions = real?.actions;
+  const [initial] = useState(() => {
+    if (real || fresh)
+      return { messages: [] as Message[], id: fresh ? null : selected, missing: false };
+    const conversations = loadMockConversations(browserStorage(), userId);
+    const chosen = selected ? conversations.find((row) => row.id === selected) : conversations[0];
+    return {
+      messages: chosen?.messages.slice(-100) ?? [],
+      id: chosen?.id ?? null,
+      missing: Boolean(selected && !chosen),
+    };
+  });
+  const [messages, setMessages] = useState<Message[]>(initial.messages);
+  const [conversationId, setConversationId] = useState<string | null>(initial.id);
   const names = useRoleNames();
   const [text, setText] = useState("");
   const [clearOpen, setClearOpen] = useState(false);
-  // 지난 대화 불러오기: 실제 모드만. 실패하면 맨 위에 안내를 두고 새 질문은 그대로 할 수 있다
-  const [history, setHistory] = useState<"loading" | "done" | "error">(real ? "loading" : "done");
-  const historyLoaded = useRef(false);
-  // 지금 보고 있는 대화(이슈 #251). 열 때 가장 최근 대화를 받고, 새 질문은 이 대화에 붙인다. [새 대화]·[이전 대화] 화면은 FE가 더한다
-  const conversationId = useRef<string | null>(null);
+  const [history, setHistory] = useState<"loading" | "done" | "error">(
+    real && !fresh ? "loading" : initial.missing ? "error" : "done",
+  );
+  const [busy, setBusy] = useState(false);
+  const request = useRef(0);
+  const sending = useRef(false);
   const nextId = useRef(messages.reduce((max, row) => Math.max(max, row.id), 0) + 1);
   const bottom = useRef<HTMLDivElement>(null);
 
   const loadHistory = useCallback(() => {
-    if (!real) return;
-    void real.actions.helperMessages().then((result) => {
-      if (historyLoaded.current) return;
+    if (fresh) return;
+    const sequence = ++request.current;
+    if (!actions) {
+      void Promise.resolve().then(() => {
+        if (sequence !== request.current) return;
+        const conversations = loadMockConversations(browserStorage(), userId);
+        const chosen = selected
+          ? conversations.find((row) => row.id === selected)
+          : conversations[0];
+        const past = chosen?.messages.slice(-100) ?? [];
+        nextId.current = past.reduce((max, row) => Math.max(max, row.id), 0) + 1;
+        setMessages(past);
+        setConversationId(chosen?.id ?? null);
+        setHistory(selected && !chosen ? "error" : "done");
+      });
+      return;
+    }
+    void actions.helperMessages(undefined, selected).then((result) => {
+      if (sequence !== request.current) return;
       if (!result.ok) {
         setHistory("error");
         return;
       }
-      historyLoaded.current = true;
-      conversationId.current = result.data.conversation?.id ?? conversationId.current;
-      // 불러오는 사이 새로 물은 질문이 있어도 지난 대화는 그 위쪽에 놓는다
-      const past: Message[] = result.data.messages.flatMap((row) => {
-        const meId = nextId.current;
-        nextId.current += 2;
-        return [
-          { id: meId, from: "me" as const, text: row.question, at: row.created_at },
-          { id: meId + 1, from: "bot" as const, state: "done" as const, answer: row.answer },
-        ];
-      });
-      setMessages((prev) => [...past, ...prev]);
+      const past: Message[] = result.data.messages.flatMap((row, index) => [
+        { id: index * 2 + 1, from: "me" as const, text: row.question, at: row.created_at },
+        { id: index * 2 + 2, from: "bot" as const, state: "done" as const, answer: row.answer },
+      ]);
+      nextId.current = past.length + 1;
+      setConversationId(result.data.conversation?.id ?? null);
+      setMessages(past);
       setHistory("done");
     });
-  }, [real]);
+  }, [actions, fresh, selected, userId]);
 
   useEffect(() => {
-    if (!real) return;
-    // 예전(#152)에 이 브라우저에 남은 도우미 대화는 서버 기록으로 옮겨 가므로 지운다
-    clearHelperHistory(browserStorage(), userId);
-    loadHistory();
-  }, [real, userId, loadHistory]);
-
-  // Mock만: 대화가 바뀔 때마다 이 브라우저에 저장(최근 50개)
-  useEffect(() => {
-    if (real) return;
-    saveHelperHistory(browserStorage(), userId, messages);
-  }, [real, messages, userId]);
+    if (actions) {
+      clearHelperHistory(browserStorage(), userId);
+      loadHistory();
+    }
+    return () => {
+      request.current += 1;
+    };
+  }, [actions, userId, loadHistory]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages]);
 
-  if (!demo) return <Loading tab="helper" />;
   const { today } = demo;
-
-  const ask = (question: string, replaceId?: number) => {
+  const ask = async (question: string, replaceId?: number) => {
     const q = question.trim();
-    if (!q) return;
+    if (!q || q.length > 500 || sending.current || history === "loading") return;
+    sending.current = true;
+    setBusy(true);
+    const sequence = ++request.current;
     const botId = replaceId ?? nextId.current + 1;
     const loading: LoadingMessage = { id: botId, from: "bot", state: "loading", question: q };
+    const pending: Message[] =
+      replaceId === undefined
+        ? [
+            ...messages,
+            { id: nextId.current, from: "me", text: q, at: new Date().toISOString() },
+            loading,
+          ]
+        : messages.map((message) => (message.id === replaceId ? loading : message));
     if (replaceId === undefined) {
-      const meId = nextId.current;
       nextId.current += 2;
-      setMessages((prev) => [
-        ...prev,
-        { id: meId, from: "me", text: q, at: new Date().toISOString() },
-        loading,
-      ]);
       setText("");
-    } else {
-      setMessages((prev) => prev.map((m) => (m.id === replaceId ? loading : m)));
     }
-    if (demo?.real) {
-      // POST /api/helper/ask: 교재에서 찾은 내용만으로 답한다. 서버가 답한 질문을 helper_messages에 남긴다
-      void demo.real.actions.askHelper(q, conversationId.current).then((result) => {
-        if (result.ok && result.data.conversation_id)
-          conversationId.current = result.data.conversation_id;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botId
-              ? result.ok
-                ? {
-                    id: botId,
-                    from: "bot",
-                    state: "done",
-                    answer: {
-                      ko: result.data.ko,
-                      vi: result.data.vi,
-                      source: result.data.source,
-                      found: result.data.found,
-                    },
-                  }
-                : { id: botId, from: "bot", state: "error", question: q }
-              : m,
-          ),
-        );
-      });
-      return;
+    setMessages(pending);
+    try {
+      let reply: Message;
+      let id = conversationId;
+      let saved = false;
+      if (actions) {
+        const result = await actions.askHelper(q, conversationId);
+        if (sequence !== request.current) return;
+        if (result.ok && result.data.conversation_id) id = result.data.conversation_id;
+        saved = result.ok && Boolean(result.data.id && result.data.conversation_id);
+        reply = result.ok
+          ? { id: botId, from: "bot", state: "done", answer: result.data }
+          : { id: botId, from: "bot", state: "error", question: q };
+      } else {
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+        if (sequence !== request.current) return;
+        const failed = !navigator.onLine || search.get("demo") === "error";
+        reply = failed
+          ? { id: botId, from: "bot", state: "error", question: q }
+          : { id: botId, from: "bot", state: "done", answer: mockHelperAnswer(q) };
+        if (!failed) id ??= crypto.randomUUID();
+      }
+      const completed = pending.map((message) => (message.id === botId ? reply : message));
+      setMessages(completed);
+      setConversationId(id);
+      if (!actions && id) saved = saveMockConversation(browserStorage(), userId, id, completed);
+      if (saved && id && (fresh || selected !== id)) {
+        router.replace(`/helper?conversation=${encodeURIComponent(id)}`, { scroll: false });
+      }
+    } finally {
+      sending.current = false;
+      if (sequence === request.current) setBusy(false);
     }
-    // Mock(Supabase 설정이 없는 로컬 개발)
-    window.setTimeout(() => {
-      const failed = !navigator.onLine || search.get("demo") === "error";
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === botId
-            ? failed
-              ? { id: botId, from: "bot", state: "error", question: q }
-              : { id: botId, from: "bot", state: "done", answer: mockHelperAnswer(q) }
-            : m,
-        ),
-      );
-    }, 900);
   };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    ask(text);
+    void ask(text);
   };
 
-  const clearConversation = () => {
+  const startNew = () => {
+    request.current += 1;
     setMessages([]);
+    setConversationId(null);
+    setHistory("done");
+    setText("");
     nextId.current = 1;
-    clearHelperHistory(browserStorage(), userId);
+    router.replace("/helper?new=1", { scroll: false });
+  };
+  const clearConversation = () => {
+    if (conversationId) deleteMockConversation(browserStorage(), userId, conversationId);
     setClearOpen(false);
+    startNew();
   };
 
   const rows = withDayLabels(messages, today);
@@ -193,7 +232,12 @@ function HelperChat({ userId }: { userId: string }) {
         right={
           // 서버 기록은 작성자가 지우지 않으므로 실제 모드에서는 숨긴다. Mock 데모만 있다
           !real && messages.length > 0 ? (
-            <button type="button" className="text-link" onClick={() => setClearOpen(true)}>
+            <button
+              type="button"
+              className="text-link"
+              disabled={busy}
+              onClick={() => setClearOpen(true)}
+            >
               대화 지우기
               <span className="vi" style={{ display: "block", fontSize: 11 }}>
                 Xóa trò chuyện
@@ -202,6 +246,30 @@ function HelperChat({ userId }: { userId: string }) {
           ) : undefined
         }
       />
+      <div className="helper-actions">
+        <button
+          type="button"
+          className="btn btn-outline btn-sm"
+          disabled={busy || (messages.length === 0 && history === "done")}
+          onClick={startNew}
+        >
+          <Icon name="write" />
+          <BtnLabel ko="새 대화" vi="Cuộc trò chuyện mới" />
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline btn-sm"
+          disabled={busy}
+          onClick={() =>
+            router.push(
+              `/helper/history${conversationId ? `?current=${encodeURIComponent(conversationId)}` : "?new=1"}`,
+            )
+          }
+        >
+          <Icon name="list" />
+          <BtnLabel ko="이전 대화" vi="Trò chuyện trước" />
+        </button>
+      </div>
       <div className="reason-box big helper-notice" role="note">
         <b>건강·안전 문제는 {names.reviewer}에게 먼저 보고하세요.</b>
         <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo {names.reviewerVi}.</span>
@@ -214,6 +282,11 @@ function HelperChat({ userId }: { userId: string }) {
         </span>
       </div>
       <div className="chat" aria-live="polite">
+        {history === "loading" && (
+          <p role="status">
+            지난 대화를 불러오는 중이에요.<span className="vi">Đang tải cuộc trò chuyện…</span>
+          </p>
+        )}
         {history === "error" && (
           <div className="form-error box" role="alert">
             <Icon name="alert" />
@@ -221,6 +294,7 @@ function HelperChat({ userId }: { userId: string }) {
               <b>지난 대화를 불러오지 못했어요.</b>
               <span className="vi">Không thể tải cuộc trò chuyện trước đó.</span>
               <button
+                disabled={busy}
                 type="button"
                 className="text-link"
                 onClick={() => {
@@ -275,7 +349,8 @@ function HelperChat({ userId }: { userId: string }) {
                       <button
                         type="button"
                         className="btn btn-soft btn-center btn-sm"
-                        onClick={() => ask(message.question, message.id)}
+                        disabled={busy}
+                        onClick={() => void ask(message.question, message.id)}
                       >
                         <Icon name="refresh" />
                         <BtnLabel ko="다시 시도" vi="Thử lại" />
@@ -324,13 +399,20 @@ function HelperChat({ userId }: { userId: string }) {
           </label>
           <TextInput
             id="helper-q"
+            maxLength={500}
+            disabled={busy || history === "loading"}
             className="input"
             value={text}
             onValueChange={setText}
             placeholder="궁금한 내용을 입력하세요."
             autoComplete="off"
           />
-          <button type="submit" className="send" aria-label="보내기" disabled={!text.trim()}>
+          <button
+            type="submit"
+            className="send"
+            aria-label="질문하기"
+            disabled={busy || history === "loading" || !text.trim()}
+          >
             <Icon name="send" />
           </button>
         </form>
@@ -341,9 +423,9 @@ function HelperChat({ userId }: { userId: string }) {
         <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
           Bạn có muốn xóa cuộc trò chuyện?
         </span>
-        <p style={{ fontSize: 14 }}>이 휴대폰에 남아 있는 도우미 대화가 모두 지워져요.</p>
+        <p style={{ fontSize: 14 }}>지금 보고 있는 대화만 이 휴대폰에서 지워져요.</p>
         <span className="vi" style={{ fontSize: 12, marginTop: -6 }}>
-          Toàn bộ cuộc trò chuyện trên máy này sẽ bị xóa.
+          Chỉ cuộc trò chuyện đang xem trên máy này sẽ bị xóa.
         </span>
         <div className="btn-row" style={{ width: "100%" }}>
           <button type="button" className="btn btn-outline" onClick={() => setClearOpen(false)}>

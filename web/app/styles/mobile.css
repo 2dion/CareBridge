@@ -2965,3 +2965,51 @@ body:has(.m-app) {
 .m-app .consent-table th {
   width: 32%;
 }
+
+/* W6 대화 나누기와 W6 · 이전 대화 (#251). */
+.m-app .helper-actions {
+  display: flex;
+  gap: 8px;
+  margin: 8px 16px;
+}
+.m-app .helper-actions .btn {
+  flex: 1;
+  min-width: 0;
+}
+.m-app .helper-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 24px;
+}
+.m-app .helper-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  color: var(--color-text);
+}
+.m-app .helper-conversation-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.m-app .helper-conversation-heading b {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.m-app .helper-conversation-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.m-app .helper-conversation-meta .icon {
+  margin-left: auto;
+}
+.m-app .helper-history-skeleton {
+  height: 94px;
+  margin-bottom: 12px;
+  background: linear-gradient(100deg, #e3eee7, #f3f9f5, #e3eee7);
+}

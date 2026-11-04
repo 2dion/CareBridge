@@ -10,6 +10,11 @@ import type { ItemKey } from "../demo/state";
 import type { FontSize, NoCareReason } from "../demo/store";
 import { FONT_VALUE } from "./map";
 
+export type HelperConversationsPage = {
+  conversations: { id: string; title: string; last_message_at: string; message_count: number }[];
+  next_before: string | null;
+};
+
 /** GET /api/helper/messages 응답(데이터 구조 v2.1.0 공통 계약). conversation은 대화가 하나도 없으면 null */
 export type HelperMessagesPage = {
   conversation: { id: string; title: string } | null;
@@ -441,6 +446,13 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
       if (conversationId) params.set("conversation_id", conversationId);
       const query = params.size > 0 ? `?${params.toString()}` : "";
       return callApi<HelperMessagesPage>(`/api/helper/messages${query}`, { method: "GET" });
+    },
+    /** W6 · 이전 대화. 내 대화 목록을 최근 질문 순으로 20개씩 읽는다(이슈 #251). */
+    async helperConversations(before?: string) {
+      const query = before ? `?before=${encodeURIComponent(before)}` : "";
+      return callApi<HelperConversationsPage>(`/api/helper/conversations${query}`, {
+        method: "GET",
+      });
     },
     /** M2 'AI 작업 기록'(관리자는 같은 기관 agent_steps 읽기) */
     async agentSteps(recordId: string) {
