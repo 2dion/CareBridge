@@ -39,11 +39,11 @@ const buildSteps = (names: RoleNames): Step[] => [
         descVi: "Bắt đầu dễ dàng.",
       },
       {
-        icon: "doc",
-        ko: "쉽게 확인",
-        vi: "Dễ kiểm tra",
-        desc: ["AI가 내용을 정리해", "초안을 보여줘요."],
-        descVi: "AI soạn bản nháp.",
+        icon: "helper",
+        ko: "도우미에게 질문",
+        vi: "Hỏi trợ lý chăm sóc",
+        desc: ["모르는 말이나 돌봄 방법을", "알려 줘요."],
+        descVi: "Giải thích từ khó và cách chăm sóc.",
       },
     ],
   },
@@ -57,9 +57,9 @@ const buildSteps = (names: RoleNames): Step[] => [
     features: [
       {
         icon: "mic",
-        ko: "타이핑 없이",
-        vi: "Không cần gõ phím",
-        desc: ["손으로 쓰지 않고", "자연스럽게 말해 보세요."],
+        ko: "편하게 말하기",
+        vi: "Nói tự nhiên",
+        desc: ["생각나는 대로", "자연스럽게 말해 보세요."],
         descVi: "Cứ nói tự nhiên.",
       },
       {
@@ -77,7 +77,7 @@ const buildSteps = (names: RoleNames): Step[] => [
     desc: ["AI가 만든 초안을 보고 필요한 부분만", `수정한 뒤 ${names.reviewer}에게 전송하세요.`],
     descVi: `Sửa phần cần thiết rồi gửi ${names.reviewerVi}.`,
     art: "robot-done",
-    artWidth: 290,
+    artWidth: 330,
     tip: {
       ko: "급하게 적지 않아도 돼요",
       vi: "Không cần vội ghi chép.",
@@ -158,15 +158,15 @@ export default function GuidePage() {
         </div>
       )}
       {step.tip && (
-        <div className="tip">
-          <Icon name="bulb" />
+        <div className="tip card">
+          <div className="icon-bubble">
+            <Icon name="bulb" />
+          </div>
           <div>
             <strong>{step.tip.ko}</strong>
-            <span className="vi" style={{ fontSize: 13 }}>
-              {step.tip.vi}
-            </span>
+            <span className="f-vi vi">{step.tip.vi}</span>
             <p>{step.tip.desc}</p>
-            <span className="vi">{step.tip.descVi}</span>
+            <span className="p-vi vi">{step.tip.descVi}</span>
           </div>
         </div>
       )}
