@@ -118,3 +118,137 @@ function isStoredMessage(value: unknown): value is StoredMessage {
   }
   return false;
 }
+
+/** Mock 대화 목록. 실제 계정의 대화는 이 저장소에 넣지 않는다(이슈 #251). */
+export type MockConversation = {
+  id: string;
+  title: string;
+  last_message_at: string;
+  message_count: number;
+  messages: StoredMessage[];
+};
+
+export const conversationsKey = (userId: string) => `${helperHistoryKey(userId)}-conversations`;
+
+const titleOf = (question: string) => {
+  const chars = Array.from(question.replace(/\s+/g, " ").trim());
+  return chars.length > 30 ? `${chars.slice(0, 30).join("")}…` : chars.join("");
+};
+
+/** 답변까지 끝난 질문만 저장한다. 실패·대기 중 질문은 서버처럼 목록 수에 넣지 않는다. */
+function answeredMessages(messages: Array<StoredMessage | LoadingMessage>): StoredMessage[] {
+  return messages.flatMap((message, index) => {
+    const answer = messages[index + 1];
+    return message.from === "me" && answer?.from === "bot" && answer.state === "done"
+      ? [message, answer]
+      : [];
+  });
+}
+
+function sortedConversations(rows: MockConversation[]) {
+  return rows.sort((a, b) => b.last_message_at.localeCompare(a.last_message_at));
+}
+
+export function loadMockConversations(
+  storage: StorageLike | undefined,
+  userId: string,
+): MockConversation[] {
+  try {
+    const raw = storage?.getItem(conversationsKey(userId));
+    if (raw) {
+      const value: unknown = JSON.parse(raw);
+      if (!Array.isArray(value)) return [];
+      return sortedConversations(
+        value.filter(
+          (row): row is MockConversation =>
+            Boolean(row) &&
+            typeof row === "object" &&
+            typeof row.id === "string" &&
+            typeof row.title === "string" &&
+            typeof row.last_message_at === "string" &&
+            !Number.isNaN(Date.parse(row.last_message_at)) &&
+            typeof row.message_count === "number" &&
+            Array.isArray(row.messages) &&
+            row.messages.every(isStoredMessage),
+        ),
+      );
+    }
+    // 옛 Mock 기록은 서버 마이그레이션처럼 한국 날짜별로 묶는다. 저장 성공 전에는 원본을 지우지 않는다.
+    const groups = new Map<string, StoredMessage[]>();
+    let day = "";
+    for (const message of answeredMessages(loadHelperHistory(storage, userId))) {
+      if (message.from === "me") {
+        if (Number.isNaN(Date.parse(message.at))) continue;
+        day = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Seoul",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(message.at));
+      }
+      if (day) groups.set(day, [...(groups.get(day) ?? []), message]);
+    }
+    return sortedConversations(
+      [...groups].map(([date, messages]) => {
+        const questions = messages.filter((message) => message.from === "me");
+        return {
+          id: `legacy-${date}`,
+          title: titleOf(questions[0].text),
+          last_message_at: questions.at(-1)!.at,
+          message_count: questions.length,
+          messages,
+        };
+      }),
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function saveMockConversation(
+  storage: StorageLike | undefined,
+  userId: string,
+  id: string,
+  messages: Array<StoredMessage | LoadingMessage>,
+): boolean {
+  const answered = answeredMessages(messages);
+  if (!answered.length || !storage) return false;
+  try {
+    const rows = loadMockConversations(storage, userId);
+    const previous = rows.find((row) => row.id === id);
+    const merged = new Map((previous?.messages ?? []).map((message) => [message.id, message]));
+    answered.forEach((message) => merged.set(message.id, message));
+    const saved = [...merged.values()].sort((a, b) => a.id - b.id);
+    const questions = saved.filter((message) => message.from === "me");
+    const conversation: MockConversation = {
+      id,
+      title: previous?.title ?? titleOf(questions[0].text),
+      last_message_at: questions.at(-1)!.at,
+      message_count: questions.length,
+      messages: saved,
+    };
+    storage?.setItem(
+      conversationsKey(userId),
+      JSON.stringify(sortedConversations([conversation, ...rows.filter((row) => row.id !== id)])),
+    );
+    storage.removeItem(helperHistoryKey(userId));
+    return true;
+  } catch {
+    /* 저장소가 막혀도 지금 화면의 질문·답은 유지한다. */
+    return false;
+  }
+}
+
+export function deleteMockConversation(
+  storage: StorageLike | undefined,
+  userId: string,
+  id: string,
+) {
+  try {
+    const rows = loadMockConversations(storage, userId).filter((row) => row.id !== id);
+    storage?.setItem(conversationsKey(userId), JSON.stringify(rows));
+    storage?.removeItem(helperHistoryKey(userId));
+  } catch {
+    /* 저장소 접근 실패가 화면을 멈추지 않게 한다. */
+  }
+}
