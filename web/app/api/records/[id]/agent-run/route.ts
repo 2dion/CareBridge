@@ -15,12 +15,11 @@ const STATUS: Record<AgentRunError["code"], number> = {
   invalid_transition: 409,
   no_transcript: 400,
   ai_not_configured: 503,
+  rate_limited: 429,
 };
 
 export async function POST(request: Request, ctx: RouteContext<"/api/records/[id]/agent-run">) {
   const { id } = await ctx.params;
-  const limited = await enforceQuota("agent");
-  if (limited) return limited;
   let text: string | undefined;
   try {
     const body = (await request.json()) as { text?: unknown };
@@ -35,6 +34,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/records/[id
       createSupabaseAdminClient(),
       id,
       text,
+      // 호출 제한은 기록·원문 검사를 지난 뒤 Claude 직전에 센다(이슈 #279)
+      { takeQuota: async () => (await enforceQuota("agent")) === null },
     );
     return Response.json(result);
   } catch (error) {

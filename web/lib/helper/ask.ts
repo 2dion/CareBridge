@@ -72,6 +72,13 @@ export type HelperDeps = {
 
 export const MAX_QUESTION_CHARS = 500;
 
+/** 질문 형식이 맞는지(빈 글·500자 초과가 아님). 라우트가 호출 제한을 세기 전에 본다(이슈 #279) */
+export function isValidHelperQuestion(body: unknown): boolean {
+  const input = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const question = typeof input.question === "string" ? input.question.trim() : "";
+  return question.length > 0 && question.length <= MAX_QUESTION_CHARS;
+}
+
 // 교재에서 찾지 못하면 상식으로 채우지 않는다(W6 2번).
 // 묻는 곳은 기관에 맞춘 이름: 일반 기관 관리자(người quản lý), 교육용 기관 강사(giảng viên)(이슈 #180)
 export function notFoundAnswer(names: RoleNames = roleNames(false)): HelperAnswer {
@@ -244,11 +251,9 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   if (!user) return { status: 401, body: { error: "not_signed_in" } };
   if (user.role !== "worker") return { status: 403, body: { error: "not_record_worker" } };
 
-  const input = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
-  const question = typeof input.question === "string" ? input.question.trim() : "";
-  if (!question || question.length > MAX_QUESTION_CHARS) {
-    return { status: 400, body: { error: "invalid_input" } };
-  }
+  if (!isValidHelperQuestion(body)) return { status: 400, body: { error: "invalid_input" } };
+  const input = body as Record<string, unknown>;
+  const question = (input.question as string).trim();
   // 이어 묻는 대화는 내 것인지 먼저 확인한다. 아니면 답을 만들지도 저장하지도 않는다(이슈 #251)
   const requestedConversation =
     typeof input.conversation_id === "string" && input.conversation_id.trim()
