@@ -25,7 +25,8 @@ export class AgentRunError extends Error {
       | "not_record_worker"
       | "invalid_transition"
       | "no_transcript"
-      | "ai_not_configured",
+      | "ai_not_configured"
+      | "rate_limited",
   ) {
     super(code);
     this.name = "AgentRunError";
@@ -86,6 +87,10 @@ export async function runAgentForRecord(
   serverClient: SupabaseClient,
   recordId: string,
   text?: string,
+  options: {
+    /** 호출 제한(agent) 한 번 쓰기. 한도 안이면 true. 기록·원문 검사를 지난 뒤 Claude 직전에 부른다(이슈 #279) */
+    takeQuota?: () => Promise<boolean>;
+  } = {},
 ) {
   // 키가 없으면 가짜 초안을 만들지 않고 거절한다
   if (getAiMode() === "mock") throw new AgentRunError("ai_not_configured");
@@ -115,6 +120,8 @@ export async function runAgentForRecord(
     if (error) throw new Error(`원문 저장 실패: ${error.message}`);
   }
   if (!transcript) throw new AgentRunError("no_transcript");
+  // 잘못된 요청(없는 기록·남의 기록·원문 없음)은 세지 않는다. 한도를 넘으면 Claude를 부르지 않는다(이슈 #279)
+  if (options.takeQuota && !(await options.takeQuota())) throw new AgentRunError("rate_limited");
 
   const context = await buildValidateContext(
     userClient,

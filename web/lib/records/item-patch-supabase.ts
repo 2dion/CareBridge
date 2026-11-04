@@ -3,6 +3,7 @@ import "server-only";
 import { saveItemTranslation, readRecordItems } from "@/lib/agent/draft-repository";
 import type { NativeLang } from "@/lib/auth/signup";
 import { translateShort } from "@/lib/ai/translate";
+import { enforceQuota } from "@/lib/security/rate-limit-supabase";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -19,6 +20,8 @@ export async function createItemPatchDeps(): Promise<ItemPatchDeps> {
 
   return {
     currentUser: () => readCurrentUser(supabase),
+    // value_ko가 바뀌어 다시 번역할 때만 patchItem이 부른다(이슈 #279)
+    takeTranslateQuota: async () => (await enforceQuota("translate")) === null,
     async findRecord(recordId) {
       const { data } = await supabase
         .from("records")
