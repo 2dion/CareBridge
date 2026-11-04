@@ -4,7 +4,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 
 - **목적:** 표와 RLS를 대시보드에서 손으로 만들지 않고 파일로 남겨, 누가 언제 무엇을 바꿨는지 PR로 보이게 합니다.
 - **배경:** 모든 표를 기관별 RLS로 나눠야 하고(AGENTS.md 원칙 7), 여러 사람이 동시에 개발합니다.
-- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v2.3.3.md`), 기술 선택 v1.1 §3.
+- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v2.3.4.md`), 기술 선택 v1.1 §3.
 - **사유:** Supabase CLI의 기본 구조(`config.toml`, `migrations/`, `seed.sql`)를 그대로 써서 새로 배울 것을 줄입니다.
 
 ## 공모전 DB 변경 금지
@@ -102,7 +102,7 @@ npx supabase db push                               # migrations/ 를 클라우�
 - 작성자가 아닌 사람이 `value_ko`를 고치면 `confirmed_by_worker`가 자동으로 false가 됩니다. [맞아요](`confirmed_by_worker`)는 작성자만 바꿀 수 있습니다.
 - 기록이 returned일 때 작성자(작성자 권한으로 도는 AI 항목 보태기 포함)가 `value_ko`·`status`·`detail`을 바꾸면 그 항목의 `resolution`이 자동으로 비워집니다(결정 `2026-10-21-되돌림재확인`). 비운 일도 `edited` 이력의 before/after에 `resolution`으로 자동으로 남습니다.
 - 실명 검사: validate_draft·return_draft를 부를 때 `blockedNames`에 `getBlockedNames(serverClient, record_id, worker_id)`(`web/lib/agent/blocked-names.ts`) 결과를 넣습니다(결정 `2026-10-21-재가분칸-실명목록`).
-- 용어 검색(search_glossary)은 `supabase.rpc('search_glossary', { expression, max_results })`를 부릅니다. 결과 칸: `matched_expression, term_ko, term_vi, plain_ko, chapter, page`. 받아쓴 문장 안에 용어 표현이 들어 있어도 찾습니다.
+- 용어 검색(search_glossary)은 `supabase.rpc('search_glossary', { expression, max_results })`를 부릅니다. 결과 칸: `matched_expression, term_ko, plain_ko, chapter, page`. 받아쓴 문장 안에 용어 표현이 들어 있어도 찾습니다. `term_vi`는 11/04(#280)에 지웠습니다.
 
 ## 남은 것
 

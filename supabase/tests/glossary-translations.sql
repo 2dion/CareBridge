@@ -1,4 +1,4 @@
--- 이슈 #259: glossary_translations·search_glossary(lang)·records.native_lang 검사.
+-- 이슈 #259·#280: glossary_translations·search_glossary(lang)·records.native_lang 검사. term_vi 칸은 없다.
 -- 적용된 DB에서 실행하고, 합성 픽스처는 마지막 ROLLBACK으로 지운다.
 begin;
 create function pg_temp.check_true(ok boolean, label text) returns void
@@ -24,30 +24,34 @@ select pg_temp.check_true(has_function_privilege('authenticated', 'public.search
 select pg_temp.check_true(not has_function_privilege('anon', 'public.search_glossary(text,int,text)', 'execute'), 'anon fn');
 select pg_temp.check_true((select count(*) = 0 from pg_proc where proname = 'search_glossary' and pronargs = 2), 'old 2-arg fn dropped');
 
--- 옮기기: term_vi가 있는 용어마다 vi 행이 하나씩, 같은 글
+-- 뒷정리(#280): term_vi 칸과 동기화 트리거가 없고, 검색 결과에도 term_vi가 없다
+select pg_temp.check_true((select count(*) = 0 from information_schema.columns
+  where table_schema = 'public' and table_name = 'glossary' and column_name = 'term_vi'), 'term_vi column dropped');
+select pg_temp.check_true((select count(*) = 0 from pg_trigger where tgname = 'glossary_sync_term_vi'), 'sync trigger dropped');
+select pg_temp.check_true((select count(*) = 0 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'private' and p.proname = 'glossary_sync_term_vi'), 'sync function dropped');
 select pg_temp.check_true(
-  (select count(*) from public.glossary where term_vi <> '')
-  = (select count(*) from public.glossary_translations t join public.glossary g on g.id = t.glossary_id
-     where t.lang = 'vi' and t.term = g.term_vi),
-  'term_vi copied to vi rows');
+  (select string_agg(a.attname, ',' order by a.attnum) from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+     cross join lateral unnest(p.proargnames) with ordinality as a(attname, attnum)
+   where n.nspname = 'public' and p.proname = 'search_glossary' and p.pronargs = 3)
+  = 'expression,max_results,lang,id,matched_expression,term_ko,term_native,plain_ko,chapter,page',
+  'search_glossary columns without term_vi');
 
--- 전환 기간 동기화: 시드처럼 term_vi로 넣으면 vi 행이 생기고, 고치면 따라온다
-insert into public.glossary (id, expression, aliases, term_ko, term_vi, plain_ko, chapter, page) values
- ('e1000000-0000-0000-0000-000000000001', '합성 검증 표현', array['합성 검증'], '합성 검증 용어', 'Bản dịch thử', '검증용', '', '');
-select pg_temp.check_true((select term = 'Bản dịch thử' and reviewed = false from public.glossary_translations
-  where glossary_id = 'e1000000-0000-0000-0000-000000000001' and lang = 'vi'), 'sync on insert');
-update public.glossary_translations set reviewed = true where glossary_id = 'e1000000-0000-0000-0000-000000000001';
-update public.glossary set term_vi = 'Bản dịch mới' where id = 'e1000000-0000-0000-0000-000000000001';
-select pg_temp.check_true((select term = 'Bản dịch mới' and reviewed = false from public.glossary_translations
-  where glossary_id = 'e1000000-0000-0000-0000-000000000001' and lang = 'vi'), 'sync on update resets reviewed');
-select pg_temp.expect_error($q$insert into public.glossary_translations(glossary_id, lang, term)
-  values ('e1000000-0000-0000-0000-000000000001', 'xx', 'x')$q$, 'check');
+-- 시드로 들어간 번역이 있다(vi 행 ≥ 1)
+select pg_temp.check_true((select count(*) >= 1 from public.glossary_translations where lang = 'vi'), 'vi rows exist');
 
 -- 검색: lang의 번역이 term_native, 없으면 빈값, 보내지 않으면 vi
-select pg_temp.check_true((select term_native = 'Bản dịch mới' and term_vi = 'Bản dịch mới'
+insert into public.glossary (id, expression, aliases, term_ko, plain_ko, chapter, page) values
+ ('e1000000-0000-0000-0000-000000000001', '합성 검증 표현', array['합성 검증'], '합성 검증 용어', '검증용', '', '');
+insert into public.glossary_translations (glossary_id, lang, term) values
+ ('e1000000-0000-0000-0000-000000000001', 'vi', 'Bản dịch thử');
+select pg_temp.check_true((select term_native = 'Bản dịch thử'
   from public.search_glossary('합성 검증 표현', 5, 'vi')), 'term_native vi');
 select pg_temp.check_true((select term_native = '' from public.search_glossary('합성 검증 표현', 5, 'ko')), 'term_native ko empty');
-select pg_temp.check_true((select term_native = 'Bản dịch mới' from public.search_glossary('합성 검증 표현')), 'default lang vi');
+select pg_temp.check_true((select term_native = 'Bản dịch thử' from public.search_glossary('합성 검증 표현')), 'default lang vi');
+select pg_temp.expect_error($q$insert into public.glossary_translations(glossary_id, lang, term)
+  values ('e1000000-0000-0000-0000-000000000001', 'xx', 'x')$q$, 'check');
 delete from public.glossary_translations where glossary_id = 'e1000000-0000-0000-0000-000000000001';
 select pg_temp.check_true((select term_native = '' from public.search_glossary('합성 검증 표현', 5, 'vi')), 'no translation → empty');
 select pg_temp.check_true((select count(*) = 1 from public.search_glossary('합성 검증', 5, 'vi')), 'alias search still works');

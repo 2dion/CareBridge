@@ -1,5 +1,5 @@
 -- W6(도우미) 대화 묶음(이슈 #251): 대화 1개 = 1행 helper_conversations, helper_messages.conversation_id(필수). 표 17개 → 18개
--- 근거: 문서/결정/2026-11-03-도우미대화묶음.md, 문서/설계/데이터구조-v2.3.3.md 'helper_conversations'·'helper_messages'·'공통 계약'
+-- 근거: 문서/결정/2026-11-03-도우미대화묶음.md, 문서/설계/데이터구조-v2.3.4.md 'helper_conversations'·'helper_messages'·'공통 계약'
 --
 -- 넣기는 서버(service_role)만. 화면 키(authenticated)는 읽기만: 작성자는 내 대화, 같은 기관 관리자·강사는 기관 전체.
 -- last_message_at·message_count는 helper_messages 넣기 트리거가 바꾼다(서버 코드는 직접 고치지 않는다).

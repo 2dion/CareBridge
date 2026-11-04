@@ -199,7 +199,7 @@ describe("askHelper", () => {
     expect(r.body.ko).not.toContain(SAFETY_NOTICE.ko);
   });
 
-  it("용어의 베트남어(term_vi)를 모델에 건네고 그대로 쓰라고 지시(#122)", async () => {
+  it("용어의 모국어 번역(term_native)을 모델에 건네고 그대로 쓰라고 지시(#122)", async () => {
     const deps = fakeDeps({ searchGlossary: vi.fn(async () => [term]) });
     await askHelper({ question: "신체활동지원이 뭐예요?" }, deps);
     const [system, message] = vi.mocked(deps.askClaude).mock.calls[0];

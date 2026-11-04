@@ -55,7 +55,7 @@ export function mockHelperAnswer(question: string): HelperAnswer {
   if (term) {
     return {
       ko: `‘${term.expression}’는 기록에 ‘${term.term_ko}’(이)라고 써요. ${term.plain_ko}.`,
-      vi: `“${term.expression}” được ghi là “${term.term_vi}”.`,
+      vi: `“${term.expression}” được ghi là “${term.term_native}”.`,
       source: `요양보호사 표준교재 ${term.chapter}${term.page ? ` · ${term.page}쪽` : ""}`,
       found: true,
     };
