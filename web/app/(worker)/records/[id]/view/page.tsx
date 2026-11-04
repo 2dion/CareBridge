@@ -43,7 +43,9 @@ export default function RecordViewPage() {
         <div className="pad" style={{ marginTop: 24 }}>
           <Link className="btn btn-primary" href={`/records/${id}`}>
             <span className="label">
-              {record.status === "returned" ? "고쳐 쓰기" : "이어 쓰기"}
+              {record.status === "returned"
+                ? "기록 수정하기 · Sửa bản ghi"
+                : "이어 쓰기 · Viết tiếp"}
             </span>
           </Link>
         </div>
