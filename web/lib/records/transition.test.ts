@@ -98,6 +98,16 @@ describe("submitRecord", () => {
     expect((await submitRecord("rec-1", deps)).status).toBe(200);
   });
 
+  it("DB가 지원 시간 합(검사 5)으로 거절하면 409 support_minutes_exceed_visit (이슈 #278)", async () => {
+    const deps = fakeDeps(draft, {
+      update: vi.fn(async () => ({ ok: false as const, error: "support_minutes_exceed_visit" })),
+    });
+    expect(await submitRecord("rec-1", deps)).toEqual({
+      status: 409,
+      body: { error: "support_minutes_exceed_visit" },
+    });
+  });
+
   it("source = worker여도 confirmed_by_worker가 아니면 전송할 수 없음(이슈 #236)", async () => {
     const deps = fakeDeps(draft, {
       listItems: vi.fn(async () =>
