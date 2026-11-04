@@ -26,7 +26,7 @@ const buildSteps = (names: RoleNames) => [
   },
   {
     ko: `${names.reviewer}가 승인해요`,
-    vi: `${capital(names.reviewerVi)} phê duyệt.`,
+    vi: `${capital(names.reviewerVi)} duyệt.`,
     body: `${names.reviewer}가 확인하고 승인해야 기록이 끝나요.`,
     bodyVi: `Bản ghi hoàn tất khi ${names.reviewerVi} duyệt.`,
   },

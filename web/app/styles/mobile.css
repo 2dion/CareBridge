@@ -979,32 +979,38 @@
   font-size: 11px;
 }
 
+/* W0 3장 안내: 1·2장 카드(.feature)와 같은 흰 카드·아이콘 원·글자 크기 */
 .m-app .tip {
   display: flex;
-  gap: 12px;
-  margin: 0 16px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: #eaf3ee;
-}
-
-.m-app .tip .icon {
-  color: var(--color-primary);
+  align-items: center;
+  gap: 14px;
+  min-height: 150px;
+  /* 아래 여백: 캐릭터 그림과 [시작하기] 버튼 사이 가운데에 오게 함 */
+  margin: 0 16px 23px;
+  padding: 14px 18px;
 }
 
 .m-app .tip strong {
   display: block;
-  font-size: 15px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.m-app .tip .f-vi {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .m-app .tip p {
+  margin-top: 4px;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--color-sub);
 }
 
-.m-app .tip .vi {
-  font-size: 12px;
+.m-app .tip .p-vi {
+  font-size: 11px;
 }
 
 .m-app .home-header {

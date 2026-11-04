@@ -14,7 +14,7 @@ export type RoleNames = {
   workerTopic: string;
   /** 작성자로 / 교육생으로 */
   workerAs: string;
-  /** người ghi chép / học viên (용어집: 작성자의 베트남어는 따로 정하지 않았고, 교육생은 học viên) */
+  /** người ghi chép / học viên (용어집 '사람·기관', 결정 2026-11-04-화면문구정리) */
   workerVi: string;
   /** 관리자 / 강사 */
   reviewer: string;
