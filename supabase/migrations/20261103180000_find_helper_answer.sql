@@ -1,6 +1,6 @@
 -- 도우미(W6) 같은 질문 재사용(이슈 #229): 같은 기관·같은 모국어 작성자가 같은 질문을 물어 교재에서 찾은 답(found)이 있으면
 -- 그 답을 돌려준다. 서버(service_role)만 부른다. 표·칸·권한은 그대로다.
--- 근거: 문서/결정/2026-11-03-도우미답재사용.md, 문서/설계/ai규칙-v2.0.3.md W6 9번
+-- 근거: 문서/결정/2026-11-03-도우미답재사용.md, 문서/설계/ai규칙-v2.0.4.md W6 9번
 
 -- '같은 질문' 비교 글: 검색용 한국어(question_ko, 없으면 question)를 소문자로 바꾸고 빈칸·문장부호를 뺀다
 create function private.helper_question_key(question text) returns text
