@@ -57,8 +57,8 @@ const buildSteps = (names: RoleNames): Step[] => [
     features: [
       {
         icon: "mic",
-        ko: "음성으로 입력",
-        vi: "Nhập bằng giọng nói",
+        ko: "음성으로 기록",
+        vi: "Ghi bằng giọng nói",
         desc: ["타이핑 없이", "자연스럽게 말해 보세요."],
         descVi: "Cứ nói tự nhiên.",
       },

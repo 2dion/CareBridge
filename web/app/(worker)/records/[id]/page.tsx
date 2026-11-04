@@ -505,7 +505,7 @@ function ItemCard({
   const done = item.confirmed_by_worker;
   const editHref = `/records/${record.id}/items/${item.item_key}`;
   const badge = done
-    ? { label: item.source === "worker" ? "고침" : "확인 완료", tone: "green" }
+    ? { label: item.source === "worker" ? "수정 완료" : "확인 완료", tone: "green" }
     : statusBadge[item.status];
   const confirming = pending === `confirm:${item.item_key}`;
   const notesLength = item.item_key === "notes" ? [...item.value_ko].length : 0;
@@ -681,7 +681,7 @@ function ItemCard({
           }}
           style={{ textAlign: "left", marginTop: 6 }}
         >
-          다시 고치기
+          다시 수정
         </Link>
       )}
     </article>

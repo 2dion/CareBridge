@@ -114,7 +114,7 @@ export default function RecordViewPage() {
           </p>
           <span className="vi">
             {approved
-              ? `${capitalizeVi(names.reviewerVi)} đã phê duyệt bản ghi.`
+              ? `${capitalizeVi(names.reviewerVi)} đã xem xét và duyệt bản ghi.`
               : `Đang chờ ${names.reviewerVi} xem xét.`}
           </span>
         </div>

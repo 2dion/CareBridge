@@ -155,7 +155,7 @@ const names = (keys: ItemKey[]) => keys.map((key) => itemLabel(key).ko).join(", 
 function stepDetail(step: HistoryStep) {
   if (step.kind === "returned") return step.reason ? `${step.actor} · ${step.reason}` : step.actor;
   if (step.kind === "resubmitted") {
-    return step.edited.length ? `${step.actor} · ${names(step.edited)} 고침` : step.actor;
+    return step.edited.length ? `${step.actor} · ${names(step.edited)} 수정` : step.actor;
   }
   if (step.kind !== "reviewed") return step.actor;
   const parts = [
