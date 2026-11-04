@@ -42,4 +42,4 @@
 
 - name: 코디세이
   color: "0e8a16"
-  description: "개발·PR 기준 브랜치 main-codyssey (공모전 main과 분리)"
+  description: "개발·PR 기준 브랜치 main-codyssey (공모전 main-contest와 분리)"
