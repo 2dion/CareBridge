@@ -28,6 +28,17 @@ export function wrapText(text: string, width: number, measure: (text: string) =>
   return lines;
 }
 
+/**
+ * Noto Sans KR의 calt는 한글 사이 공백을 Unicode cmap에 없는 대체 글리프로 바꾼다.
+ * pdf-lib의 전체 포함 폭 표(W)에는 그 글리프가 없어 뷰어가 기본 폭을 쓰고 줄이 넘친다(#274).
+ * 문맥 치환만 끄고 기본 공백을 써서 측정 폭·PDF 폭·복사한 글을 일치시킨다.
+ */
+export async function embedPrintFont(output: PDFDocument, fontBytes: Uint8Array): Promise<PDFFont> {
+  output.registerFontkit(fontkit);
+  // 고정 TrueType 전체 포함은 유지해 CJK 부분 포함의 뷰어별 누락을 피한다.
+  return output.embedFont(fontBytes, { subset: false, features: { calt: false } });
+}
+
 type RenderInput = {
   template: Uint8Array;
   fontBytes: Uint8Array;
@@ -45,9 +56,7 @@ type RenderInput = {
 async function renderLegalForm({ template, fontBytes, fields, marks, stamp, title }: RenderInput) {
   const source = await PDFDocument.load(template);
   const output = await PDFDocument.create();
-  output.registerFontkit(fontkit);
-  // 고정 TrueType 전체를 포함해 CJK 글꼴 부분 포함(subset)의 뷰어별 누락을 피한다.
-  const font: PDFFont = await output.embedFont(fontBytes, { subset: false });
+  const font = await embedPrintFont(output, fontBytes);
   const size = 6;
   const lineHeight = 6.5;
   const prepared = fields.map((field) => {
