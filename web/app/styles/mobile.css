@@ -631,16 +631,13 @@
 
 .m-app .auth-links {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
 }
 
-.m-app .auth-links a,
-.m-app .auth-links button {
+.m-app .auth-links a {
   display: flex;
   flex-direction: column;
-  border: 0;
-  background: none;
-  font: inherit;
+  align-items: center;
   font-size: 14px;
   color: var(--color-sub);
   cursor: pointer;
@@ -648,10 +645,6 @@
 
 .m-app .auth-links a b {
   color: var(--color-primary);
-}
-
-.m-app .auth-links button {
-  align-items: flex-end;
 }
 
 .m-app .consent {
