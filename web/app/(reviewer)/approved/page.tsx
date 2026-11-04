@@ -22,6 +22,8 @@ import {
   monthDayWeek,
 } from "@/lib/demo/store";
 
+import { periodHref } from "@/lib/print/period-view";
+
 function shortStamp(iso: string | null | undefined) {
   if (!iso) return "";
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -67,6 +69,9 @@ function Approved() {
           <p>승인한 기록을 보고 종이 서식으로 인쇄해요.</p>
         </div>
         <div className="actions">
+          <Link className="dbtn" href="/print/period">
+            기간 인쇄
+          </Link>
           <select
             className="select"
             aria-label="어르신"
@@ -195,6 +200,12 @@ function ApprovedDetail({ record }: { record: DemoRecord }) {
             <Icon name="shield" />
             가족과 공유 · 준비 중
           </button>
+          <Link
+            className="dbtn"
+            href={resident ? periodHref(record, resident.careType) : "/print/period"}
+          >
+            기간 인쇄
+          </Link>
           <Link className="dbtn primary" href={`/print/${record.id}`} target="_blank">
             <Icon name="print" />
             인쇄·PDF
