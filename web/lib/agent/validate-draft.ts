@@ -789,7 +789,10 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
     // 언어(한국어·베트남어)와 상관없이 같은 값이다. AI가 섭취량 경계만을 이유로 '확인 필요'로 두었으면 '관찰'로 올린다.
     if (key === "meal" && item.status !== "not_mentioned") {
       const given = item.detail.intake;
-      const derived = isIntake(given) ? null : intakeFromText(`${item.evidence}\n${item.value_ko}`);
+      // 올바른 값은 그대로 쓴다(이슈 #293). 없거나 틀린 값만 근거·내용의 말로 한 양에서 정한다
+      const derived = isIntake(given)
+        ? given
+        : intakeFromText(`${item.evidence}\n${item.value_ko}`);
       if (given !== undefined && given !== null && !isIntake(given)) {
         problems.push({
           code: "invalid_intake",
