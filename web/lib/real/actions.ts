@@ -51,6 +51,10 @@ const MESSAGES: Record<string, { ko: string; vi: string }> = {
     ko: "지금 상태에서는 할 수 없어요. 화면을 새로 고쳐 주세요.",
     vi: "Không thể thực hiện ở trạng thái này. Hãy tải lại trang.",
   },
+  has_records: {
+    ko: "기록이 있는 어르신은 지울 수 없어요.",
+    vi: "Không thể xóa người cao tuổi đã có bản ghi.",
+  },
   record_locked: { ko: "승인된 기록은 고칠 수 없어요.", vi: "Không thể sửa bản ghi đã duyệt." },
   // 권한·날짜 거절(이슈 #114). DB 트리거·API 오류 키와 같은 글자(supabase/README.md, 공통 계약 '응답 코드와 오류 키')
   reviewer_only: {
@@ -339,6 +343,20 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
         changed = true;
       }
       return after({ ok: true as const, changed });
+    },
+    /** M4 어르신 삭제(이슈 #103). 기록이 하나도 없을 때만 서버가 지우고 사진 파일도 정리한다 */
+    async removeResident(residentId: string) {
+      const result = await callApi<{ ok: true; cleanup_pending: boolean }>(
+        `/api/residents/${residentId}`,
+        { method: "DELETE" },
+      );
+      if (!result.ok) return result;
+      try {
+        await reload();
+      } catch {
+        // 지우기는 끝났다. 목록은 화면을 새로 고치면 맞는다
+      }
+      return result;
     },
     /** M4 어르신 추가: residents에 넣고(실명, #99) 고른 작성자와 담당 연결을 만든다(이슈 #95) */
     async addResident(
