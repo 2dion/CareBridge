@@ -75,7 +75,7 @@ Vercel 프로젝트 설정에서 **Root Directory = `web`**, **Framework Preset 
 
 공모전 프로젝트 `care-bridge`와 주소 `https://care-bridge-kappa.vercel.app`는 유지합니다. 기존 프로젝트의 Ignored Build Step을 `exit 0`으로 설정해 Git 빌드를 건너뜁니다. CLI 수동 Production 배포는 별도이므로 기존 프로젝트를 대상으로 실행하지 않습니다.
 
-GitHub 기본 브랜치는 `main`을 유지하고, 기존 공모전 녹음 정리 workflow도 그대로 둡니다. 코디세이는 새 Supabase Cron `codyssey-audio-cleanup`이 매시간 17분에 새 사이트를 호출합니다. 설정 SQL은 `supabase/operations/codyssey-audio-cleanup.sql`입니다. Actions에서 `main-codyssey`를 선택하면 `CODYSSEY_CRON_SECRET`으로 수동 진단할 수도 있습니다.
+GitHub 기본 브랜치는 `main-codyssey`입니다(결정 `2026-11-04-기본브랜치전환.md`). 예약 실행은 기본 브랜치의 workflow만 돌아서, 공모전 사이트 녹음 정리는 `main-codyssey`의 `audio-cleanup.yml`(`contest` 작업, `CRON_SECRET`)이 매시간 맡습니다. 코디세이는 새 Supabase Cron `codyssey-audio-cleanup`이 매시간 17분에 새 사이트를 호출합니다. 설정 SQL은 `supabase/operations/codyssey-audio-cleanup.sql`입니다. Actions에서 이 workflow를 수동 실행하면 `codyssey` 작업이 `CODYSSEY_CRON_SECRET`으로 코디세이 사이트도 진단합니다.
 
 **Pause Project**는 운영 사이트의 서비스를 멈추는 별도 설정입니다. 자동 배포 중단과 다르며, 사이트를 다시 열 때는 **Settings → General → Resume Project**를 선택합니다. 자동 배포 설정을 바꿨다고 Pause를 해제하거나 수동 배포하지 않습니다.
 
