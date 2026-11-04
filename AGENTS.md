@@ -31,7 +31,7 @@
 
 ## 공모전·코디세이 환경 분리
 
-- 개발·문서 기준과 PR 대상은 `main-codyssey`입니다. 공모전 `main`을 자동으로 합치거나 배포하지 않습니다.
+- 개발·문서 기준과 PR 대상은 `main-codyssey`입니다. GitHub 기본 브랜치도 `main-codyssey`입니다. 공모전 브랜치 `main-contest`(11/04 전 이름 `main`)를 자동으로 합치거나 배포하지 않습니다.
 - 공모전 사이트는 `https://care-bridge-kappa.vercel.app`, 코디세이 사이트는 `https://carebridge-codyssey.vercel.app`입니다.
 - 코디세이 DB는 `CareBridge-Codyssey`(`fffgpgrnppxxqccncstf`)입니다. DB 쓰기·초기화 전에 대상 프로젝트를 확인합니다.
 - 브랜치를 바꿔도 `.env.local`과 Supabase CLI 연결은 자동으로 바뀌지 않습니다. 공모전 키·DB 연결을 코디세이 작업에 재사용하지 않습니다.
@@ -43,13 +43,13 @@
 
 | 보존 대상 | 식별 정보 |
 | --- | --- |
-| GitHub | `main` 브랜치 |
+| GitHub | `main-contest` 브랜치 (11/04 전 이름 `main`) |
 | Vercel | 프로젝트 `care-bridge`, 사이트 `https://care-bridge-kappa.vercel.app` |
 | Supabase | 프로젝트 `CareBridge`, ref `mswdkdjtpysvxqdzjbqh` |
 
 - **공모전 사이트:** 재배포·Production 전환·중지/재개·도메인·환경 변수·Git 연결·배포 설정을 임의로 바꾸지 않습니다.
 - **공모전 DB:** 스키마·RLS·데이터·Auth 사용자·Storage 파일·접근 권한·비밀번호·키를 임의로 바꾸지 않습니다. 마이그레이션·시드·초기화·데이터 정리·실제 AI 검증도 실행하지 않습니다.
-- **기존 예약 작업:** 현재 공모전 서비스의 예약 작업은 유지합니다. 코디세이 작업 중 임의로 수정·중단하거나 새 정리 작업을 추가하지 않습니다.
+- **기존 예약 작업:** 현재 공모전 서비스의 예약 작업(공모전 사이트 녹음 정리, `.github/workflows/audio-cleanup.yml`의 `contest`)은 유지합니다. 코디세이 작업 중 임의로 수정·중단하거나 새 정리 작업을 추가하지 않습니다.
 - **작업 전 대상 확인:** 쓰기·배포 전에 Git 브랜치, `.env.local`, Supabase CLI/MCP의 프로젝트 ref, Vercel 프로젝트가 모두 코디세이 환경인지 확인합니다. 연결 대상이 불명확하면 쓰기를 멈추고 대상부터 확인합니다.
 - **허용되는 점검:** 공모전 연결·응답의 읽기 전용 확인은 가능합니다. 문제를 발견하면 이슈로 기록하고, 실제 변경은 사용자의 명시적인 요청을 받은 뒤 진행합니다.
 - **권한과 규칙 구분:** 이 문서는 작업 규칙입니다. 현재 같은 Supabase 조직에 속한 두 프로젝트의 관리 권한을 기술적으로 분리한 것은 아닙니다.
@@ -153,7 +153,7 @@ API 경로·입출력 요약, 상태 값 목록, Agent 도구 4개의 입출력�
 
 ## 작업 올리는 방법
 
-**왜:** 같은 내용을 두 번 쓰지 않고, 작업 기록을 한곳(PR)에 모으기 위해서입니다. 공모전용 main은 보존하고, 코디세이 작업의 PR 대상은 main-codyssey로 둡니다. main의 기존 보호 규칙이 새 브랜치에 자동 적용된다고 가정하지 않습니다.
+**왜:** 같은 내용을 두 번 쓰지 않고, 작업 기록을 한곳(PR)에 모으기 위해서입니다. 공모전용 main-contest는 보존하고, 코디세이 작업의 PR 대상은 기본 브랜치 main-codyssey로 둡니다.
 
 - 작업은 **브랜치 → PR**로 올립니다. 브랜치 이름은 영어로 씁니다(예: `be/db-tables`, `fe/w2-record`).
 - 올리기 전에 `web/`에서 `npm run check`를 돌립니다. PR의 "web 검사"가 통과하면 합칩니다(승인 0명). 합친 브랜치는 자동으로 지워집니다.
