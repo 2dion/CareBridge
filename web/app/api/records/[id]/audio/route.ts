@@ -1,5 +1,6 @@
 import { after } from "next/server";
 
+import { parseAudioInput } from "@/lib/audio/audio";
 import { receiveAudio } from "@/lib/audio/audio-service";
 import { enforceQuota } from "@/lib/security/rate-limit-supabase";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -13,13 +14,16 @@ export const maxDuration = 300; // 받아쓰기 + 응답 뒤 Agent(Claude 응답
 
 export async function POST(request: Request, ctx: RouteContext<"/api/records/[id]/audio">) {
   const { id } = await ctx.params;
-  const limited = await enforceQuota("audio");
-  if (limited) return limited;
   let body: unknown;
   try {
     body = await request.json();
   } catch {
     body = null;
+  }
+  // 형식이 맞는 요청만 호출 제한을 센다(이슈 #279). 기록·권한 검사는 receiveAudio가 한다
+  if (parseAudioInput(body).ok) {
+    const limited = await enforceQuota("audio");
+    if (limited) return limited;
   }
   const result = await receiveAudio(
     await createSupabaseServerClient(),
