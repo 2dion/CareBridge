@@ -33,7 +33,6 @@ export default function LoginPage() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<keyof typeof errors | null>(null);
-  const [forgot, setForgot] = useState(false);
   const caps = useCapsLock();
 
   const submit = async (event: FormEvent) => {
@@ -58,13 +57,8 @@ export default function LoginPage() {
   return (
     <MobileScreen className="auth">
       <div className="stack" style={{ alignItems: "center", marginTop: 48 }}>
+        {/* 한 줄 소개는 A0(스플래시)에서만 보인다(이슈 #104) */}
         <Art name="logo" width={150} priority alt="케어브릿지" />
-        <p style={{ marginTop: 14, fontSize: 16, color: "var(--color-sub)" }}>
-          말로 남기고, 확인만 하면 되는 돌봄 기록
-        </p>
-        <span className="vi" style={{ fontSize: 13 }}>
-          Ghi chép chăm sóc bằng giọng nói
-        </span>
       </div>
       <form className="stack pad auth-form" onSubmit={submit} noValidate>
         <div className="field">
@@ -133,19 +127,7 @@ export default function LoginPage() {
             <b>회원가입</b>
             <span className="vi">Đăng ký</span>
           </Link>
-          <button type="button" onClick={() => setForgot(!forgot)} aria-expanded={forgot}>
-            <b>비밀번호를 잊었어요</b>
-            <span className="vi">Quên mật khẩu</span>
-          </button>
         </div>
-        {forgot && (
-          <p className="gray-box" role="status">
-            {ROLE_NAMES_BOTH.reviewer}에게 비밀번호를 다시 정해 달라고 요청하세요.
-            <span className="vi" style={{ display: "block" }}>
-              Hãy nhờ {ROLE_NAMES_BOTH.reviewerVi} đặt lại mật khẩu.
-            </span>
-          </p>
-        )}
         {!supabaseConfigured() && (
           <p className="foot-note" style={{ margin: 0 }}>
             시연(Mock): 아무 이메일과 8자 이상 비밀번호로 들어가요. ‘reviewer’로 시작하는 이메일은
