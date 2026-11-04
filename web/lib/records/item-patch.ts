@@ -139,8 +139,8 @@ export async function patchItem(
 
   // value_ko가 실제로 바뀌는 요청만 다시 번역(Claude)하므로 그때만 호출 제한을 센다.
   // 같은 값을 다시 보내면 세지 않고, 한도를 넘으면 저장도 하지 않는다(이슈 #279)
-  const willRetranslate =
-    patch.value_ko !== undefined && patch.value_ko !== before && patch.value_ko !== "";
+  const nextValueKo = patch.value_ko;
+  const willRetranslate = nextValueKo !== undefined && nextValueKo !== before && nextValueKo !== "";
   if (willRetranslate && deps.takeTranslateQuota && !(await deps.takeTranslateQuota())) {
     return fail(429, "rate_limited");
   }
@@ -154,7 +154,7 @@ export async function patchItem(
 
   // value_ko가 바뀐 항목만 다시 번역한다. 번역이 실패해도 저장한 수정은 그대로 둔다(번역 칸은 트리거가 비움).
   if (willRetranslate) {
-    await retranslate(recordId, itemKey, record, user, patch.value_ko, deps).catch((error) => {
+    await retranslate(recordId, itemKey, record, user, nextValueKo, deps).catch((error) => {
       console.error("item retranslate failed", recordId, itemKey, error);
     });
   }
