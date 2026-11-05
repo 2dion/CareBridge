@@ -237,7 +237,7 @@ export async function createRecordPdf({
   record,
   residentName,
   org,
-  notesArea,
+  notesAreas,
   training = false,
 }: {
   template: Uint8Array;
@@ -245,10 +245,10 @@ export async function createRecordPdf({
   record: DemoRecord;
   residentName: string;
   org: string;
-  notesArea: NoteArea | "";
+  notesAreas: NoteArea[];
   training?: boolean;
 }) {
-  const { fields, marks } = printFields(record, residentName, org, notesArea);
+  const { fields, marks } = printFields(record, residentName, org, notesAreas);
   const title = `합성 사례 ${record.careDate} 별지 제${record.formType}호`;
   return renderLegalForm({
     template,
