@@ -14,8 +14,15 @@ import { describe, expect, it } from "vitest";
 
 import { createDemoDb } from "../demo/store";
 import { addDays } from "../records/period-print";
-import { legalForms, printFields } from "./fields";
-import { createPeriodPdf, createRecordPdf, embedPrintFont, planLegalForm, wrapText } from "./pdf";
+import { legalForms, printFields, SEE_ATTACHED } from "./fields";
+import {
+  createPeriodPdf,
+  createRecordPdf,
+  embedPrintFont,
+  planLegalForm,
+  wrapText,
+  writerLine,
+} from "./pdf";
 
 const db = createDemoDb("2026-10-27");
 const fontBytes = readFileSync(resolve("public/fonts/noto-sans-kr.ttf"));
@@ -35,9 +42,10 @@ describe("법정 원문 기록 PDF", () => {
     expect(() => printFields(record, "김○○ 어르신", db.worker.org, "")).toThrow("영역");
     const output = printFields(record, "김○○ 어르신", db.worker.org, "cognition");
     const note = record.items.find((item) => item.item_key === "notes")!;
-    expect(output.fields.find((field) => field.key === "notes-cognition")?.text).toContain(
-      note.value_ko,
-    );
+    // 칸에는 ‘별지 참조’만 찍고, 글은 별지 묶음에 있다(이슈 #330)
+    const cell = output.fields.find((field) => field.key === "notes-cognition");
+    expect(cell?.text).toBe(SEE_ATTACHED);
+    expect(cell?.attached?.[0].text).toContain(note.value_ko);
     expect(output.marks.some((mark) => mark.top === 556 || mark.top === 580)).toBe(false);
   });
 
@@ -55,16 +63,16 @@ describe("법정 원문 기록 PDF", () => {
     };
     const output = printFields(edited, "이○○ 어르신", db.worker.org, "");
     const cognition = record.items.find((item) => item.item_key === "cognition")!;
-    expect(output.fields.find((field) => field.key === "notes")?.text).not.toContain(
-      cognition.value_ko,
-    );
+    const notes = output.fields.find((field) => field.key === "notes")!;
+    expect(notes.text).toBe(SEE_ATTACHED);
+    expect(notes.attached!.map((block) => block.text).join(" ")).not.toContain(cognition.value_ko);
     expect(
       output.fields.find((field) => field.key === "minutes-cognitive_stimulation"),
     ).toBeUndefined();
   });
 
   it.each(["16", "12"] as const)(
-    "제%s호 원문·뒤쪽을 보존하고 값을 채우며 긴 글은 이어 쓴다",
+    "제%s호 원문·뒤쪽을 보존하고 값을 채우며 특이사항은 별지에 찍는다",
     async (formType) => {
       const record = Object.values(db.records).find(
         (entry) => entry.formType === formType && entry.status === "approved",
@@ -78,11 +86,12 @@ describe("법정 원문 기록 PDF", () => {
         residentName: "김○○ 어르신",
         org: db.worker.org,
         notesArea: "physical",
+        writer: db.worker.name,
       });
       const loaded = await PDFDocument.load(pdf.bytes);
       expect(loaded.getPageCount()).toBe(pdf.recordPages + original.getPageCount() - 1);
-      // 서식 쪽은 한 장. 제16호 데모 기록은 한 줄짜리 특이사항 칸을 넘쳐 이어쓰기 쪽 한 장이 더 붙는다(이슈 #317)
-      expect(pdf.recordPages).toBe(formType === "16" ? 2 : 1);
+      // 서식 한 장 + 별지 한 쪽. 특이사항이 있으면 길이와 상관없이 별지가 붙는다(이슈 #330)
+      expect(pdf.recordPages).toBe(2);
       expect(loaded.getPage(0).getSize()).toEqual(original.getPage(0).getSize());
       expect(loaded.getPage(loaded.getPageCount() - 1).getSize()).toEqual(
         original.getPage(original.getPageCount() - 1).getSize(),
@@ -184,7 +193,7 @@ describe("법정 원문 기록 PDF", () => {
     ).rejects.toThrow("승인한 기록");
   });
 
-  it("제12호 7일치 긴 특이사항은 이어쓰기 쪽을 만들고 서식 뒤쪽도 남긴다(#263)", async () => {
+  it("제12호 7일치 긴 특이사항은 별지에 날짜마다 찍고 서식 뒤쪽도 남긴다(#263, #330)", async () => {
     const record = Object.values(db.records).find(
       (entry) => entry.formType === "12" && entry.status === "approved",
     )!;
@@ -219,15 +228,44 @@ describe("법정 원문 기록 PDF", () => {
       to: addDays(from, 6),
       training: true,
     });
-    // 서식 1장 + 이어쓰기 쪽. 서식을 줄 수만큼 복제하지 않는다(이슈 #317: 전에는 10장 넘게 나옴)
+    // 서식 1장 + 별지. 서식을 줄 수만큼 복제하지 않는다(이슈 #317: 전에는 10장 넘게 나옴)
+    expect(pdf.sheets).toBe(1);
     expect(pdf.recordPages).toBeGreaterThan(1);
-    expect(pdf.recordPages).toBeLessThanOrEqual(3);
+    expect(pdf.recordPages).toBeLessThanOrEqual(4);
     const saved = await PDFDocument.load(pdf.bytes);
     expect(saved.getPageCount()).toBe(pdf.recordPages + original.getPageCount() - 1);
     const outputDir = mkdtempSync(resolve(tmpdir(), "carebridge-period-overflow-"));
     writeFileSync(resolve(outputDir, "overflow.pdf"), pdf.bytes);
-    console.info(`7일치 이어쓰기 확인: ${outputDir}/overflow.pdf`);
+    console.info(`7일치 별지 확인: ${outputDir}/overflow.pdf`);
   }, 20_000);
+
+  it.each(["16", "12"] as const)(
+    "제%s호 특이사항이 없는 기록은 별지를 만들지 않는다(#330)",
+    async (formType) => {
+      const record = Object.values(db.records).find(
+        (entry) => entry.formType === formType && entry.status === "approved",
+      )!;
+      const template = readFileSync(resolve("public" + legalForms[formType].href));
+      const pdf = await createRecordPdf({
+        template,
+        fontBytes,
+        record: {
+          ...record,
+          // 긴 글 항목을 모두 '언급 없음'으로: 서식 칸도 비고 별지도 없다
+          items: record.items.map((item) =>
+            item.item_key === "visit_time"
+              ? item
+              : { ...item, status: "not_mentioned" as const, value_ko: "" },
+          ),
+        },
+        residentName: "김○○ 어르신",
+        org: db.worker.org,
+        notesArea: "",
+      });
+      expect(pdf.recordPages).toBe(1);
+    },
+    20_000,
+  );
 });
 
 /** 실제 뷰어가 쓰는 CID 폭 표를 읽는다. 폭이 빠졌을 때 PDF 규격 기본값은 1000이다. */
@@ -313,7 +351,8 @@ it("한글 공백 문장의 측정 폭이 저장한 PDF 폭과 같고, 공백도
   }
 }, 20000);
 
-// 이슈 #317: 칸을 넘친 긴 글은 서식을 복제하지 않고 이어쓰기 쪽으로 보낸다
+// 이슈 #317: 칸을 넘친 긴 글은 서식을 복제하지 않고 별지로 보낸다
+// 이슈 #330: 특이사항 칸은 길이와 상관없이 ‘별지 참조’만 찍고 글 전체를 별지로 보낸다
 describe("planLegalForm", () => {
   const measure = (text: string) => Array.from(text).length * 6; // 한 글자 6pt → 폭 120pt에 20자
   const field = (over: Partial<Parameters<typeof planLegalForm>[0][number]>) => ({
@@ -328,25 +367,34 @@ describe("planLegalForm", () => {
     ...over,
   });
 
-  it("칸에 들어가는 글은 그대로 두고 이어쓰기 쪽을 만들지 않는다", () => {
-    const plan = planLegalForm([field({ text: "점심 죽 절반 드심" })], measure);
-    expect(plan.cells[0].lines).toEqual(["점심 죽 절반 드심"]);
-    expect(plan.continuation).toEqual([]);
+  it("특이사항 칸은 짧은 글도 칸에 ‘별지 참조’만 두고 묶음을 별지로 보낸다(#330)", () => {
+    const attached = [
+      { label: "10/25 신체활동지원 특이사항", text: "점심 죽 절반 드심", writer: "박○○" },
+    ];
+    const plan = planLegalForm([field({ text: SEE_ATTACHED, flow: false, attached })], measure);
+    expect(plan.cells[0].lines).toEqual([SEE_ATTACHED]);
+    expect(plan.attached).toEqual(attached);
   });
 
-  it("넘친 글은 칸에 들어가는 줄까지만 두고 끝을 '…'로, 전체 글은 칸 이름과 함께 이어쓰기 쪽으로", () => {
+  it("특이사항이 아닌 긴 글 칸은 칸에 들어가면 그대로 두고 별지를 만들지 않는다", () => {
+    const plan = planLegalForm([field({ key: "stay", text: "점심 죽 절반 드심" })], measure);
+    expect(plan.cells[0].lines).toEqual(["점심 죽 절반 드심"]);
+    expect(plan.attached).toEqual([]);
+  });
+
+  it("넘친 글은 칸에 들어가는 줄까지만 두고 끝을 '…'로, 전체 글은 칸 이름·작성자와 함께 별지로", () => {
     const text =
       "점심 죽 절반 정도 드심. 밤에 잘 못 주무심. 엉덩이 쪽 피부가 조금 붉어 보임. 아침 약 드심.";
-    const plan = planLegalForm([field({ text })], measure);
+    const plan = planLegalForm([field({ text, writer: "박○○" })], measure);
     expect(plan.cells[0].lines).toHaveLength(1);
     expect(plan.cells[0].lines[0].endsWith("…")).toBe(true);
     expect(measure(plan.cells[0].lines[0])).toBeLessThanOrEqual(120);
     expect(text.startsWith(plan.cells[0].lines[0].slice(0, -1))).toBe(true);
-    // 글자 손실 없음: 이어쓰기 쪽에 전체 글이 있다
-    expect(plan.continuation).toEqual([{ label: "10/25 신체활동지원 특이사항", text }]);
+    // 글자 손실 없음: 별지에 전체 글이 있다
+    expect(plan.attached).toEqual([{ label: "10/25 신체활동지원 특이사항", text, writer: "박○○" }]);
   });
 
-  it("두 줄 칸은 두 줄까지 채우고 넘친 것만 이어쓰기로 보낸다", () => {
+  it("두 줄 칸은 두 줄까지 채우고 넘친 것만 별지로 보낸다", () => {
     const plan = planLegalForm(
       [
         field({ key: "notes-cognition", height: 17, text: "가".repeat(30), label: "인지" }),
@@ -356,25 +404,42 @@ describe("planLegalForm", () => {
     );
     expect(plan.cells[0].lines).toEqual(["가".repeat(20), "가".repeat(10)]);
     expect(plan.cells[1].lines).toHaveLength(2);
-    expect(plan.continuation.map((block) => block.label)).toEqual(["건강"]);
+    expect(plan.attached.map((block) => block.label)).toEqual(["건강"]);
   });
 
   it("칸 이름이 없으면 key를 쓰고, 넘칠 수 없는 칸이 넘치면 오류", () => {
     const plan = planLegalForm([field({ label: undefined, text: "가".repeat(50) })], measure);
-    expect(plan.continuation[0].label).toBe("notes-physical");
+    expect(plan.attached[0].label).toBe("notes-physical");
     expect(() =>
       planLegalForm([field({ key: "name", flow: false, text: "가".repeat(50) })], measure),
     ).toThrow("양식 칸보다 긴 값");
   });
 
-  it("제16호 데모 기록의 넘친 칸은 날짜와 영역 이름이 붙는다", () => {
+  it("제16호 데모 기록의 특이사항 칸은 ‘별지 참조’이고, 묶음에 날짜·영역 이름·작성자가 붙는다", () => {
     const record = Object.values(db.records).find(
       (entry) => entry.formType === "16" && entry.status === "approved",
     )!;
-    const { fields } = printFields(record, "김○○ 어르신", db.worker.org, "physical");
-    const [, month, day] = record.careDate.split("-");
-    expect(fields.find((entry) => entry.key === "notes-physical")?.label).toBe(
-      `${Number(month)}/${Number(day)} 신체활동지원 특이사항`,
+    const { fields } = printFields(
+      { ...record, workerName: "박○○" },
+      "김○○ 어르신",
+      db.worker.org,
+      "physical",
     );
+    const [, month, day] = record.careDate.split("-");
+    const name = `${Number(month)}/${Number(day)} 신체활동지원 특이사항`;
+    const cells = fields.filter((entry) => entry.key.startsWith("notes-"));
+    expect(cells.length).toBeGreaterThan(0);
+    expect(cells.every((entry) => entry.text === SEE_ATTACHED)).toBe(true);
+    const physical = cells.find((entry) => entry.key === "notes-physical")!;
+    expect(physical.label).toBe(name);
+    expect(physical.attached).toHaveLength(1);
+    expect(physical.attached![0]).toMatchObject({ label: name, writer: "박○○" });
+    // 글이 없는 영역은 칸을 만들지 않는다(비움)
+    expect(fields.find((entry) => entry.key === "notes-rehab")).toBeUndefined();
+  });
+
+  it("별지의 작성자 줄: 이름이 있으면 이름, 없으면 빈 자리와 (서명)", () => {
+    expect(writerLine("박○○")).toBe("작성자: 박○○ (서명)");
+    expect(writerLine("")).toMatch(/^작성자: {2,}\(서명\)$/);
   });
 });

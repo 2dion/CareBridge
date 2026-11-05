@@ -131,6 +131,7 @@ function PeriodPrint() {
       const pdf = await createPeriodPdf({
         template: new Uint8Array(templateBytes),
         fontBytes: new Uint8Array(fontBytes),
+        writer: demo.db.worker.name,
         formType: view.formType,
         days: view.days.flatMap((day, column) =>
           day.record ? [{ record: day.record, column, notesArea: areas[day.date] ?? "" }] : [],

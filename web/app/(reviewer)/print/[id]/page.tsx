@@ -93,6 +93,7 @@ export default function PrintPage() {
       const pdf = await createRecordPdf({
         template: new Uint8Array(template),
         fontBytes: new Uint8Array(fontBytes),
+        writer: db.worker.name,
         record: source,
         residentName: resident?.name ?? "",
         org: db.worker.org,
@@ -186,8 +187,9 @@ export default function PrintPage() {
               </label>
             )}
             <p className="info-note">
-              기록에 없는 정보와 서명은 비워 둡니다. 칸보다 긴 내용은 같은 법정 양식에 이어 쓰며
-              자르지 않습니다. PDF에 {demo.real?.isTraining ? "연습용·" : ""}합성 사례
+              기록에 없는 정보와 서명은 비워 둡니다. 특이사항이 있으면 서식 칸에는 ‘별지 참조’만
+              찍고, 글 전체는 서식 뒤 별지에 작성자 이름·서명 자리와 함께 찍습니다. PDF에{" "}
+              {demo.real?.isTraining ? "연습용·" : ""}합성 사례
               {record.status !== "approved" ? "·승인 전" : ""} 표시가 들어갑니다.
             </p>
             <button
