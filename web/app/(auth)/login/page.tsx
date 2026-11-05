@@ -27,7 +27,7 @@ const errors: Record<
     native: nativeMessage("vi", "a1.error.wrong"),
   },
   no_profile: {
-    ko: `계정 준비가 아직 끝나지 않았어요. ${ROLE_NAMES_BOTH.reviewer}에게 질문하세요.`,
+    ko: `계정 준비가 끝나지 않았어요. ${ROLE_NAMES_BOTH.reviewer}에게 문의하세요.`,
     native: nativeMessage("vi", "a1.error.noProfile", { reviewer: ROLE_NAMES_BOTH.reviewerNative }),
   },
   network: { ko: "인터넷 연결을 확인하세요.", native: nativeMessage("vi", "a1.error.network") },
