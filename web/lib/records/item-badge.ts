@@ -4,6 +4,7 @@ import { nativeMessage } from "@/lib/i18n/messages";
 // 아직 고르지 않았을 때만 '확인 필요'를 보인다. 승인된 기록은 모두 골라져 있으므로 '확인 필요'가 남지 않는다(원칙 3).
 // 글자는 M3 '(관리자 확인함)'과 같고, 교육용 기관이면 roleNames가 '강사'를 준다.
 import type { RoleNames } from "@/lib/demo/roles";
+import type { NativeLang } from "@/lib/i18n/languages";
 import type { ItemStatus, Resolution } from "@/lib/demo/state";
 
 export type ItemBadge = {
@@ -22,13 +23,14 @@ export function capitalizeNative(text: string): string {
 export function itemBadge(
   item: { status: ItemStatus; resolution: Resolution },
   names: RoleNames,
+  lang: NativeLang = "vi",
 ): ItemBadge | null {
   if (item.status !== "needs_check") return null;
   if (item.resolution === "confirmed_by_reviewer") {
     return {
       kind: "confirmed",
       ko: `${names.reviewer} 확인함`,
-      native: nativeMessage("vi", "w4.badge.confirmed", {
+      native: nativeMessage(lang, "w4.badge.confirmed", {
         reviewer: capitalizeNative(names.reviewerNative),
       }),
       tone: "green",
@@ -38,7 +40,7 @@ export function itemBadge(
     return {
       kind: "omitted",
       ko: `${names.reviewer} 기록 안 함`,
-      native: nativeMessage("vi", "w4.badge.omitted", {
+      native: nativeMessage(lang, "w4.badge.omitted", {
         reviewer: capitalizeNative(names.reviewerNative),
       }),
       tone: "gray",

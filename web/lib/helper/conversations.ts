@@ -1,5 +1,5 @@
 // 도우미 대화 목록(W6 · 이전 대화). 작성자 본인의 대화를 마지막 질문 시각 최근 순으로 나눠 준다(이슈 #251).
-// 근거: 문서/설계/데이터구조-v2.3.5.md '공통 계약' GET /api/helper/conversations, 문서/결정/2026-11-03-도우미대화묶음.md
+// 근거: 문서/설계/데이터구조-v2.3.6.md '공통 계약' GET /api/helper/conversations, 문서/결정/2026-11-03-도우미대화묶음.md
 // DB 읽기는 HelperConversationsDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 import type { Role } from "@/lib/auth/signup";
 import type { ApiResult } from "@/lib/records/transition";

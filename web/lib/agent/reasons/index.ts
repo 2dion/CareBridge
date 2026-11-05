@@ -4,13 +4,19 @@
 
 import type { NativeLang } from "@/lib/i18n/languages";
 import { REASONS } from "./ko";
+import { REASONS_EN } from "./en";
+import { REASONS_MN } from "./mn";
 import { REASONS_VI } from "./vi";
+import { REASONS_ZH } from "./zh";
 
 export { REASONS };
 
 /** 언어 코드 → (한국어 이유 → 그 언어 고정문). ko는 번역이 없으므로 표가 없다 */
 export const REASONS_NATIVE: Partial<Record<NativeLang, Record<string, string>>> = {
   vi: REASONS_VI,
+  zh: REASONS_ZH,
+  mn: REASONS_MN,
+  en: REASONS_EN,
 };
 
 /**

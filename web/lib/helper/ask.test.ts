@@ -9,6 +9,7 @@ import {
   notFoundAnswer,
   parseHelperAnswer,
   SAFETY_NOTICE,
+  safetyNotice,
   withSafetyNotice,
   type HelperDeps,
 } from "./ask";
@@ -594,5 +595,59 @@ describe("교재 문단만 보내기(이슈 #229)", () => {
 
   it("답 길이를 3문장 이내로 지시한다", () => {
     expect(helperSystemPrompt("vi")).toContain("3문장 이내");
+  });
+});
+
+describe("모국어별 고정 답(이슈 #312)", () => {
+  const training = roleNames(true);
+  const org = roleNames(false);
+
+  it("교재에 없음 안내를 작성자 언어로 만든다", () => {
+    expect(notFoundAnswer(org, "zh").native).toBe("教材里没有找到这个内容。请询问管理员。");
+    expect(notFoundAnswer(training, "zh").native).toBe("教材里没有找到这个内容。请询问讲师。");
+    expect(notFoundAnswer(org, "en").native).toBe(
+      "I couldn't find this in the textbook. Please ask the manager.",
+    );
+    expect(notFoundAnswer(org, "mn").native).toBe(
+      "Сурах бичгээс энэ агуулгыг олсонгүй. менежерээс асууна уу.",
+    );
+    expect(notFoundAnswer(org, "vi")).toEqual(NOT_FOUND);
+  });
+
+  it("고정 문구가 없는 언어와 ko는 모국어 줄이 빈칸(한국어만 보임)", () => {
+    const unknown = "xx" as NativeLang;
+    expect(notFoundAnswer(org, unknown).native).toBe("");
+    expect(notFoundAnswer(org, "ko").native).toBe("");
+    expect(safetyNotice(org, unknown).native).toBe("");
+    expect(safetyNotice(org, "ko").native).toBe("");
+  });
+
+  it("건강·안전 안내를 작성자 언어로 만든다", () => {
+    expect(safetyNotice(org, "zh").native).toBe("请立即向管理员报告。");
+    expect(safetyNotice(training, "en").native).toBe("Please report to the instructor right away.");
+    expect(safetyNotice(org, "vi")).toEqual(SAFETY_NOTICE);
+  });
+
+  it.each([
+    ["어르신이 摔倒了怎么办"],
+    ["She fell down in the bathroom"],
+    ["Өвгөн унасан бол яах вэ"],
+  ])("다른 언어 질문도 건강·안전 질문으로 본다: %s", (question) => {
+    expect(isSafetyQuestion(question)).toBe(true);
+  });
+
+  it("zh 작성자의 교재에 없는 질문은 중국어 안내와 안전 안내를 붙인다", async () => {
+    const deps = fakeDeps({
+      currentUser: vi.fn(async () => ({
+        id: "w1",
+        role: "worker" as const,
+        nativeLang: "zh" as const,
+      })),
+      searchManual: vi.fn(async () => []),
+      searchGlossary: vi.fn(async () => []),
+    });
+    const r = await askHelper({ question: "摔倒了" }, deps);
+    expect(r.status).toBe(200);
+    expect(r.body.native).toBe("请立即向管理员报告。 教材里没有找到这个内容。请询问管理员。");
   });
 });

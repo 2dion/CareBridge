@@ -1,5 +1,5 @@
 // ⑤ 도우미 답(W6): 교재 매뉴얼(manual_sections)과 용어 목록(glossary)에서 찾은 내용만으로 답한다. 답한 질문은 helper_messages에 남긴다(이슈 #218).
-// 근거: 문서/설계/ai규칙-v2.0.5.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.5.md '공통 계약' helper/ask
+// 근거: 문서/설계/ai규칙-v2.0.5.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.6.md '공통 계약' helper/ask
 // DB·Claude 호출은 HelperDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 // 이슈 #122: 교재 검색과 search_glossary는 한국어만 맞으므로, 한글이 없는 질문(베트남어 등)은 먼저 한국어로 옮겨 검색한다.
 // 건강·안전 안내 문구는 모델에 맡기지 않고 서버가 낱말 검사로 붙인다(질문 언어와 상관없이).
@@ -10,6 +10,7 @@ import { languageNameKo, type NativeLang } from "@/lib/i18n/languages";
 import { isNotKorean } from "@/lib/records/item-patch";
 import type { ApiResult } from "@/lib/records/transition";
 
+import { HELPER_FIXED, reviewerNameIn } from "./fixed-text";
 import { conversationTitle } from "./conversations";
 import { excerptSection, queryTerms } from "./manual-rank";
 import type { ConversationRef } from "./messages";
@@ -80,31 +81,36 @@ export function isValidHelperQuestion(body: unknown): boolean {
 }
 
 // 교재에서 찾지 못하면 상식으로 채우지 않는다(W6 2번).
-// 묻는 곳은 기관에 맞춘 이름: 일반 기관 관리자(người quản lý), 교육용 기관 강사(giảng viên)(이슈 #180)
-export function notFoundAnswer(names: RoleNames = roleNames(false)): HelperAnswer {
+// 묻는 곳은 기관에 맞춘 이름: 일반 기관 관리자, 교육용 기관 강사(이슈 #180). 모국어 문구는 fixed-text.ts의 언어별 표
+export function notFoundAnswer(
+  names: RoleNames = roleNames(false),
+  lang: NativeLang = "vi",
+): HelperAnswer {
+  const who = reviewerNameIn(lang, names.training);
   return {
     ko: `교재에서 찾지 못했어요. ${names.reviewer}에게 물어보세요.`,
-    native: `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${names.reviewerNative}.`,
+    native: who ? HELPER_FIXED[lang]!.notFound(who) : "",
     source: null,
     found: false,
   };
 }
 
-/** 일반 기관 기준 문구(관리자) */
+/** 일반 기관 기준 문구(관리자, 베트남어) */
 export const NOT_FOUND: HelperAnswer = notFoundAnswer();
 
-// 건강·안전 질문이면 교재 답보다 먼저 보고 안내(W6 3번). 용어집 v1.0: 관리자 = người quản lý, 강사 = giảng viên
-export function safetyNotice(names: RoleNames = roleNames(false)) {
+// 건강·안전 질문이면 교재 답보다 먼저 보고 안내(W6 3번)
+export function safetyNotice(names: RoleNames = roleNames(false), lang: NativeLang = "vi") {
+  const who = reviewerNameIn(lang, names.training);
   return {
     ko: `${names.reviewer}에게 바로 보고하세요.`,
-    native: `Hãy báo ngay cho ${names.reviewerNative}.`,
+    native: who ? HELPER_FIXED[lang]!.safety(who) : "",
   };
 }
 
-/** 일반 기관 기준 문구(관리자) */
+/** 일반 기관 기준 문구(관리자, 베트남어) */
 export const SAFETY_NOTICE = safetyNotice();
 
-// 낙상·호흡·질식·의식·통증·출혈·투약 사고(질식은 이슈 #220). 한국어와 베트남어 낱말을 모두 본다(원문 질문과 번역한 질문 둘 다 검사).
+// 낙상·호흡·질식·의식·통증·출혈·투약 사고(질식은 이슈 #220). 한국어와 모든 모국어 낱말을 본다(원문 질문과 번역한 질문 둘 다 검사).
 export const SAFETY_KEYWORDS = {
   ko: [
     "낙상",
@@ -130,34 +136,17 @@ export const SAFETY_KEYWORDS = {
     "약 잘못",
     "과다",
   ],
-  vi: [
-    "ngã",
-    "té",
-    "khó thở",
-    "ngạt",
-    "nghẹn",
-    "nghẹt thở",
-    "sặc",
-    "bất tỉnh",
-    "hôn mê",
-    "ngất",
-    "lơ mơ",
-    "đau",
-    "chảy máu",
-    "ra máu",
-    "thuốc hai lần",
-    "thuốc 2 lần",
-    "nhầm thuốc",
-    "quá liều",
-  ],
-};
+  ...Object.fromEntries(
+    Object.entries(HELPER_FIXED).map(([lang, fixed]) => [lang, [...fixed!.keywords]]),
+  ),
+} as Record<string, string[]>;
 
 /** 질문(원문·번역)에 건강·안전 낱말이 하나라도 있으면 true */
 export function isSafetyQuestion(...texts: string[]) {
   const haystack = texts.map((t) => t.normalize("NFC").toLowerCase()).join("\n");
-  return [...SAFETY_KEYWORDS.ko, ...SAFETY_KEYWORDS.vi].some((word) =>
-    haystack.includes(word.normalize("NFC").toLowerCase()),
-  );
+  return Object.values(SAFETY_KEYWORDS)
+    .flat()
+    .some((word) => haystack.includes(word.normalize("NFC").toLowerCase()));
 }
 
 /** 안전 안내 문구를 ko·native 맨 앞에 붙인다. 모델이 이미 썼으면 두 번 붙이지 않는다. native가 비어 있으면 그대로 둔다. */
@@ -273,12 +262,12 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   const safety = isSafetyQuestion(question, questionKo);
   // 교육용 기관이면 고정 안내의 '관리자'를 '강사'로(이슈 #180)
   const names = roleNames(Boolean(user.isTraining));
-  const notFound = notFoundAnswer(names);
+  const notFound = notFoundAnswer(names, user.nativeLang);
   // 200으로 답하는 길은 모두 여기를 지난다. 답한 질문만(교재에서 못 찾은 답 포함) 남기고, 실패 응답은 남기지 않는다.
   const finish = async (answer: HelperAnswer): Promise<ApiResult> => {
     const base = answer.found ? answer : notFound;
     const shown = localized(
-      safety ? withSafetyNotice(base, safetyNotice(names)) : base,
+      safety ? withSafetyNotice(base, safetyNotice(names, user.nativeLang)) : base,
       user.nativeLang,
     );
     // 새 대화는 첫 질문을 저장할 때 만든다(빈 대화 없음). 못 만들면 저장도 건너뛰고 답만 준다

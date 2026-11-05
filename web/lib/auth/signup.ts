@@ -1,8 +1,13 @@
 // 회원가입: 가입 코드가 기관·역할을 정하고, 서버가 계정과 profiles 1행을 함께 만든다.
-// 근거: 문서/결정/2026-10-25-로그인가입.md, 문서/설계/데이터구조-v2.3.5.md '공통 계약' POST /api/auth/signup
+// 근거: 문서/결정/2026-10-25-로그인가입.md, 문서/설계/데이터구조-v2.3.6.md '공통 계약' POST /api/auth/signup
 // DB·Supabase Auth 호출은 SignupDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
-import { NATIVE_LANGS, type NativeLang, parseNativeLang } from "@/lib/i18n/languages";
+import {
+  NATIVE_LANGS,
+  type NativeLang,
+  parseNativeLang,
+  parseSelectableLang,
+} from "@/lib/i18n/languages";
 
 export type Role = "worker" | "reviewer";
 // 작성자 모국어 목록은 web/lib/i18n/languages.ts 한 곳에 있다(이슈 #259). 예전 import 경로를 위해 여기서도 내보낸다.
@@ -68,7 +73,7 @@ export function parseSignupInput(
   const email = text(b.email).toLowerCase();
   const password = typeof b.password === "string" ? b.password : "";
   const name = text(b.name);
-  const nativeLang = NATIVE_LANGS.find((lang) => lang === b.native_lang);
+  const nativeLang = parseSelectableLang(b.native_lang);
 
   if (!name || !nativeLang) {
     return { ok: false, response: fail(400, "invalid_input") };
