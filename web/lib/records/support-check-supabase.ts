@@ -27,7 +27,7 @@ export function createSupportCheckDeps(
     async readTarget(recordId): Promise<SupportCheckTarget | null> {
       const { data: record } = await userClient
         .from("records")
-        .select("form_type, worker_id, visit_start, visit_end, form_fields")
+        .select("form_type, visit_start, visit_end, form_fields, native_lang")
         .eq("id", recordId)
         .maybeSingle();
       if (!record || toFormType(record.form_type) !== "12") return null;
@@ -40,19 +40,14 @@ export function createSupportCheckDeps(
       const support = rows.find((item) => item.item_key === "support");
       if (!support) return null;
       const visitTime = rows.find((item) => item.item_key === "visit_time");
-      // 작성자는 자기 profiles만 읽는다(기록계약보강). 재검사는 작성자 흐름에서만 돈다.
-      const { data: profile } = await userClient
-        .from("profiles")
-        .select("native_lang")
-        .eq("id", record.worker_id)
-        .maybeSingle();
+      // 이유 번역 언어는 기록을 만든 때 언어다. 작성자가 나중에 바꾼 프로필 언어가 아니다(이슈 #336)
       const known =
         record.visit_start && record.visit_end
           ? minutesBetween(record.visit_start, record.visit_end)
           : null;
       return {
         careType: "home",
-        nativeLang: parseNativeLang(profile?.native_lang),
+        nativeLang: parseNativeLang(record.native_lang),
         visitMinutes: resolveVisitMinutes(
           known,
           (record.form_fields as Record<string, unknown> | null) ?? {},
