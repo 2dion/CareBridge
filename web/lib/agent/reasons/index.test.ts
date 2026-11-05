@@ -4,11 +4,20 @@ import type { NativeLang } from "@/lib/i18n/languages";
 import { nativeReasonForms, REASONS, REASONS_NATIVE, reasonTranslation } from "./index";
 
 describe("코드 이유의 모국어 번역(REASONS_NATIVE)", () => {
-  it("베트남어 표는 코드 이유를 모두 덮는다", () => {
-    const table = REASONS_NATIVE.vi!;
+  it.each(["vi", "zh", "mn", "en"] as const)("%s 표는 코드 이유를 모두 덮는다", (lang) => {
+    const table = REASONS_NATIVE[lang]!;
     for (const reason of Object.values(REASONS)) {
       expect(table[reason], reason).toBeTruthy();
     }
+    expect(Object.keys(table)).toHaveLength(Object.keys(REASONS).length);
+  });
+
+  it("중국어·영어도 숫자가 붙은 이유를 번역한다", () => {
+    const reason = `${REASONS.supportMinutesExceed} (200분 > 180분)`;
+    expect(reasonTranslation(reason, "zh")).toBe("各项协助时间合计超过访问时间 (200분 > 180분)");
+    expect(reasonTranslation(reason, "en")).toBe(
+      "The total support time is longer than the visit time (200분 > 180분)",
+    );
   });
 
   it("숫자가 붙은 이유는 앞부분으로 찾고 뒤를 그대로 붙인다", () => {
@@ -31,6 +40,8 @@ describe("코드 이유의 모국어 번역(REASONS_NATIVE)", () => {
 
   it("nativeReasonForms는 모든 언어의 고정문을 모은다", () => {
     const forms = nativeReasonForms([REASONS.supportMinutesExceed, "없는 이유"]);
-    expect(forms).toEqual(["Tổng thời gian hỗ trợ dài hơn thời gian thăm"]);
+    expect(forms).toContain("Tổng thời gian hỗ trợ dài hơn thời gian thăm");
+    expect(forms).toContain("各项协助时间合计超过访问时间");
+    expect(forms).toHaveLength(4);
   });
 });
