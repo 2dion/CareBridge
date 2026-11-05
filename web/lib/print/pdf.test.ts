@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 import { createDemoDb } from "../demo/store";
 import { addDays } from "../records/period-print";
 import { legalForms, printFields } from "./fields";
-import { createPeriodPdf, createRecordPdf, embedPrintFont, wrapText } from "./pdf";
+import { createPeriodPdf, createRecordPdf, embedPrintFont, planLegalForm, wrapText } from "./pdf";
 
 const db = createDemoDb("2026-10-27");
 const fontBytes = readFileSync(resolve("public/fonts/noto-sans-kr.ttf"));
@@ -81,6 +81,8 @@ describe("법정 원문 기록 PDF", () => {
       });
       const loaded = await PDFDocument.load(pdf.bytes);
       expect(loaded.getPageCount()).toBe(pdf.recordPages + original.getPageCount() - 1);
+      // 서식 쪽은 한 장. 제16호 데모 기록은 한 줄짜리 특이사항 칸을 넘쳐 이어쓰기 쪽 한 장이 더 붙는다(이슈 #317)
+      expect(pdf.recordPages).toBe(formType === "16" ? 2 : 1);
       expect(loaded.getPage(0).getSize()).toEqual(original.getPage(0).getSize());
       expect(loaded.getPage(loaded.getPageCount() - 1).getSize()).toEqual(
         original.getPage(original.getPageCount() - 1).getSize(),
@@ -182,7 +184,9 @@ describe("법정 원문 기록 PDF", () => {
       to: addDays(from, 6),
       training: true,
     });
+    // 서식 1장 + 이어쓰기 쪽. 서식을 줄 수만큼 복제하지 않는다(이슈 #317: 전에는 10장 넘게 나옴)
     expect(pdf.recordPages).toBeGreaterThan(1);
+    expect(pdf.recordPages).toBeLessThanOrEqual(3);
     const saved = await PDFDocument.load(pdf.bytes);
     expect(saved.getPageCount()).toBe(pdf.recordPages + original.getPageCount() - 1);
     const outputDir = mkdtempSync(resolve(tmpdir(), "carebridge-period-overflow-"));
@@ -273,3 +277,69 @@ it("한글 공백 문장의 측정 폭이 저장한 PDF 폭과 같고, 공백도
     }
   }
 }, 20000);
+
+// 이슈 #317: 칸을 넘친 긴 글은 서식을 복제하지 않고 이어쓰기 쪽으로 보낸다
+describe("planLegalForm", () => {
+  const measure = (text: string) => Array.from(text).length * 6; // 한 글자 6pt → 폭 120pt에 20자
+  const field = (over: Partial<Parameters<typeof planLegalForm>[0][number]>) => ({
+    key: "notes-physical",
+    text: "",
+    x: 0,
+    top: 0,
+    width: 120,
+    height: 11,
+    flow: true,
+    label: "10/25 신체활동지원 특이사항",
+    ...over,
+  });
+
+  it("칸에 들어가는 글은 그대로 두고 이어쓰기 쪽을 만들지 않는다", () => {
+    const plan = planLegalForm([field({ text: "점심 죽 절반 드심" })], measure);
+    expect(plan.cells[0].lines).toEqual(["점심 죽 절반 드심"]);
+    expect(plan.continuation).toEqual([]);
+  });
+
+  it("넘친 글은 칸에 들어가는 줄까지만 두고 끝을 '…'로, 전체 글은 칸 이름과 함께 이어쓰기 쪽으로", () => {
+    const text =
+      "점심 죽 절반 정도 드심. 밤에 잘 못 주무심. 엉덩이 쪽 피부가 조금 붉어 보임. 아침 약 드심.";
+    const plan = planLegalForm([field({ text })], measure);
+    expect(plan.cells[0].lines).toHaveLength(1);
+    expect(plan.cells[0].lines[0].endsWith("…")).toBe(true);
+    expect(measure(plan.cells[0].lines[0])).toBeLessThanOrEqual(120);
+    expect(text.startsWith(plan.cells[0].lines[0].slice(0, -1))).toBe(true);
+    // 글자 손실 없음: 이어쓰기 쪽에 전체 글이 있다
+    expect(plan.continuation).toEqual([{ label: "10/25 신체활동지원 특이사항", text }]);
+  });
+
+  it("두 줄 칸은 두 줄까지 채우고 넘친 것만 이어쓰기로 보낸다", () => {
+    const plan = planLegalForm(
+      [
+        field({ key: "notes-cognition", height: 17, text: "가".repeat(30), label: "인지" }),
+        field({ key: "notes-health", height: 13, text: "나".repeat(70), label: "건강" }),
+      ],
+      measure,
+    );
+    expect(plan.cells[0].lines).toEqual(["가".repeat(20), "가".repeat(10)]);
+    expect(plan.cells[1].lines).toHaveLength(2);
+    expect(plan.continuation.map((block) => block.label)).toEqual(["건강"]);
+  });
+
+  it("칸 이름이 없으면 key를 쓰고, 넘칠 수 없는 칸이 넘치면 오류", () => {
+    const plan = planLegalForm([field({ label: undefined, text: "가".repeat(50) })], measure);
+    expect(plan.continuation[0].label).toBe("notes-physical");
+    expect(() =>
+      planLegalForm([field({ key: "name", flow: false, text: "가".repeat(50) })], measure),
+    ).toThrow("양식 칸보다 긴 값");
+  });
+
+  it("제16호 데모 기록의 넘친 칸은 날짜와 영역 이름이 붙는다", () => {
+    const record = Object.values(db.records).find(
+      (entry) => entry.formType === "16" && entry.status === "approved",
+    )!;
+    const { fields } = printFields(record, "김○○ 어르신", db.worker.org, "physical");
+    const [, month, day] = record.careDate.split("-");
+    expect(fields.find((entry) => entry.key === "notes-physical")?.label).toBe(
+      `${Number(month)}/${Number(day)} 신체활동지원 특이사항`,
+    );
+  });
+});
