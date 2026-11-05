@@ -47,6 +47,7 @@ export async function loadRealDb(
   nativeLang: NativeLang;
   /** M5 설정: 내 기관의 켜진 가입 코드. 관리자만 읽고(RLS), 작성자는 빈 목록 */
   joinCodes: JoinCode[];
+  jobs: AudioJobRow[];
 }> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new NotSignedInError();
@@ -167,5 +168,6 @@ export async function loadRealDb(
     isTraining: Boolean(org?.is_training),
     nativeLang: parseNativeLang(profile.native_lang),
     joinCodes: activeJoinCodes(joinCodeRows),
+    jobs,
   };
 }

@@ -23,11 +23,60 @@ const org = db.worker.org;
 const base = Object.values(db.records).find(
   (entry) => entry.formType === "12" && entry.status === "approved",
 )!;
+
+it("제12호 1건·기간 인쇄의 연도는 서식에 인쇄된 괄호 안에 있다", () => {
+  const outputs = [
+    printFields(base, "가상 어르신", org, ""),
+    periodFields(
+      "12",
+      [{ record: base, column: 0, notesArea: "" }],
+      "가상 어르신",
+      org,
+      "2026-10-27",
+    ),
+  ];
+  // form-12-2025-12-12.pdf 첫 쪽의 괄호 글자 영역을 추출한 경계(pt).
+  for (const output of outputs) {
+    const year = output.fields.find((field) => field.key === "year")!;
+    expect(year.x).toBeGreaterThan(117.61);
+    expect(year.x + year.width).toBeLessThan(177.72);
+  }
+});
 const box = (key: (typeof form12Checks)[number]["key"]) =>
   form12Checks.find((entry) => entry.key === key)!;
 const marked = (marks: PrintMark[], target: { x: number; top: number }) =>
   marks.some((mark) => mark.x === target.x && mark.top === target.top);
 const trendTops = { body_trend: 577, meal_trend: 590, cognition_trend: 603 } as const;
+
+it.each([
+  ["세면·구강청결·머리감기·몸단장·옷 갈아입기 도움 등", [212.4, 334.56, 461.64]],
+  ["목욕", [174, 293.16, 418.8]],
+  ["체위변경(2시간마다)", [212.4, 334.56, 461.64]],
+  ["이동도움 및 신체기능유지·증진", [212.4, 334.56, 461.64]],
+  ["산책", [179.52, 301.8, 428.76]],
+  ["외출", [222.72, 345, 471.96]],
+] as const)("제16호 %s 체크는 세 열 모두 서식 네모 안에 있다", (label, boxes) => {
+  const record: DemoRecord = {
+    ...base,
+    formType: "16",
+    items: base.items.map((item) =>
+      item.item_key === "support"
+        ? {
+            ...item,
+            status: "observed",
+            resolution: null,
+            detail: { checks: [label] },
+          }
+        : { ...item, status: "not_mentioned" },
+    ),
+  };
+  for (let column = 0; column < 3; column++) {
+    const { marks } = dayFields(record, "", column);
+    expect(marks).toHaveLength(1);
+    expect(marks[0].x).toBeGreaterThanOrEqual(boxes[column]);
+    expect(marks[0].x + 6).toBeLessThanOrEqual(boxes[column] + 8.001);
+  }
+});
 
 /** 지원 항목의 detail만 바꾼 기록. 변화상태·방문 시간 등은 patch로 덧씌운다. */
 function withSupport(detail: Record<string, unknown>, patch: Partial<DemoRecord> = {}): DemoRecord {
