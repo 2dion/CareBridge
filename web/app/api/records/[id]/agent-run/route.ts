@@ -3,8 +3,8 @@ import { enforceQuota } from "@/lib/security/rate-limit-supabase";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-// POST /api/records/:id/agent-run: 작성자가 [다시 시도] 또는 [글로 쓰기] 뒤 부름(W3).
-// 입력: (글로 쓰기면) text. 출력: end_reason(draft_returned / auto_stopped / failed), items(9개), form_fields.
+// POST /api/records/:id/agent-run: 작성자가 [다시 시도] 또는 [글로 기록] 뒤 부름(W3).
+// 입력: (글로 기록이면) text. 출력: end_reason(draft_returned / auto_stopped / failed), items(9개), form_fields.
 // 근거: 문서/설계/데이터구조-v2.3.6.md '공통 계약', 문서/설계/ai규칙-v2.0.5.md '② 기록 검토 준비 Agent'
 export const maxDuration = 300; // Claude 응답 최대 4번
 
@@ -42,7 +42,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/records/[id
     if (error instanceof AgentRunError) {
       return Response.json({ error: error.code }, { status: STATUS[error.code] });
     }
-    // Claude·도구가 두 번 실패: 화면은 [다시 시도]와 [글로 쓰기]를 보여 준다(멈춤 규칙 4)
+    // Claude·도구가 두 번 실패: 화면은 [다시 시도]와 [글로 기록]를 보여 준다(멈춤 규칙 4)
     console.error("agent-run failed", error);
     return Response.json({ end_reason: "failed", error: "agent_failed" }, { status: 502 });
   }
