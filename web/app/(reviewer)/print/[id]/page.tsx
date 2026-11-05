@@ -163,7 +163,7 @@ export default function PrintPage() {
       </header>
       <section className="legal-form-layout no-print">
         <div className="legal-form-view">
-          <section className="panel legal-form-record">
+          <section className="panel legal-form-record desk-stack">
             <h1>법정 양식에 기록 채우기</h1>
             <p>
               {form.revised} 개정 원문의 {form.days}일 칸 중 첫 날짜 열을 사용합니다. 뒤쪽
