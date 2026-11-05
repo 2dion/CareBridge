@@ -20,6 +20,7 @@ import {
   type PrintMark,
   printableItem,
   printFields,
+  SEE_ATTACHED,
   toiletCountOf,
 } from "./fields";
 import { createRecordPdf } from "./pdf";
@@ -251,7 +252,8 @@ describe("제12호 인쇄 칸 채우기", () => {
     });
     const loaded = await PDFDocument.load(pdf.bytes);
     const { width, height } = loaded.getPage(0).getSize();
-    expect(pdf.recordPages).toBe(1);
+    // 서식 한 장 + 특이사항 별지 한 쪽(이슈 #330)
+    expect(pdf.recordPages).toBe(2);
     for (const mark of marks) {
       expect(mark.x).toBeGreaterThan(0);
       expect(mark.x + 6).toBeLessThan(width);
@@ -315,9 +317,9 @@ describe("날짜 열 좌표(기간 인쇄)", () => {
     }
   });
 
-  it("기간 인쇄는 머리말을 한 번만, 제12호 특이사항은 날짜를 붙여 잇는다", () => {
-    const day1 = { ...home, careDate: "2026-10-27" };
-    const day3 = { ...home, careDate: "2026-10-29" };
+  it("기간 인쇄는 머리말을 한 번만, 제12호 특이사항 칸은 ‘별지 참조’이고 별지 묶음은 날짜마다 하나(#330)", () => {
+    const day1 = { ...home, careDate: "2026-10-27", workerName: "박○○" };
+    const day3 = { ...home, careDate: "2026-10-29", workerName: "최○○" };
     const { fields } = periodFields(
       "12",
       [
@@ -335,21 +337,26 @@ describe("날짜 열 좌표(기간 인쇄)", () => {
       "29",
     ]);
     const notes = fields.find((field) => field.key === "notes")!;
-    expect(notes.text.startsWith("10/27 ")).toBe(true);
-    expect(notes.text).toContain(" 10/29 ");
-    expect(notes.text.indexOf("10/27")).toBeLessThan(notes.text.indexOf("10/29"));
+    expect(notes.text).toBe(SEE_ATTACHED);
+    // 날짜 순으로 한 묶음씩, 그날 작성자 이름과 함께
+    expect(notes.attached!.map((block) => [block.label, block.writer])).toEqual([
+      ["10/27 특이사항", "박○○"],
+      ["10/29 특이사항", "최○○"],
+    ]);
+    expect(notes.attached!.every((block) => block.text.length > 0)).toBe(true);
     expect(fields.filter((field) => field.key === "notes")).toHaveLength(1);
     expect(() =>
       periodFields("16", [{ record: day1, column: 0, notesAreas: [] }], "이○○", org, "2026-10-27"),
     ).toThrow("다른 서식");
   });
 
-  it("제16호 특이사항은 고른 영역마다 들어가고, 기본(4개 모두)이면 4칸 모두 채운다", () => {
+  it("제16호 특이사항은 고른 영역마다 들어가고, 기본(4개 모두)이면 4칸 모두 별지 묶음이 된다(칸에는 별지 참조, #330)", () => {
+    // 서식 칸에는 ‘별지 참조’만 찍고, 글은 그 칸의 별지 묶음에 있다
     const text = (areas: NoteArea[]) =>
       Object.fromEntries(
         dayFields(facility, areas, 0)
           .fields.filter((field) => field.key.startsWith("notes-"))
-          .map((field) => [field.key.slice(6), field.text]),
+          .map((field) => [field.key.slice(6), field.attached?.[0].text ?? ""]),
       );
     const notes = printableItem(facility, "notes")!.value_ko.trim();
     const all = text(allNoteAreas);
