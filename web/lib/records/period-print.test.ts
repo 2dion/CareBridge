@@ -72,6 +72,21 @@ describe("날짜 도우미", () => {
 });
 
 describe("printPeriod", () => {
+  it.each(["draft", "submitted", "returned"] as const)(
+    "%s 기록은 승인한 기록이 있어도 인쇄 항목으로 읽지 않는다(#263)",
+    async (status) => {
+      const deps = fakeDeps(home, [
+        row({ care_date: "2026-10-27", status }),
+        row({ care_date: "2026-10-28" }),
+      ]);
+      const result = await printPeriod("res-1", "2026-10-27", deps);
+      expect(result.status).toBe(200);
+      const body = result.body as { days: { record: unknown; skipped: string }[] };
+      expect(body.days[0]).toMatchObject({ record: null, skipped: "not_approved" });
+      expect(deps.listItems).toHaveBeenCalledWith(["rec-2026-10-28"]);
+    },
+  );
+
   it("재가(제12호)는 7칸: 승인한 날은 기록(인쇄 1건과 같은 모양 + 작성자 이름), 나머지는 뺀 이유", async () => {
     const deps = fakeDeps(home, [
       row({ care_date: "2026-10-27" }),

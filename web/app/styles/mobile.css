@@ -46,7 +46,7 @@
   text-align: center;
 }
 
-.m-app .vi {
+.m-app .native {
   color: var(--color-muted);
 }
 
@@ -330,7 +330,7 @@
   font-size: 16px;
 }
 
-.m-app .radio-row .vi {
+.m-app .radio-row .native {
   font-size: 12px;
 }
 
@@ -441,7 +441,7 @@
   border-top-left-radius: 4px;
 }
 
-.m-app .bubble.bot .vi {
+.m-app .bubble.bot .native {
   font-size: 13px;
 }
 
@@ -549,7 +549,7 @@
   animation: splash-in 0.6s ease-out 0.4s both;
 }
 
-.m-app .splash-skip .vi {
+.m-app .splash-skip .native {
   font-size: 12px;
   font-weight: 400;
 }
@@ -565,7 +565,7 @@
   }
 }
 
-.m-app .field label .vi {
+.m-app .field label .native {
   margin-left: 4px;
   font-size: 12px;
   font-weight: 400;
@@ -618,7 +618,7 @@
   flex-shrink: 0;
 }
 
-.m-app .form-error .vi {
+.m-app .form-error .native {
   display: block;
   font-size: 12px;
 }
@@ -894,7 +894,7 @@
   color: var(--color-highlight);
 }
 
-.m-app .hero .hero-vi {
+.m-app .hero .hero-native {
   margin-top: 4px;
   font-size: 14px;
   font-weight: 500;
@@ -907,7 +907,7 @@
   color: var(--color-sub);
 }
 
-.m-app .hero .desc-vi {
+.m-app .hero .desc-native {
   font-size: 12px;
 }
 
@@ -963,7 +963,7 @@
   font-weight: 700;
 }
 
-.m-app .feature .f-vi {
+.m-app .feature .f-native {
   font-size: 12px;
   font-weight: 500;
 }
@@ -975,7 +975,7 @@
   color: var(--color-sub);
 }
 
-.m-app .feature .p-vi {
+.m-app .feature .p-native {
   font-size: 11px;
 }
 
@@ -996,7 +996,7 @@
   font-weight: 700;
 }
 
-.m-app .tip .f-vi {
+.m-app .tip .f-native {
   display: block;
   font-size: 12px;
   font-weight: 500;
@@ -1009,7 +1009,7 @@
   color: var(--color-sub);
 }
 
-.m-app .tip .p-vi {
+.m-app .tip .p-native {
   font-size: 11px;
 }
 
@@ -1125,7 +1125,7 @@
   font-weight: 700;
 }
 
-.m-app .home-alert .vi {
+.m-app .home-alert .native {
   font-size: 12px;
   color: var(--color-sub);
 }
@@ -1245,7 +1245,7 @@
   color: var(--color-sub);
 }
 
-.m-app .empty .vi {
+.m-app .empty .native {
   font-size: 13px;
 }
 
@@ -1280,7 +1280,7 @@
   font-weight: 700;
 }
 
-.m-app .method .m-vi {
+.m-app .method .m-native {
   font-size: 13px;
 }
 
@@ -1291,7 +1291,7 @@
   color: var(--color-sub);
 }
 
-.m-app .method .p-vi {
+.m-app .method .p-native {
   font-size: 12px;
 }
 
@@ -1317,7 +1317,7 @@
   text-align: center;
 }
 
-.m-app .sheet .s-vi {
+.m-app .sheet .s-native {
   margin-top: -6px;
   font-size: 13px;
   text-align: center;
@@ -1330,7 +1330,7 @@
   color: var(--color-sub);
 }
 
-.m-app .sheet .p-vi {
+.m-app .sheet .p-native {
   margin-top: -8px;
   font-size: 12px;
   text-align: center;
@@ -1362,7 +1362,7 @@
   line-height: 1.45;
 }
 
-.m-app .hint .vi {
+.m-app .hint .native {
   font-size: 12px;
   line-height: 1.4;
 }
@@ -1413,7 +1413,7 @@
   font-weight: 500;
 }
 
-.m-app .step .vi {
+.m-app .step .native {
   font-size: 12px;
 }
 
@@ -1449,7 +1449,7 @@
   font-size: 16px;
 }
 
-.m-app .write-head .vi {
+.m-app .write-head .native {
   font-size: 12px;
 }
 
@@ -1544,7 +1544,7 @@
   color: var(--color-sub);
 }
 
-.m-app .item .vi {
+.m-app .item .native {
   font-size: 12px;
   line-height: 1.4;
 }
@@ -1764,7 +1764,7 @@
   color: var(--color-sub);
 }
 
-.m-app .record .vi {
+.m-app .record .native {
   font-size: 12px;
 }
 
@@ -1808,7 +1808,7 @@
   line-height: 1.5;
 }
 
-.m-app .detail-row .v .vi {
+.m-app .detail-row .v .native {
   display: block;
   font-size: 12px;
 }
@@ -1942,7 +1942,7 @@
   line-height: 1.5;
 }
 
-.m-app .review .vi {
+.m-app .review .native {
   font-size: 13px;
 }
 
@@ -2013,7 +2013,7 @@
   color: var(--color-warn-text);
 }
 
-.m-app .reason-box.big .vi {
+.m-app .reason-box.big .native {
   font-size: 12px;
 }
 
@@ -2025,7 +2025,7 @@
   line-height: 1.5;
 }
 
-.m-app .gray-box .vi {
+.m-app .gray-box .native {
   font-size: 13px;
 }
 
@@ -2047,7 +2047,7 @@
   color: var(--color-primary);
 }
 
-.m-app .said-box .vi {
+.m-app .said-box .native {
   font-size: 13px;
 }
 
@@ -2417,7 +2417,7 @@
   font-size: 14px;
 }
 
-.m-app .state-card .vi {
+.m-app .state-card .native {
   font-size: 12px;
 }
 
@@ -2472,7 +2472,7 @@
   font-size: 14px;
 }
 
-.m-app .view-item .body .vi {
+.m-app .view-item .body .native {
   font-size: 12px;
 }
 
@@ -2482,7 +2482,7 @@
   color: var(--color-muted);
 }
 
-.m-app .foot-note .vi {
+.m-app .foot-note .native {
   display: block;
   font-size: 11px;
 }
@@ -2950,8 +2950,8 @@ body:has(.m-app) {
   gap: 8px;
   font-size: 14px;
 }
-.m-app .consent-details .vi,
-.m-app .consent-table .vi {
+.m-app .consent-details .native,
+.m-app .consent-table .native {
   display: block;
 }
 .m-app .consent-table {

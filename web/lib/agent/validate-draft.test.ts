@@ -475,9 +475,14 @@ describe("검사 7: 식사 섭취량 값 (이슈 #133)", () => {
       detail: { meal_type: "죽", intake },
     });
 
-  it("full / half_or_more / under_half는 통과", () => {
+  it("full / half_or_more / under_half는 통과하고 값·상태를 그대로 둔다 (이슈 #293)", () => {
     for (const intake of INTAKE_VALUES) {
-      expect(codes(withIntake(intake))).toEqual([]);
+      const result = validateDraft(withIntake(intake), FACILITY);
+      const meal = result.fixed?.items.find((i) => i.item_key === "meal");
+      expect(result.problems).toEqual([]);
+      expect(meal?.status).toBe("observed");
+      expect(meal?.detail).toEqual({ meal_type: "죽", intake });
+      expect(result.downgraded).toEqual([]);
     }
   });
 

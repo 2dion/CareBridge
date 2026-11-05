@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W4 · 기록 보기(전송 완료·승인 완료). 읽기만 한다.
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -11,7 +15,7 @@ import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile
 import type { ItemKey } from "@/lib/demo/state";
 import { type RecordItem, getResident, itemLabel, kstTime, lateDays } from "@/lib/demo/store";
 import { recordViewItems } from "@/lib/records/view-order";
-import { capitalizeVi, itemBadge, withNote } from "@/lib/records/item-badge";
+import { capitalizeNative, itemBadge, withNote } from "@/lib/records/item-badge";
 
 const badgeClass = { orange: "badge-orange", green: "badge-green", gray: "badge-gray" } as const;
 
@@ -28,6 +32,7 @@ const itemIcon: Record<ItemKey, IconName> = {
 };
 
 export default function RecordViewPage() {
+  const nativeLanguage = useNativeLanguage();
   const { id } = useParams<{ id: string }>();
   const demo = useDemo();
   const names = useRoleNames();
@@ -43,9 +48,17 @@ export default function RecordViewPage() {
         <div className="pad" style={{ marginTop: 24 }}>
           <Link className="btn btn-primary" href={`/records/${id}`}>
             <span className="label">
-              {record.status === "returned"
-                ? "기록 수정하기 · Sửa bản ghi"
-                : "이어 쓰기 · Viết tiếp"}
+              {record.status === "returned" ? "기록 수정하기" : "이어 쓰기"}
+              {nativeLanguage !== "ko" && (
+                <>
+                  {" "}
+                  ·{" "}
+                  <Native
+                    className=""
+                    id={record.status === "returned" ? "w4.view.edit" : "w4.view.resume"}
+                  />
+                </>
+              )}
             </span>
           </Link>
         </div>
@@ -76,10 +89,10 @@ export default function RecordViewPage() {
               </span>
             )}
           </b>
-          {badge?.vi && (
-            <span className="vi" style={{ display: "block" }}>
-              {badge.vi}
-            </span>
+          {badge?.native && (
+            <Native className="native" style={{ display: "block" }}>
+              {badge.native}
+            </Native>
           )}
           {empty ? (
             <p style={{ color: "var(--color-muted)" }}>
@@ -91,7 +104,7 @@ export default function RecordViewPage() {
                 <p>{item.value_ko}</p>
                 <Listen text={item.value_ko} />
               </div>
-              {item.value_native && <span className="vi">{item.value_native}</span>}
+              {item.value_native && <Native className="native">{item.value_native}</Native>}
             </>
           )}
         </div>
@@ -101,7 +114,11 @@ export default function RecordViewPage() {
 
   return (
     <MobileScreen tab="archive">
-      <AppBar title="기록 보기" vi="Xem bản ghi" back={true} />
+      <AppBar
+        title="기록 보기"
+        native={nativeMessage(nativeLanguage, "w4.view.title")}
+        back={true}
+      />
       <ResidentPill resident={resident} date={record.careDate} />
       <section className="state-card card">
         <span className="check-dot solid">
@@ -114,11 +131,15 @@ export default function RecordViewPage() {
               ? `${names.reviewer}가 검토하고 승인했어요.`
               : `${names.reviewer} 확인을 기다리고 있어요.`}
           </p>
-          <span className="vi">
+          <Native className="native">
             {approved
-              ? `${capitalizeVi(names.reviewerVi)} đã xem xét và duyệt bản ghi.`
-              : `Đang chờ ${names.reviewerVi} xem xét.`}
-          </span>
+              ? nativeMessage(nativeLanguage, "w4.view.approved", {
+                  reviewer: capitalizeNative(names.reviewerNative),
+                })
+              : nativeMessage(nativeLanguage, "w4.view.waiting", {
+                  reviewer: names.reviewerNative,
+                })}
+          </Native>
         </div>
       </section>
       <div className="content-head">
@@ -134,7 +155,9 @@ export default function RecordViewPage() {
           <details className="card" style={{ padding: 14 }}>
             <summary>
               언급 없음 항목 {sections.missing.length}개{" "}
-              <span className="vi">Các mục không được đề cập</span>
+              <Native className="native">
+                {nativeMessage(nativeLanguage, "w4.view.notMentioned")}
+              </Native>
             </summary>
             {sections.missing.map(renderItem)}
           </details>
@@ -142,7 +165,9 @@ export default function RecordViewPage() {
         {!approved && (
           <p className="foot-note">
             {names.reviewer} 검토가 끝나면 기록 상태가 바뀌어요.
-            <span className="vi">Trạng thái sẽ thay đổi sau khi được xem xét.</span>
+            <Native className="native">
+              {nativeMessage(nativeLanguage, "w4.view.statusHint")}
+            </Native>
           </p>
         )}
       </div>

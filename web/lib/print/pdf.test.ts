@@ -13,6 +13,7 @@ import {
 import { describe, expect, it } from "vitest";
 
 import { createDemoDb } from "../demo/store";
+import { addDays } from "../records/period-print";
 import { legalForms, printFields } from "./fields";
 import { createPeriodPdf, createRecordPdf, embedPrintFont, wrapText } from "./pdf";
 
@@ -103,7 +104,7 @@ describe("법정 원문 기록 PDF", () => {
       const from = "2026-10-26";
       const dated = (offset: number) => ({
         ...record,
-        careDate: `2026-10-${String(26 + offset).padStart(2, "0")}`,
+        careDate: addDays(from, offset),
       });
       const template = readFileSync(resolve("public" + legalForms[formType].href));
       const pdf = await createPeriodPdf({
@@ -117,7 +118,7 @@ describe("법정 원문 기록 PDF", () => {
         residentName: "김○○ 어르신",
         org: db.worker.org,
         from,
-        to: `2026-10-${26 + days - 1}`,
+        to: addDays(from, days - 1),
         training: true,
       });
       const loaded = await PDFDocument.load(pdf.bytes);
@@ -145,6 +146,49 @@ describe("법정 원문 기록 PDF", () => {
       }),
     ).rejects.toThrow("승인한 기록");
   });
+
+  it("제12호 7일치 긴 특이사항은 이어쓰기 쪽을 만들고 서식 뒤쪽도 남긴다(#263)", async () => {
+    const record = Object.values(db.records).find(
+      (entry) => entry.formType === "12" && entry.status === "approved",
+    )!;
+    const from = "2026-10-26";
+    const template = readFileSync(resolve("public" + legalForms["12"].href));
+    const original = await PDFDocument.load(template);
+    const pdf = await createPeriodPdf({
+      template,
+      fontBytes,
+      formType: "12",
+      days: Array.from({ length: 7 }, (_, column) => ({
+        column,
+        notesArea: "" as const,
+        record: {
+          ...record,
+          careDate: addDays(from, column),
+          items: record.items.map((item) =>
+            item.item_key === "notes"
+              ? {
+                  ...item,
+                  status: "observed" as const,
+                  resolution: null,
+                  value_ko: "창가에서 쉬면서 대화를 나눔. 물을 드시도록 도움. ".repeat(15),
+                }
+              : item,
+          ),
+        },
+      })),
+      residentName: "가상 어르신",
+      org: db.worker.org,
+      from,
+      to: addDays(from, 6),
+      training: true,
+    });
+    expect(pdf.recordPages).toBeGreaterThan(1);
+    const saved = await PDFDocument.load(pdf.bytes);
+    expect(saved.getPageCount()).toBe(pdf.recordPages + original.getPageCount() - 1);
+    const outputDir = mkdtempSync(resolve(tmpdir(), "carebridge-period-overflow-"));
+    writeFileSync(resolve(outputDir, "overflow.pdf"), pdf.bytes);
+    console.info(`7일치 이어쓰기 확인: ${outputDir}/overflow.pdf`);
+  }, 20_000);
 });
 
 /** 실제 뷰어가 쓰는 CID 폭 표를 읽는다. 폭이 빠졌을 때 PDF 규격 기본값은 1000이다. */

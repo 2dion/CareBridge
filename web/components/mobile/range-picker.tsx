@@ -1,5 +1,8 @@
 "use client";
 
+import { nativeMessage } from "@/lib/i18n/messages";
+import { useNativeLanguage } from "@/components/mobile/native";
+
 // W4 기간 거르기(화면 v1.3, 기록함기간 결정): 아래 모달 달력에서 두 번 눌러 기간을 고른다.
 // 처음 누른 날 = 시작, 다음 누른 날 = 끝. 끝을 고른 뒤 다시 누르면 새 시작. 오늘 뒤는 못 고른다.
 import { useState } from "react";
@@ -45,6 +48,7 @@ export function RangePicker({
   onClose: () => void;
   onApply: (range: DateRange) => void;
 }) {
+  const nativeLanguage = useNativeLanguage();
   const [month, setMonth] = useState(monthStart(initial?.end ?? today));
   const [start, setStart] = useState<string | null>(initial?.start ?? null);
   const [end, setEnd] = useState<string | null>(initial?.end ?? null);
@@ -145,7 +149,11 @@ export function RangePicker({
       >
         <BtnLabel
           ko={range ? `${rangeLabel(range)} 기록 보기` : "날짜를 골라 주세요"}
-          vi={range ? "Xem bản ghi" : "Hãy chọn ngày"}
+          native={
+            range
+              ? nativeMessage(nativeLanguage, "range.title")
+              : nativeMessage(nativeLanguage, "range.pickDate")
+          }
         />
       </button>
     </BottomSheet>

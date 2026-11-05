@@ -554,7 +554,7 @@ describe("actions 도우미 함수", () => {
     expect(actionError("ai_not_configured")).toMatchObject({
       ok: false,
       ko: expect.stringContaining("AI"),
-      vi: expect.stringContaining("AI"),
+      native: expect.stringContaining("AI"),
     });
     expect(actionError("unresolved_needs_check", ["meal"]).items).toEqual(["meal"]);
   });

@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W3 · 내용 수정·내용 추가(수정, 언급 없음 보충).
 // 한국어·베트남어 어느 쪽으로 써도 되고, 실제로는 서버가 이 항목만 한국어 기록체로 다시 쓰고 번역한다(화면 v1.3 W3).
 import { useParams, useRouter } from "next/navigation";
@@ -21,22 +25,47 @@ import {
   workerEditItem,
 } from "@/lib/demo/store";
 
-const examples: Partial<Record<ItemKey, { ko: string; vi: string }>> = {
-  visit_time: { ko: "“두 시부터 다섯 시까지 있었어요.”", vi: "“Tôi ở từ 2 giờ đến 5 giờ.”" },
-  support: { ko: "“목욕을 도와드렸어요.”", vi: "“Tôi đã giúp bác tắm.”" },
-  meal: { ko: "“점심을 절반 정도 드셨어요.”", vi: "“Bác ăn khoảng một nửa bữa trưa.”" },
-  sleep: { ko: "“밤에 자주 깨셨어요.”", vi: "“Đêm qua bác thường xuyên thức giấc.”" },
-  discomfort: { ko: "“무릎이 아프다고 하셨어요.”", vi: "“Bác nói đau đầu gối.”" },
-  cognition: {
-    ko: "“어제보다 날짜를 더 자주 물으셨어요.”",
-    vi: "“Bác hỏi ngày nhiều hơn hôm qua.”",
-  },
-  medication: { ko: "“점심 약을 드시는 걸 봤어요.”", vi: "“Tôi thấy bác uống thuốc buổi trưa.”" },
-  notes: { ko: "“오후에 가족이 면회 왔어요.”", vi: "“Buổi chiều gia đình đến thăm.”" },
-  next_check: { ko: "“내일 식사량을 다시 봐 주세요.”", vi: "“Ngày mai hãy xem lại lượng ăn.”" },
-};
-
 export default function ItemEditPage() {
+  const nativeLanguage = useNativeLanguage();
+  const examples: Partial<Record<ItemKey, { ko: string; native: string }>> = {
+    visit_time: {
+      ko: "“두 시부터 다섯 시까지 있었어요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.visitTime"),
+    },
+    support: {
+      ko: "“목욕을 도와드렸어요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.support"),
+    },
+    meal: {
+      ko: "“점심을 절반 정도 드셨어요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.meal"),
+    },
+    sleep: {
+      ko: "“밤에 자주 깨셨어요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.sleep"),
+    },
+    discomfort: {
+      ko: "“무릎이 아프다고 하셨어요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.discomfort"),
+    },
+    cognition: {
+      ko: "“어제보다 날짜를 더 자주 물으셨어요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.cognition"),
+    },
+    medication: {
+      ko: "“점심 약을 드시는 걸 봤어요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.medication"),
+    },
+    notes: {
+      ko: "“오후에 가족이 면회 왔어요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.notes"),
+    },
+    next_check: {
+      ko: "“내일 식사량을 다시 봐 주세요.”",
+      native: nativeMessage(nativeLanguage, "w3.item.example.nextCheck"),
+    },
+  };
+
   const { id, key } = useParams<{ id: string; key: ItemKey }>();
   const router = useRouter();
   const demo = useDemo();
@@ -48,7 +77,10 @@ export default function ItemEditPage() {
   const actionLock = useActionLock();
   const busy = actionLock.pending !== null;
   const networkNotice = () =>
-    setNotice("인터넷 연결을 확인하고 다시 시도해 주세요. Hãy kiểm tra kết nối mạng rồi thử lại.");
+    setNotice(
+      "인터넷 연결을 확인하고 다시 시도해 주세요. " +
+        nativeMessage(nativeLanguage, "w3.item.networkError"),
+    );
   const status = demo?.db.records[id]?.status;
   const locked = status === "submitted" || status === "approved";
   useEffect(() => {
@@ -85,7 +117,11 @@ export default function ItemEditPage() {
     if (!canApply) return;
     void actionLock
       .run("apply", async () => {
-        setNotice("정리하고 저장하는 중이에요. · Đang sắp xếp và lưu.");
+        setNotice(
+          (nativeLanguage === "ko"
+            ? "정리하고 저장하는 중이에요."
+            : "정리하고 저장하는 중이에요. · ") + nativeMessage(nativeLanguage, "w3.item.saving"),
+        );
         let detail = item.detail;
         if (showMinutes && minutes) {
           const parsed = Object.fromEntries(
@@ -106,7 +142,8 @@ export default function ItemEditPage() {
           // 방문 시작·종료는 records.visit_start·visit_end에 둔다
           if (showTimes && times) {
             const saved = await real.actions.setVisitTime(id, times.start, times.end);
-            if (!saved.ok) return setNotice(`${saved.ko} ${saved.vi}`);
+            if (!saved.ok)
+              return setNotice(`${saved.ko} ${nativeLanguage === "ko" ? "" : saved.native}`);
           }
           const rest = Object.fromEntries(
             Object.entries(detail ?? {}).filter(([k]) => k !== "start" && k !== "end"),
@@ -114,16 +151,21 @@ export default function ItemEditPage() {
           // 글로 쓴 고칠 내용은 음성 보태기와 같이 AI가 그 항목만 다시 정리·번역한다(이슈 #118).
           // 한국어·베트남어 어느 쪽으로 써도 공식 기록 칸은 한국어 기록체가 된다.
           if (text.trim()) {
-            setNotice("정리하고 번역하는 중이에요. · Đang sắp xếp và dịch.");
+            setNotice(
+              "정리하고 번역하는 중이에요. · " +
+                nativeMessage(nativeLanguage, "w3.item.translating"),
+            );
             const rewritten = await real.actions.rewriteItemText(id, key, text.trim());
             if (!rewritten.ok) {
-              return setNotice(`${rewritten.ko} ${rewritten.vi}`);
+              return setNotice(
+                `${rewritten.ko} ${nativeLanguage === "ko" ? "" : rewritten.native}`,
+              );
             }
             // 지원별 분을 같이 고쳤으면 AI 결과 뒤에 덮어써서 직접 넣은 분이 남게 한다
             if (showMinutes && minutes) {
               const saved = await real.actions.patchItem(id, key, { detail: rest });
               if (!saved.ok) {
-                return setNotice(`${saved.ko} ${saved.vi}`);
+                return setNotice(`${saved.ko} ${nativeLanguage === "ko" ? "" : saved.native}`);
               }
             }
             router.push(back);
@@ -135,7 +177,8 @@ export default function ItemEditPage() {
             ...(detail ? { detail: rest } : {}),
             confirmed_by_worker: true,
           });
-          if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
+          if (!result.ok)
+            return setNotice(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
           router.push(back);
           return;
         }
@@ -156,10 +199,14 @@ export default function ItemEditPage() {
             blob = recorder.blob();
           }
           if (!blob) return setNotice("녹음을 찾지 못했어요. 다시 말해 주세요.");
-          setNotice("올리는 중이에요. · Đang tải lên.");
+          setNotice(
+            (nativeLanguage === "ko" ? "올리는 중이에요." : "올리는 중이에요. · ") +
+              nativeMessage(nativeLanguage, "w3.item.uploading"),
+          );
           // 이 항목만 다시 쓴다(③ 항목 보태기, save_ai_item item)
           const result = await demo.real.actions.sendItemVoice(id, key, blob);
-          if (!result.ok) return setNotice(`${result.ko} ${result.vi}`);
+          if (!result.ok)
+            return setNotice(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
           recorder.discard();
           router.push(back);
           return;
@@ -186,7 +233,11 @@ export default function ItemEditPage() {
     <MobileScreen tab="today">
       <AppBar
         title={missing ? "내용 추가" : "내용 수정"}
-        vi={missing ? "Thêm nội dung" : "Sửa nội dung"}
+        native={
+          missing
+            ? nativeMessage(nativeLanguage, "w3.item.add")
+            : nativeMessage(nativeLanguage, "w3.item.edit")
+        }
         back={busy ? undefined : back}
       />
       <ResidentPill resident={resident} date={record.careDate} />
@@ -218,13 +269,13 @@ export default function ItemEditPage() {
               <div className="review-head">
                 <div>
                   <b>아직 {label.ko} 내용이 기록되지 않았어요.</b>
-                  <span className="vi" style={{ display: "block", fontSize: 12 }}>
-                    Chưa có nội dung về mục này.
-                  </span>
+                  <Native className="native" style={{ display: "block", fontSize: 12 }}>
+                    {nativeMessage(nativeLanguage, "w3.item.empty")}
+                  </Native>
                 </div>
               </div>
               <p style={{ fontSize: 13 }}>기억나는 내용이 있다면 보충해 주세요.</p>
-              <span className="vi">Nếu nhớ, hãy bổ sung thông tin.</span>
+              <Native className="native">{nativeMessage(nativeLanguage, "w3.item.addHint")}</Native>
             </section>
             {examples[key] && (
               <div className="said-box">
@@ -232,7 +283,7 @@ export default function ItemEditPage() {
                 <b style={{ fontSize: 17, color: "var(--color-text)", marginTop: 6 }}>
                   {examples[key].ko}
                 </b>
-                <span className="vi">{examples[key].vi}</span>
+                <Native className="native">{examples[key].native}</Native>
               </div>
             )}
           </>
@@ -249,15 +300,14 @@ export default function ItemEditPage() {
                 // AI가 '확인 필요'로 두면서 내용을 비워 둔 경우: 빈 문단 대신 그 사실을 알린다(이슈 #141, 서버 검사는 #162)
                 <>
                   <p>AI가 내용을 정하지 못했어요. 확인 이유를 보고 고칠 내용을 써 주세요.</p>
-                  <span className="vi">
-                    AI chưa xác định được nội dung. Hãy xem lý do cần kiểm tra và viết nội dung cần
-                    sửa.
-                  </span>
+                  <Native className="native">
+                    {nativeMessage(nativeLanguage, "w3.item.needsCheckHint")}
+                  </Native>
                 </>
               ) : (
                 <>
                   <p>{item.value_ko}</p>
-                  {item.value_native && <span className="vi">{item.value_native}</span>}
+                  {item.value_native && <Native className="native">{item.value_native}</Native>}
                 </>
               )}
             </section>
@@ -349,9 +399,9 @@ export default function ItemEditPage() {
         {(recorder.state === "denied" || recorder.state === "unsupported") && (
           <div className="reason-box" role="alert">
             <b>마이크를 쓸 수 없어요. 글로 적어 주세요.</b>
-            <span className="vi" style={{ display: "block" }}>
-              Không dùng được micrô. Hãy viết trực tiếp.
-            </span>
+            <Native className="native" style={{ display: "block" }}>
+              {nativeMessage(nativeLanguage, "w3.item.microphoneUnavailable")}
+            </Native>
           </div>
         )}
         {notice && (
@@ -379,7 +429,11 @@ export default function ItemEditPage() {
                     ? "말로 보충"
                     : "다시 말하기"
             }
-            vi={busy ? "Đang xử lý" : "Nói lại"}
+            native={
+              busy
+                ? nativeMessage(nativeLanguage, "w3.item.processing")
+                : nativeMessage(nativeLanguage, "w3.item.speakAgain")
+            }
           />
         </button>
         <button
@@ -393,7 +447,11 @@ export default function ItemEditPage() {
             ko={
               actionLock.pending === "apply" ? "저장 중" : missing ? "내용 적용" : "수정 내용 적용"
             }
-            vi={actionLock.pending === "apply" ? "Đang lưu" : "Áp dụng"}
+            native={
+              actionLock.pending === "apply"
+                ? nativeMessage(nativeLanguage, "w3.item.savingButton")
+                : nativeMessage(nativeLanguage, "w3.item.apply")
+            }
           />
         </button>
       </div>

@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,6 +28,7 @@ export default function HelperHistoryPage() {
 }
 
 function ConversationList() {
+  const nativeLanguage = useNativeLanguage();
   const demo = useDemo()!;
   const actions = demo.real?.actions;
   const userId = demo.real?.userId ?? MOCK_HELPER_USER;
@@ -124,7 +129,11 @@ function ConversationList() {
 
   return (
     <MobileScreen tab="helper">
-      <AppBar title="이전 대화" vi="Trò chuyện trước" back={back} />
+      <AppBar
+        title="이전 대화"
+        native={nativeMessage(nativeLanguage, "w6.history.title")}
+        back={back}
+      />
       <div className="helper-history-list">
         {page.status === "loading" && (
           <div role="status" aria-label="대화 목록 불러오는 중">
@@ -156,9 +165,12 @@ function ConversationList() {
         {page.status === "done" && page.conversations.length === 0 && (
           <div className="empty">
             <p>아직 대화가 없어요.</p>
-            <span className="vi">Chưa có cuộc trò chuyện nào.</span>
+            <Native className="native">{nativeMessage(nativeLanguage, "w6.history.empty")}</Native>
             <Link className="btn btn-primary" href="/helper?new=1">
-              <BtnLabel ko="질문하러 가기" vi="Đặt câu hỏi" />
+              <BtnLabel
+                ko="질문하러 가기"
+                native={nativeMessage(nativeLanguage, "w6.history.ask")}
+              />
             </Link>
           </div>
         )}
@@ -166,7 +178,9 @@ function ConversationList() {
           <div className="form-error box" role="alert">
             <div>
               <b>대화 목록을 불러오지 못했어요.</b>
-              <span className="vi">Không thể tải danh sách cuộc trò chuyện.</span>
+              <Native className="native">
+                {nativeMessage(nativeLanguage, "w6.history.error")}
+              </Native>
               <button
                 type="button"
                 className="btn btn-outline btn-sm"
@@ -179,14 +193,20 @@ function ConversationList() {
                   loadPage(page.conversations.length ? (page.next_before ?? undefined) : undefined);
                 }}
               >
-                <BtnLabel ko="다시 불러오기" vi="Tải lại" />
+                <BtnLabel
+                  ko="다시 불러오기"
+                  native={nativeMessage(nativeLanguage, "w6.history.reload")}
+                />
               </button>
             </div>
           </div>
         )}
         {page.loadingMore && (
           <p role="status">
-            대화를 더 불러오는 중이에요.<span className="vi">Đang tải thêm cuộc trò chuyện…</span>
+            대화를 더 불러오는 중이에요.
+            <Native className="native">
+              {nativeMessage(nativeLanguage, "w6.history.loadingMore")}
+            </Native>
           </p>
         )}
         {page.next_before && page.status === "done" && (
@@ -196,7 +216,10 @@ function ConversationList() {
             disabled={page.loadingMore}
             onClick={loadMore}
           >
-            <BtnLabel ko="이전 대화 더 보기" vi="Xem thêm cuộc trò chuyện" />
+            <BtnLabel
+              ko="이전 대화 더 보기"
+              native={nativeMessage(nativeLanguage, "w6.history.more")}
+            />
           </button>
         )}
         <div ref={sentinel} aria-hidden="true" />

@@ -70,7 +70,7 @@ export function supportMinutesPatch(target: SupportCheckTarget): SupportCheckPat
   const { reasons } = checkSupportMinutes(support.detail, target.visitMinutes);
   const givenKo = splitReasons(support.reason);
   const keptKo = givenKo.filter((part) => !isServerReason(part));
-  const keptVi = splitReasons(support.reason_native).filter((part) => !isServerReason(part));
+  const keptNative = splitReasons(support.reason_native).filter((part) => !isServerReason(part));
 
   let next: SupportCheckPatch;
   if (reasons.length > 0) {
@@ -78,7 +78,7 @@ export function supportMinutesPatch(target: SupportCheckTarget): SupportCheckPat
       status: "needs_check",
       reason: [...keptKo, ...reasons].join("; "),
       reason_native: [
-        ...keptVi,
+        ...keptNative,
         ...reasons.map((reason) => reasonTranslation(reason, target.nativeLang)),
       ]
         .filter(Boolean)
@@ -89,7 +89,7 @@ export function supportMinutesPatch(target: SupportCheckTarget): SupportCheckPat
     next = {
       status: keptKo.length === 0 && support.value_ko.trim() ? "observed" : support.status,
       reason: keptKo.join("; "),
-      reason_native: keptVi.join("; "),
+      reason_native: keptNative.join("; "),
     };
   }
   const same =

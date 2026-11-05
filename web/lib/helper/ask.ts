@@ -84,7 +84,7 @@ export function isValidHelperQuestion(body: unknown): boolean {
 export function notFoundAnswer(names: RoleNames = roleNames(false)): HelperAnswer {
   return {
     ko: `교재에서 찾지 못했어요. ${names.reviewer}에게 물어보세요.`,
-    native: `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${names.reviewerVi}.`,
+    native: `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${names.reviewerNative}.`,
     source: null,
     found: false,
   };
@@ -97,7 +97,7 @@ export const NOT_FOUND: HelperAnswer = notFoundAnswer();
 export function safetyNotice(names: RoleNames = roleNames(false)) {
   return {
     ko: `${names.reviewer}에게 바로 보고하세요.`,
-    native: `Hãy báo ngay cho ${names.reviewerVi}.`,
+    native: `Hãy báo ngay cho ${names.reviewerNative}.`,
   };
 }
 
