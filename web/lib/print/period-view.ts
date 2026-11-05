@@ -2,7 +2,7 @@
 import type { CareType, DemoDb, DemoRecord } from "@/lib/demo/store";
 import { applyPrintData, type PrintData } from "@/lib/real/map";
 import { addDays, daysBetween } from "@/lib/records/period-print";
-import { legalForms, printableItem, type NoteArea } from "./fields";
+import { allNoteAreas, legalForms, printableItem, type NoteArea } from "./fields";
 
 export type PeriodView = {
   residentId: string;
@@ -111,12 +111,20 @@ export function serverPeriod(data: PeriodResponse): PeriodView {
     }),
   };
 }
-export function missingAreas(view: PeriodView, areas: Record<string, NoteArea | "">) {
+/** 날짜별 고른 영역. 아직 건드리지 않은 날은 4개 모두(이슈 #321) */
+export function areasOf(areas: Record<string, NoteArea[]>, date: string): NoteArea[] {
+  return areas[date] ?? allNoteAreas;
+}
+
+/** 특이사항이 있는데 영역을 모두 끈 날이 있으면 true */
+export function missingAreas(view: PeriodView, areas: Record<string, NoteArea[]>) {
   return (
     view.formType === "16" &&
     view.days.some(
       (day) =>
-        day.record && printableItem(day.record, "notes")?.value_ko.trim() && !areas[day.date],
+        day.record &&
+        printableItem(day.record, "notes")?.value_ko.trim() &&
+        areasOf(areas, day.date).length === 0,
     )
   );
 }
