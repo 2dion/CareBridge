@@ -291,11 +291,10 @@ function HelperChat({
           {names.reviewerNative}.
         </Native>
         <span>
-          질문과 답은 저장되고 {names.reviewer}가 볼 수 있어요. 어르신·가족 실명은 쓰지 마세요.
+          질문과 답은 서버에 저장돼 나중에 다시 볼 수 있어요. 어르신·가족 실명은 쓰지 마세요.
         </span>
-        <Native className="native" requiredIds={["w6.savedHintPrefix", "w6.savedHintSuffix"]}>
-          {nativeMessage(nativeLanguage, "w6.savedHintPrefix")}
-          {names.reviewerNative} {nativeMessage(nativeLanguage, "w6.savedHintSuffix")}
+        <Native className="native" requiredIds={["w6.savedHint"]}>
+          {nativeMessage(nativeLanguage, "w6.savedHint")}
         </Native>
       </div>
       <div className="chat" aria-live="polite">

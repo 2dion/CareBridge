@@ -45,7 +45,7 @@ export const vi = {
     "Soạn bản nháp, dịch, quản lý xem xét và duyệt, trả lời trợ lý và hỗ trợ học tập, công việc. Chỉ người trong cùng cơ sở xem được",
   "privacy.data.title": "Thông tin thu thập",
   "privacy.data.body":
-    "Tên, email, ngôn ngữ, văn bản từ ghi âm, nội dung ghi chép, câu hỏi và câu trả lời của trợ lý (người quản lý, giảng viên có thể xem). Lưu tên thật và ảnh tùy chọn của người cao tuổi để nhận diện, không thêm vào dữ liệu gửi AI. Không ghi tên thật trong nội dung quan sát",
+    "Tên, email, ngôn ngữ, văn bản từ ghi âm, nội dung ghi chép, câu hỏi và câu trả lời của trợ lý. Lưu tên thật và ảnh tùy chọn của người cao tuổi để nhận diện, không thêm vào dữ liệu gửi AI. Không ghi tên thật trong nội dung quan sát",
   "privacy.retention.title": "Thời gian lưu",
   "privacy.retention.body":
     "Đến khi xóa tài khoản. Ghi chép đã duyệt lưu theo thời hạn luật định. Tệp ghi âm bị xóa ngay sau khi chuyển thành chữ. Ảnh cũ bị xóa khi thay hoặc xóa ảnh",
@@ -97,8 +97,8 @@ export const vi = {
   "w6.newConversation": "Cuộc trò chuyện mới",
   "w6.previousConversations": "Trò chuyện trước",
   "w6.safetyHint": "Khi có vấn đề sức khỏe hoặc an toàn, hãy báo ",
-  "w6.savedHintPrefix": "Câu hỏi và câu trả lời được lưu lại, ",
-  "w6.savedHintSuffix": " có thể xem. Đừng ghi tên thật của người cao tuổi và gia đình.",
+  "w6.savedHint":
+    "Câu hỏi và câu trả lời được lưu trên máy chủ để bạn xem lại sau. Đừng ghi tên thật của người cao tuổi và gia đình.",
   "w6.loading": "Đang tải cuộc trò chuyện…",
   "w6.loadError": "Không thể tải cuộc trò chuyện trước đó.",
   "w6.reload": "Tải lại",

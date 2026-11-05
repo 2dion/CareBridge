@@ -62,7 +62,7 @@ export const en = {
     "Care record drafting, translation, review and approval, helper answers, and learning and work support. Only people in the same organization can view the information.",
   "privacy.data.title": "Information collected",
   "privacy.data.body":
-    "Name, email, language, transcribed audio, care records, and helper questions and answers (reviewers and instructors can read them). Older people’s real names and optional photos are stored for identification and are not sent to AI. Real names are excluded from observations.",
+    "Name, email, language, transcribed audio, care records, and helper questions and answers. Older people’s real names and optional photos are stored for identification and are not sent to AI. Real names are excluded from observations.",
   "privacy.retention.title": "Retention",
   "privacy.retention.body":
     "Until account deletion. Approved care records are retained for the legally required period. Audio is deleted immediately after transcription. Previous photos are deleted when replaced or removed.",
