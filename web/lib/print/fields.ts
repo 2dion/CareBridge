@@ -21,10 +21,18 @@ export type PrintField = {
   width: number;
   height: number;
   flow?: boolean;
-  /** 긴 글(flow) 칸의 이름. 칸을 넘친 글을 이어쓰기 쪽에 찍을 때 제목으로 쓴다(이슈 #317) */
+  /** 긴 글 칸의 이름. 그 칸의 글을 별지에 찍을 때 제목으로 쓴다(이슈 #317, #330) */
   label?: string;
+  /** 칸을 넘친 글을 별지에 찍을 때 함께 적는 작성자 이름 */
+  writer?: string;
+  /** 특이사항 칸: 서식 칸에는 text(‘별지 참조’)만 찍고, 이 묶음을 서식 뒤 별지에 찍는다(이슈 #330) */
+  attached?: AttachedNote[];
 };
 export type PrintMark = { x: number; top: number };
+/** 특이사항 칸에 찍는 글. 글 전체는 서식 뒤 별지에 찍는다(결정 2026-11-05-특이사항별지참조, 이슈 #330) */
+export const SEE_ATTACHED = "별지 참조";
+/** 별지에 찍을 글 한 묶음: 칸 이름(날짜 포함), 그 칸의 글 전체, 작성자 이름(기록에 없으면 undefined) */
+export type AttachedNote = { label: string; text: string; writer?: string };
 
 export const legalForms = {
   "16": { href: "/forms/form-16-2019-09-27.pdf", revised: "2019. 9. 27.", days: 3 },
@@ -142,17 +150,18 @@ type FieldSink = {
     height?: number,
     flow?: boolean,
     label?: string,
+    extra?: Pick<PrintField, "writer" | "attached">,
   ) => void;
 };
 
 function sink(fields: PrintField[], dx = 0, right = Infinity): FieldSink {
   return {
     fields,
-    add(key, text, x, top, width, height = 11, flow = false, label) {
+    add(key, text, x, top, width, height = 11, flow = false, label, extra) {
       // 좁은 열(제16호 2번째)에서는 칸 오른쪽 경계를 넘지 않게 너비를 줄인다
       const shifted = x + dx;
       const clipped = Math.min(width, right - shifted - 2);
-      const named = label ? { label } : {};
+      const named = { ...(label ? { label } : {}), ...extra };
       if (typeof text === "string" && text.trim())
         fields.push({
           key,
@@ -204,7 +213,7 @@ export function headerFields(
 export type DayFields = {
   fields: PrintField[];
   marks: PrintMark[];
-  /** 제12호 특이사항 글(한 장에 하나인 가로 칸이라 날짜 열 밖). 제16호는 빈값 */
+  /** 제12호 특이사항 글(한 장에 하나인 가로 칸이라 날짜 열 밖). 넣는 쪽이 별지 묶음으로 만든다. 제16호는 빈값 */
   notesText: string;
 };
 
@@ -290,7 +299,8 @@ export function toiletCountOf(record: DemoRecord): number | undefined {
 
 /**
  * 기록 1건의 날짜 열 값: 월/일, 체크, 분, 변화상태, 제16호 특이사항 영역. column(0부터)번째 열 좌표로 옮긴다.
- * 제12호 특이사항은 열 밖 가로 칸이라 글만 돌려주고(notesText), 넣는 쪽이 날짜를 붙여 잇는다.
+ * 제12호 특이사항은 열 밖 가로 칸이라 글만 돌려주고(notesText), 넣는 쪽이 날짜를 붙여 별지 묶음으로 만든다.
+ * 특이사항 칸에는 ‘별지 참조’만 찍고 글 전체는 별지로 보낸다(결정 2026-11-05-특이사항별지참조, 이슈 #330).
  */
 export function dayFields(record: DemoRecord, notesAreas: NoteArea[], column = 0): DayFields {
   const formType = record.formType;
@@ -354,21 +364,19 @@ export function dayFields(record: DemoRecord, notesAreas: NoteArea[], column = 0
       health: { top: 611.5, height: 13 },
       rehab: { top: 718, height: 14 },
     };
-    // 원문 특이사항 칸은 날짜 열마다 한두 줄뿐이다. 넘친 글은 이어쓰기 쪽에 날짜·칸 이름과 함께 찍는다(이슈 #317)
+    // 원문 특이사항 칸은 날짜 열마다 한두 줄뿐이다. 글이 있으면 길이와 상관없이 칸에는 ‘별지 참조’만 찍고,
+    // 글 전체는 날짜·칸 이름·작성자와 함께 별지에 찍는다. 글이 없으면 칸을 비운다(이슈 #330)
     const dated = `${Number(month)}/${Number(day)}`;
+    const writer = record.workerName;
     for (const { key, label } of noteAreas) {
       const text = [...new Set(areaValues[key].filter(Boolean))].join(" ");
-      add(
-        `notes-${key}`,
-        text,
-        156,
-        tops[key].top,
-        120,
-        tops[key].height,
-        true,
-        `${dated} ${label} 특이사항`,
-      );
+      if (!text) continue;
+      const name = `${dated} ${label} 특이사항`;
+      add(`notes-${key}`, SEE_ATTACHED, 156, tops[key].top, 120, tops[key].height, false, name, {
+        attached: [{ label: name, text, writer }],
+      });
     }
+    // 특이사항이 아닌 긴 글 칸은 지금처럼 칸에 찍고, 넘칠 때만 별지로 잇는다(이슈 #317)
     add(
       "stay",
       value("visit_time"),
@@ -378,6 +386,7 @@ export function dayFields(record: DemoRecord, notesAreas: NoteArea[], column = 0
       34,
       true,
       `${dated} 입·퇴소 시간, 외박 및 복귀 시간, 외출 시간`,
+      { writer },
     );
     return { fields, marks, notesText: "" };
   }
@@ -467,9 +476,23 @@ export function dayFields(record: DemoRecord, notesAreas: NoteArea[], column = 0
   return { fields, marks, notesText: [...new Set(details.filter(Boolean))].join(" ") };
 }
 
-/** 제12호 특이사항 가로 칸(한 장에 하나) */
-function form12Notes(fields: PrintField[], text: string) {
-  sink(fields).add("notes", text, 143, 639, 391, 24, true, "특이사항");
+/** 별지 묶음의 날짜 표시: 2026-11-03 → 11/3 */
+const monthDay = (careDate: string) => {
+  const [, month, day] = careDate.split("-");
+  return `${Number(month)}/${Number(day)}`;
+};
+
+/** 제12호 특이사항 묶음 하나(날짜마다). 글이 없으면 만들지 않는다 */
+const form12Attached = (record: DemoRecord, text: string): AttachedNote[] =>
+  text ? [{ label: `${monthDay(record.careDate)} 특이사항`, text, writer: record.workerName }] : [];
+
+/**
+ * 제12호 특이사항 가로 칸(한 장에 하나). 글이 있으면 칸에는 ‘별지 참조’만 찍고,
+ * 날짜별 묶음은 별지로 보낸다. 글이 없으면 칸을 비운다(이슈 #330)
+ */
+function form12Notes(fields: PrintField[], attached: AttachedNote[]) {
+  if (attached.length === 0) return;
+  sink(fields).add("notes", SEE_ATTACHED, 143, 639, 391, 24, false, "특이사항", { attached });
 }
 
 /** 기록 1건 = 1장(첫 날짜 열). 기존 M3 [인쇄·PDF] */
@@ -482,7 +505,7 @@ export function printFields(
   const [year] = record.careDate.split("-");
   const day = dayFields(record, notesAreas, 0);
   const fields = [...headerFields(record.formType, residentName, org, year), ...day.fields];
-  if (record.formType === "12") form12Notes(fields, day.notesText);
+  if (record.formType === "12") form12Notes(fields, form12Attached(record, day.notesText));
   return { fields, marks: day.marks };
 }
 
@@ -496,7 +519,8 @@ export type PeriodDay = {
 
 /**
  * 기간 인쇄(M3 · 기간 인쇄): 승인한 기록 여러 날을 한 장의 날짜 열에 모은다. 머리말은 한 번, 연도는 시작 날짜의 연도.
- * 제12호 특이사항은 가로 칸 하나에 `11/3 …`처럼 날짜를 앞에 붙여 날짜 순으로 잇는다(결정 2026-11-03-기간인쇄 7·8번).
+ * 제12호 특이사항은 가로 칸 하나에 ‘별지 참조’만 찍고, 별지에 `[11/3 특이사항]`처럼 날짜마다 한 묶음씩 날짜 순으로 찍는다
+ * (결정 2026-11-05-특이사항별지참조, 이슈 #330. 기간인쇄 7·8번의 ‘날짜를 붙여 잇기’를 대체).
  */
 export function periodFields(
   formType: LegalFormType,
@@ -508,18 +532,15 @@ export function periodFields(
   const [year] = from.split("-");
   const fields = headerFields(formType, residentName, org, year);
   const marks: PrintMark[] = [];
-  const notes: string[] = [];
+  const notes: AttachedNote[] = [];
   for (const day of [...days].sort((a, b) => a.column - b.column)) {
     if (day.record.formType !== formType)
       throw new Error(`별지 제${formType}호에 다른 서식의 기록을 넣을 수 없습니다.`);
     const filled = dayFields(day.record, day.notesAreas, day.column);
     fields.push(...filled.fields);
     marks.push(...filled.marks);
-    if (filled.notesText) {
-      const [, month, dayOfMonth] = day.record.careDate.split("-");
-      notes.push(`${Number(month)}/${Number(dayOfMonth)} ${filled.notesText}`);
-    }
+    notes.push(...form12Attached(day.record, filled.notesText));
   }
-  if (formType === "12") form12Notes(fields, notes.join(" "));
+  if (formType === "12") form12Notes(fields, notes);
   return { fields, marks };
 }
