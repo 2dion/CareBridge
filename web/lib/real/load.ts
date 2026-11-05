@@ -92,7 +92,7 @@ export async function loadRealDb(
       supabase
         .from("records")
         .select(
-          "id, resident_id, worker_id, care_date, form_type, status, transcript, transcript_ko, visit_start, visit_end, form_fields, return_reason, return_reason_native, submitted_at, approved_at, approved_by, created_at",
+          "id, resident_id, worker_id, native_lang, care_date, form_type, status, transcript, transcript_ko, visit_start, visit_end, form_fields, return_reason, return_reason_native, submitted_at, approved_at, approved_by, created_at",
         ),
     ),
     rows<NoCareRow>(

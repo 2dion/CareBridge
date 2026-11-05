@@ -43,6 +43,7 @@ export type AssignmentRow = {
   schedule: string;
 };
 export type RecordRow = {
+  native_lang?: string;
   id: string;
   resident_id: string;
   worker_id: string;
@@ -365,6 +366,7 @@ export function mapRecord(
   const formFields = pickFormFields(row.form_fields);
   return {
     id: row.id,
+    nativeLang: parseNativeLang(row.native_lang),
     residentId: row.resident_id,
     careDate: row.care_date,
     formType: row.form_type === 12 ? "12" : "16",
@@ -469,6 +471,7 @@ export function toDemoDb(rows: RealRows, today: string): DemoDb {
       name: isWorker ? rows.profile.name : (firstWorker?.name ?? ""),
       email: isWorker ? rows.profile.email : "",
       org: rows.profile.org_name,
+      nativeLang: parseNativeLang(rows.profile.native_lang),
     },
     reviewer: { name: isWorker ? "" : rows.profile.name },
     onboarded: rows.profile.onboarded,

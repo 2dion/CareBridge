@@ -72,16 +72,22 @@ export function TabBar({ active }: { active: TabKey | null }) {
   );
 }
 
-/** 화면 틀의 베트남어(제목·일반 버튼). 병기 원칙이면 숨긴다. */
+/** 화면 틀의 모국어(제목·일반 버튼). 병기 원칙이면 숨긴다. */
 export function FrameNative({
   children,
   className = "native",
+  requiredIds,
 }: {
   children: ReactNode;
   className?: string;
+  requiredIds?: readonly string[];
 }) {
   if (!SHOW_FRAME_NATIVE) return null;
-  return <Native className={className}>{children}</Native>;
+  return (
+    <Native className={className} requiredIds={requiredIds}>
+      {children}
+    </Native>
+  );
 }
 
 export function AppBar({
@@ -95,7 +101,7 @@ export function AppBar({
   title: string;
   native?: string;
   nativeId?: MessageId;
-  /** 병기 원칙 예외 화면(W0·A1·A2)이면 베트남어를 늘 보인다. */
+  /** 병기 원칙 예외 화면(W0·A1·A2)이면 고른 모국어를 병기한다. */
   nativeAlways?: boolean;
   /** 링크 주소, 함수, 또는 true면 브라우저 뒤로 */
   back?: string | true | (() => void);
@@ -103,7 +109,7 @@ export function AppBar({
 }) {
   const router = useRouter();
   const lang = useNativeLanguage();
-  const translation = nativeId ? nativeMessage(nativeAlways ? "vi" : lang, nativeId) : native;
+  const translation = nativeId ? nativeMessage(lang, nativeId) : native;
   return (
     <header className="app-bar">
       <div className="side">
@@ -125,7 +131,7 @@ export function AppBar({
         <strong>{title}</strong>
         {translation &&
           (nativeAlways ? (
-            <Native language="vi">{translation}</Native>
+            <Native>{translation}</Native>
           ) : (
             <FrameNative>{translation}</FrameNative>
           ))}

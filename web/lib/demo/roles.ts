@@ -1,3 +1,4 @@
+import { DEFAULT_NATIVE_LANG, type NativeLang } from "@/lib/i18n/languages";
 import { nativeMessage } from "@/lib/i18n/messages";
 
 // 화면에 보이는 역할 이름. 역할 값(worker·reviewer)과 권한은 그대로고 글자만 다르다(이슈 #125, #146).
@@ -26,7 +27,10 @@ export type RoleNames = {
   training: boolean;
 };
 
-export function roleNames(training: boolean): RoleNames {
+export function roleNames(
+  training: boolean,
+  language: NativeLang = DEFAULT_NATIVE_LANG,
+): RoleNames {
   return training
     ? {
         worker: "교육생",
@@ -34,9 +38,9 @@ export function roleNames(training: boolean): RoleNames {
         workerObject: "교육생을",
         workerTopic: "교육생은",
         workerAs: "교육생으로",
-        workerNative: nativeMessage("vi", "roles.trainee"),
+        workerNative: nativeMessage(language, "roles.trainee"),
         reviewer: "강사",
-        reviewerNative: nativeMessage("vi", "roles.trainer"),
+        reviewerNative: nativeMessage(language, "roles.trainer"),
         training: true,
       }
     : {
@@ -45,20 +49,23 @@ export function roleNames(training: boolean): RoleNames {
         workerObject: "작성자를",
         workerTopic: "작성자는",
         workerAs: "작성자로",
-        workerNative: nativeMessage("vi", "roles.worker"),
+        workerNative: nativeMessage(language, "roles.worker"),
         reviewer: "관리자",
-        reviewerNative: nativeMessage("vi", "roles.reviewer"),
+        reviewerNative: nativeMessage(language, "roles.reviewer"),
         training: false,
       };
 }
 
 /** 로그인 전(A1·A2)처럼 어느 기관인지 모를 때 둘을 함께 말하는 이름(용어집 v1.0: '작성자(교육생)', '관리자(강사)') */
-export const ROLE_NAMES_BOTH = {
-  worker: "작성자(교육생)",
-  workerNative: nativeMessage("vi", "roles.workerBoth"),
-  reviewer: "관리자(강사)",
-  reviewerNative: nativeMessage("vi", "roles.reviewerBoth"),
-} as const;
+export const roleNamesBoth = (language: NativeLang) =>
+  ({
+    worker: "작성자(교육생)",
+    workerNative: nativeMessage(language, "roles.workerBoth"),
+    reviewer: "관리자(강사)",
+    reviewerNative: nativeMessage(language, "roles.reviewerBoth"),
+  }) as const;
+
+export const ROLE_NAMES_BOTH = roleNamesBoth(DEFAULT_NATIVE_LANG);
 
 /** 모든 화면 상단 띠·인쇄 표시 글자(화면 v1.3 '교육용 기관에서 달라지는 점') */
 export const TRAINING_BAND = "연습용 · 합성 사례";

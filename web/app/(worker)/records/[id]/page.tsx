@@ -329,7 +329,9 @@ export default function DraftPage() {
             <b>수정 요청 사유</b>
             {record.returnReason}
             {record.returnReasonNative && (
-              <Native className="native">{record.returnReasonNative}</Native>
+              <Native className="native" recordLanguage={record.nativeLang ?? "ko"}>
+                {record.returnReasonNative}
+              </Native>
             )}
             <span style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 4 }}>
               {record.returnedBy}
@@ -344,7 +346,7 @@ export default function DraftPage() {
             </span>
             <span className="stack">
               <b>{total}개 모두 봤어요</b>
-              <FrameNative>
+              <FrameNative requiredIds={["w3.allConfirmedPrefix", "w3.allConfirmedSuffix"]}>
                 {nativeMessage(nativeLanguage, "w3.allConfirmedPrefix")}
                 {total} {nativeMessage(nativeLanguage, "w3.allConfirmedSuffix")}
               </FrameNative>
@@ -362,7 +364,7 @@ export default function DraftPage() {
               <b>
                 {total}개 중 {doneCount}개 봤어요
               </b>
-              <FrameNative>
+              <FrameNative requiredIds={["w3.confirmedPrefix", "w3.confirmedSuffix"]}>
                 {nativeMessage(nativeLanguage, "w3.confirmedPrefix")}
                 {doneCount}/{total} {nativeMessage(nativeLanguage, "w3.confirmedSuffix")}
               </FrameNative>
@@ -411,7 +413,7 @@ export default function DraftPage() {
         {needsLeft > 0 && (
           <p className="foot-note">
             ‘확인 필요’가 남아 있어도 보낼 수 있어요. {names.reviewer}가 정해요.
-            <Native className="native">
+            <Native className="native" requiredIds={["w3.needsCheckPrefix", "w3.needsCheckSuffix"]}>
               {nativeMessage(nativeLanguage, "w3.needsCheckPrefix")}
               {capitalizeNative(names.reviewerNative)}{" "}
               {nativeMessage(nativeLanguage, "w3.needsCheckSuffix")}
@@ -611,7 +613,11 @@ function ItemCard({
             <p>{item.value_ko}</p>
             <Listen text={item.value_ko} />
           </div>
-          {item.value_native && <Native className="native">{item.value_native}</Native>}
+          {item.value_native && (
+            <Native className="native" recordLanguage={record.nativeLang ?? "ko"}>
+              {item.value_native}
+            </Native>
+          )}
         </>
       )}
       {item.before_ko && item.source === "reviewer" && (
@@ -622,7 +628,11 @@ function ItemCard({
       {item.source === "reviewer" && !item.confirmed_by_worker && (
         <span style={{ fontSize: 12, color: "var(--color-warn-text)" }}>
           {names.reviewer}가 고쳤어요. 맞는지 확인해 주세요.
-          <Native className="native" style={{ display: "block" }}>
+          <Native
+            className="native"
+            style={{ display: "block" }}
+            requiredIds={["w3.reviewerChangedSuffix"]}
+          >
             {capitalizeNative(names.reviewerNative)}{" "}
             {nativeMessage(nativeLanguage, "w3.reviewerChangedSuffix")}
           </Native>
@@ -632,7 +642,11 @@ function ItemCard({
         <div className="reason-box">
           확인 이유 · {item.reason}
           {item.reason_native && (
-            <Native className="native" style={{ display: "block" }}>
+            <Native
+              className="native"
+              recordLanguage={record.nativeLang ?? "ko"}
+              style={{ display: "block" }}
+            >
               {item.reason_native}
             </Native>
           )}

@@ -1,5 +1,12 @@
 // 화면 번역. 한국어 원문은 각 화면에 둔다(#258).
 export const vi = {
+  "language.label": "Ngôn ngữ mẹ đẻ",
+  "language.title": "Ngôn ngữ",
+  "language.description": "Chọn là lưu ngay. Chọn tiếng Hàn để ẩn bản dịch.",
+  "language.oldRecords": "Bản ghi tạo bằng ngôn ngữ trước chỉ hiển thị tiếng Hàn.",
+  "language.saving": "Đang lưu.",
+  "language.error": "Không lưu được ngôn ngữ. Kiểm tra kết nối rồi chọn lại.",
+
   "w3.remainingHint": "Xem hết {count} mục là có thể gửi.",
   "a0.tagline": "Ghi chép chăm sóc bằng giọng nói",
   "a0.continue": "Chạm để tiếp tục",

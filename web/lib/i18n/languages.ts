@@ -24,6 +24,9 @@ export const LANGUAGES: readonly Language[] = [
   { code: "en", nameKo: "영어", nameNative: "English", enabled: false, sttChecked: false },
 ] as const;
 
+/** 로그인 전과 새 Mock 계정의 초기 모국어. 다른 언어의 빠진 번역을 대신하지 않는다. */
+export const DEFAULT_NATIVE_LANG: NativeLang = "vi";
+
 export const NATIVE_LANGS = [
   "ko",
   "vi",

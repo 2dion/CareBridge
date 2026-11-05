@@ -44,7 +44,11 @@ export default function SentPage() {
         <p style={{ marginTop: 8, fontSize: 15, color: "var(--color-sub)" }}>
           확인한 기록을 {names.reviewer}에게 전송했어요. {names.reviewer}가 승인하면 끝나요.
         </p>
-        <Native className="native" style={{ fontSize: 14 }}>
+        <Native
+          className="native"
+          style={{ fontSize: 14 }}
+          requiredIds={["w3.sent.descriptionPrefix", "w3.sent.descriptionSuffix"]}
+        >
           {nativeMessage(nativeLanguage, "w3.sent.descriptionPrefix")}
           {names.reviewerNative}
           {nativeMessage(nativeLanguage, "w3.sent.descriptionSuffix")}
@@ -52,7 +56,11 @@ export default function SentPage() {
         {late !== null && late > 0 && (
           <p style={{ marginTop: 8, fontSize: 13, color: "var(--color-warn-text)" }}>
             돌봄 날짜보다 {late}일 늦게 전송해서 ‘지연전송’으로 표시돼요.
-            <Native className="native" style={{ display: "block" }}>
+            <Native
+              className="native"
+              style={{ display: "block" }}
+              requiredIds={["w3.sent.latePrefix", "w3.sent.lateSuffix"]}
+            >
               {nativeMessage(nativeLanguage, "w3.sent.latePrefix")}
               {late} {nativeMessage(nativeLanguage, "w3.sent.lateSuffix")}
             </Native>

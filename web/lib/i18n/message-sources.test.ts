@@ -20,6 +20,10 @@ it("작성자·계정 화면과 데모의 베트남어 고정 문구는 번역 �
   );
   const violations: string[] = [];
   for (const file of files) {
+    const source = readFileSync(file, "utf8");
+    if (!file.endsWith("native.tsx")) {
+      expect(source, file).not.toMatch(/language="vi"|nativeMessage\("vi"/);
+    }
     const sf = ts.createSourceFile(
       file,
       readFileSync(file, "utf8"),
