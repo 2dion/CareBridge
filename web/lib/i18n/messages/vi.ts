@@ -147,11 +147,12 @@ export const vi = {
   "w3.item.add": "Thêm nội dung",
   "w3.item.edit": "Sửa nội dung",
   "w3.item.empty": "Chưa có nội dung về mục này.",
-  "w3.item.addHint": "Nếu nhớ, hãy bổ sung thông tin.",
+  "w3.item.addHint": "Nếu nhớ, hãy thêm thông tin.",
   "w3.item.needsCheckHint":
     "AI chưa xác định được nội dung. Hãy xem lý do cần kiểm tra và viết nội dung cần sửa.",
   "w3.item.microphoneUnavailable": "Không dùng được micrô. Hãy viết trực tiếp.",
   "w3.item.processing": "Đang xử lý",
+  "w3.item.speakAdd": "Nói thêm nội dung",
   "w3.item.speakAgain": "Nói lại",
   "w3.item.savingButton": "Đang lưu",
   "w3.item.apply": "Áp dụng",
