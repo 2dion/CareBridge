@@ -25,7 +25,8 @@ export const REASONS_NATIVE: Partial<Record<NativeLang, Record<string, string>>>
  * ko는 번역이 없으므로 한국어 이유를 그대로 돌려준다.
  */
 export function reasonTranslation(reason: string, lang: NativeLang = "vi"): string {
-  if (lang === "ko") return reason;
+  // ko는 번역 없음이라 모국어 칸을 비운다. 한국어 이유는 reason에 이미 있다(이슈 #336)
+  if (lang === "ko") return "";
   const table = REASONS_NATIVE[lang];
   if (!table) return "";
   const exact = table[reason];

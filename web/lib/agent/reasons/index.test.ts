@@ -27,7 +27,7 @@ describe("코드 이유의 모국어 번역(REASONS_NATIVE)", () => {
   });
 
   it("ko는 한국어 이유 그대로, 모르는 이유는 빈칸", () => {
-    expect(reasonTranslation(REASONS.realName, "ko")).toBe(REASONS.realName);
+    expect(reasonTranslation(REASONS.realName, "ko")).toBe("");
     expect(reasonTranslation("모르는 이유", "vi")).toBe("");
   });
 

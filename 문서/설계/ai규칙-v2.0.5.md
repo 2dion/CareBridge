@@ -407,6 +407,7 @@ Claude API 도구 사용 형식(name, description, input_schema)입니다. 모�
    not_mentioned이고 "언급 없음"을 내용에 쓰지 않는다. 식사 섭취량은 "절반·반 정도·약 절반"(베트남어 "khoảng một nửa")이
    1/2 이상(half_or_more)이고 observed다. "조금"처럼 양을 정할 수 없을 때만 needs_check다.
 5. value_ko는 한국어 기록체(~하심, ~드심), 교재 용어. value_native는 그 번역.
+   작성자 모국어가 ko(한국어)면 value_native·reason_native는 빈 문자열로 둔다.
    작성자 자신을 가리키는 말("저", "요양보호사", "작성자")은 value_ko·reason에 쓰지 않고 뺀다
    (예: "저를 알아보시고" → "알아보시고 웃으며 인사하심").
    value_ko에는 원문을 정리한 기록 내용만 쓴다. "확인 필요", "용어 확인", "불명확",
