@@ -324,7 +324,7 @@ export function dayFields(record: DemoRecord, notesAreas: NoteArea[], column = 0
   const value = (key: ItemKey) => printableItem(record, key)?.value_ko.trim() ?? "";
   const notes = value("notes");
   if (formType === "16" && notes && notesAreas.length === 0)
-    throw new Error("특이사항을 넣을 법정 양식 영역을 하나 이상 골라 주세요.");
+    throw new Error("특이사항을 넣을 서식 영역을 하나 이상 골라 주세요.");
   const [, month, day] = record.careDate.split("-");
   const support = printableItem(record, "support");
   const checks = Array.isArray(support?.detail?.checks) ? (support.detail.checks as string[]) : [];
