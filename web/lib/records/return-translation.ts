@@ -14,10 +14,12 @@ export type ReturnedRecord = {
   worker_id: string;
   return_reason: string;
   return_reason_native: string;
+  /** 기록을 만든 때 언어. 사유 번역은 이 언어로만 저장한다(이슈 #336) */
+  native_lang: NativeLang;
 };
 
 export type ReturnTranslationDeps = {
-  currentUser(): Promise<{ id: string; role: Role; nativeLang: NativeLang } | null>;
+  currentUser(): Promise<{ id: string; role: Role } | null>;
   /** 로그인한 사람 권한(RLS)으로 읽음. 볼 수 없으면 null */
   findRecord(recordId: string): Promise<ReturnedRecord | null>;
   /** ④ 짧은 번역. Mock이면 빈 문자열 */
@@ -58,8 +60,8 @@ export async function translateReturnReason(
       return_reason_native: row.return_reason_native,
     },
   });
-  // 이미 번역돼 있거나, 작성자가 한국어를 쓰면 번역하지 않는다(토큰 절약)
-  if (record.return_reason_native || user.nativeLang === "ko" || !record.return_reason) {
+  // 이미 번역돼 있거나, 기록이 한국어로 만들어졌으면 번역하지 않는다(토큰 절약)
+  if (record.return_reason_native || record.native_lang === "ko" || !record.return_reason) {
     return done(record);
   }
 
@@ -67,7 +69,7 @@ export async function translateReturnReason(
   for (let attempt = 0; attempt < 2; attempt++) {
     let native: string;
     try {
-      native = await deps.translate(record.return_reason, user.nativeLang);
+      native = await deps.translate(record.return_reason, record.native_lang);
     } catch {
       return fail(502, "translation_failed");
     }

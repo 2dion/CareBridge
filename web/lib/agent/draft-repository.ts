@@ -47,18 +47,13 @@ export async function saveValidatedDraft(
   if (authError || !auth.user) throw new Error("unauthenticated");
   const { data: record, error } = await userClient
     .from("records")
-    .select("id,worker_id,transcript,form_type,visit_start,visit_end")
+    .select("id,worker_id,transcript,form_type,visit_start,visit_end,native_lang")
     .eq("id", recordId)
     .single();
   if (error || !record || record.worker_id !== auth.user.id) throw new Error("not_record_worker");
-  const { data: profile, error: profileError } = await userClient
-    .from("profiles")
-    .select("native_lang")
-    .eq("id", auth.user.id)
-    .single();
-  if (profileError || !profile) throw new Error("profile_not_found");
   const context: ValidateContext = {
-    nativeLang: parseNativeLang(profile.native_lang),
+    // 이유 번역 언어는 기록을 만든 때 언어다. 지금 프로필 언어가 아니다(이슈 #336)
+    nativeLang: parseNativeLang(record.native_lang),
     transcript: record.transcript,
     careType: careTypeOf(record.form_type),
     blockedNames: await getBlockedNames(serverClient, recordId, auth.user.id),
