@@ -4,6 +4,7 @@
 import { type ReactNode, useEffect } from "react";
 
 import { SHOW_FRAME_VI } from "@/lib/bilingual";
+import { speakKorean } from "@/lib/speech";
 
 import { Icon } from "./icon";
 
@@ -22,14 +23,14 @@ export function BtnLabel({ ko, vi, always }: { ko: string; vi?: string; always?:
 
 /** 한국어 문장 옆 🔊 듣기(브라우저 음성, 화면 v1.3 공통 규칙). */
 export function Listen({ text }: { text: string }) {
+  useEffect(() => {
+    // 일부 브라우저는 처음 요청한 뒤 목소리 목록을 비동기로 준비한다.
+    if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
+  }, []);
   if (!text.trim()) return null;
   const speak = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ko-KR";
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
+    speakKorean(text, window.speechSynthesis);
   };
   return (
     <button type="button" className="listen" onClick={speak} aria-label="듣기">
