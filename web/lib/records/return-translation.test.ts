@@ -6,13 +6,14 @@ import {
   type ReturnedRecord,
 } from "./return-translation";
 
-const worker = { id: "worker-1", role: "worker" as const, nativeLang: "vi" as const };
+const worker = { id: "worker-1", role: "worker" as const };
 const returned: ReturnedRecord = {
   id: "rec-1",
   status: "returned",
   worker_id: "worker-1",
   return_reason: "[식사] 섭취량을 다시 확인해 주세요",
   return_reason_native: "",
+  native_lang: "vi",
 };
 
 function fakeDeps(
@@ -59,13 +60,21 @@ describe("translateReturnReason", () => {
     expect(r.body.return_reason_native).toBe("đã dịch");
   });
 
-  it("한국어 작성자는 번역하지 않음", async () => {
-    const deps = fakeDeps(returned, {
-      currentUser: vi.fn(async () => ({ ...worker, nativeLang: "ko" as const })),
-    });
+  it("한국어로 만든 기록은 번역하지 않음", async () => {
+    const deps = fakeDeps({ ...returned, native_lang: "ko" });
     expect((await translateReturnReason("rec-1", deps)).status).toBe(200);
     expect(deps.translate).not.toHaveBeenCalled();
   });
+
+  // 이슈 #336: 번역 언어는 기록을 만든 때 언어이고, 지금 프로필 언어를 따르지 않는다
+  it.each(["vi", "zh", "mn", "en"] as const)(
+    "%s로 만든 기록은 %s로 번역해 저장함",
+    async (lang) => {
+      const deps = fakeDeps({ ...returned, native_lang: lang });
+      await translateReturnReason("rec-1", deps);
+      expect(deps.translate).toHaveBeenCalledWith(returned.return_reason, lang);
+    },
+  );
 
   it("Mock(빈 번역)이면 저장하지 않고 빈칸 그대로", async () => {
     const deps = fakeDeps(returned, { translate: vi.fn(async () => "") });
