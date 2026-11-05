@@ -34,6 +34,3 @@ export const privacySections = (lang: NativeLang) =>
       bodyNative: nativeMessage(lang, "privacy.refusal.body"),
     },
   ] as const;
-
-// 로그인 전(가입 동의)처럼 언어를 아직 모를 때와 옛 호출은 베트남어
-export const PRIVACY_SECTIONS = privacySections("vi");

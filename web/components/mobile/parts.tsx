@@ -23,12 +23,12 @@ export function BtnLabel({
   nativeId?: MessageId;
 }) {
   const lang = useNativeLanguage();
-  const translation = nativeId ? nativeMessage(always ? "vi" : lang, nativeId) : native;
-  if (translation && (always || (SHOW_FRAME_NATIVE && lang !== "ko"))) {
+  const translation = nativeId ? nativeMessage(lang, nativeId) : native;
+  if (translation && lang !== "ko" && (always || SHOW_FRAME_NATIVE)) {
     return (
       <span className="label two">
         <b>{ko}</b>
-        <small lang={always ? "vi" : lang}>{translation}</small>
+        <small lang={lang}>{translation}</small>
       </span>
     );
   }

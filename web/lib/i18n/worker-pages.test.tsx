@@ -5,6 +5,7 @@ const context = vi.hoisted(() => ({
   language: "vi",
   recordId: "",
   residentId: "",
+  recordLanguage: "vi",
   status: "" as "" | "submitted" | "approved",
 }));
 
@@ -34,7 +35,11 @@ vi.mock("@/components/demo/demo-provider", async () => {
             ...db,
             records: {
               ...db.records,
-              [context.recordId]: { ...db.records[context.recordId], status: context.status },
+              [context.recordId]: {
+                ...db.records[context.recordId],
+                status: context.status,
+                nativeLang: context.recordLanguage,
+              },
             },
           }
         : db,
@@ -90,6 +95,7 @@ const pages = {
 beforeEach(() => {
   context.language = "vi";
   context.status = "";
+  context.recordLanguage = "vi";
 });
 
 describe("작성자 화면 병기 렌더링(#258)", () => {
@@ -103,6 +109,18 @@ describe("작성자 화면 병기 렌더링(#258)", () => {
       expect(renderToStaticMarkup(<Page />)).not.toContain('lang="vi"');
     },
   );
+  it("과거 기록 번역을 현재 언어로 잘못 표시하지 않는다", async () => {
+    context.status = "approved";
+    context.recordLanguage = "en";
+    const { default: Page } = await pages["records/[id]/view"]();
+    const html = renderToStaticMarkup(<Page />);
+    const { createDemoDb } = await import("../demo/store");
+    const record = createDemoDb("2026-11-05").records[context.recordId];
+    const translations = record.items.map((item) => item.value_native).filter(Boolean);
+    expect(translations.length).toBeGreaterThan(0);
+    for (const text of translations) expect(html).not.toContain(text);
+    expect(html).toContain(record.items.find((item) => item.value_ko)!.value_ko);
+  });
   it.each(paths)("%s: 베트남어 줄과 언어 속성을 유지하고 ko 계정에서는 숨긴다", async (path) => {
     const { default: Page } = await pages[path]();
     const bilingual = renderToStaticMarkup(<Page />);

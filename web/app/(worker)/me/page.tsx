@@ -11,6 +11,7 @@ import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { AppBar, FrameNative, Loading, MobileScreen } from "@/components/mobile/shell";
+import { LANGUAGES } from "@/lib/i18n/languages";
 import { signOut } from "@/lib/auth/session";
 
 const fontLabel = { small: "작게", normal: "보통", large: "크게" } as const;
@@ -32,6 +33,13 @@ export default function MePage() {
     extra?: string;
     sub?: string;
   }[] = [
+    {
+      href: "/me/language",
+      icon: "settings",
+      ko: "언어",
+      native: nativeMessage(nativeLanguage, "language.title"),
+      extra: LANGUAGES.find((language) => language.code === nativeLanguage)?.nameNative,
+    },
     {
       href: "/me/font",
       icon: "settings",

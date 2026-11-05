@@ -104,7 +104,11 @@ export default function RecordViewPage() {
                 <p>{item.value_ko}</p>
                 <Listen text={item.value_ko} />
               </div>
-              {item.value_native && <Native className="native">{item.value_native}</Native>}
+              {item.value_native && (
+                <Native className="native" recordLanguage={record.nativeLang ?? "ko"}>
+                  {item.value_native}
+                </Native>
+              )}
             </>
           )}
         </div>

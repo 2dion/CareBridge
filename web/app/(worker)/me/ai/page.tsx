@@ -90,7 +90,11 @@ export default function AiPrinciplesPage() {
           <Icon name="alert" />
           <div>
             <b>건강·안전 문제는 {names.reviewer}에게 먼저 알려 주세요.</b>
-            <Native className="native" style={{ display: "block" }}>
+            <Native
+              className="native"
+              style={{ display: "block" }}
+              requiredIds={["w5.ai.safetyPrefix", "w5.ai.safetySuffix"]}
+            >
               {nativeMessage(nativeLanguage, "w5.ai.safetyPrefix")}
               {names.reviewerNative} {nativeMessage(nativeLanguage, "w5.ai.safetySuffix")}
             </Native>

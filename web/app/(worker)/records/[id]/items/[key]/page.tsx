@@ -307,7 +307,11 @@ export default function ItemEditPage() {
               ) : (
                 <>
                   <p>{item.value_ko}</p>
-                  {item.value_native && <Native className="native">{item.value_native}</Native>}
+                  {item.value_native && (
+                    <Native className="native" recordLanguage={record.nativeLang ?? "ko"}>
+                      {item.value_native}
+                    </Native>
+                  )}
                 </>
               )}
             </section>

@@ -1,3 +1,4 @@
+import { DEFAULT_NATIVE_LANG } from "@/lib/i18n/languages";
 import { nativeMessage } from "@/lib/i18n/messages";
 
 // 작성자·관리자 화면이 함께 쓰는 Mock 데이터(브라우저 저장).
@@ -58,6 +59,8 @@ export type RecordEvent = {
 };
 
 export type DemoRecord = {
+  /** 기록을 만든 때 모국어. 계정 언어를 바꿔도 바꾸지 않는다. */
+  nativeLang?: NativeLang;
   id: string;
   residentId: string;
   careDate: string;
@@ -118,7 +121,7 @@ export type Assignment = {
 export type DemoDb = {
   version: 5;
   seededOn: string;
-  worker: { name: string; email: string; org: string };
+  worker: { name: string; email: string; org: string; nativeLang?: NativeLang };
   reviewer: { name: string };
   onboarded: boolean;
   fontSize: FontSize;
@@ -137,11 +140,11 @@ export const DB_STORAGE_KEY = "carebridge-demo-db-v3";
 
 const cases = { "S-F01": f01, "S-F05": f05, "S-H01": h01 } as const;
 
-export const noCareReasonLabel: Record<NoCareReason, { ko: string; native: string }> = {
-  hospital: { ko: "입원", native: nativeMessage("vi", "noCare.hospital") },
-  overnight: { ko: "하루 종일 외박", native: nativeMessage("vi", "noCare.overnight") },
-  visit_cancelled: { ko: "방문 취소", native: nativeMessage("vi", "noCare.visitCancelled") },
-  other: { ko: "기타 (직접 쓰기)", native: nativeMessage("vi", "noCare.other") },
+export const noCareReasonLabel: Record<NoCareReason, { ko: string }> = {
+  hospital: { ko: "입원" },
+  overnight: { ko: "하루 종일 외박" },
+  visit_cancelled: { ko: "방문 취소" },
+  other: { ko: "기타 (직접 쓰기)" },
 };
 
 /** W3·M2 표시 순서: 별지 제12호·제16호처럼 인지 변화를 복약 관찰 앞에 둔다(화면 v1.3 W3 항목 순서). */
@@ -243,15 +246,18 @@ function at(date: string, time: string): string {
 
 // ---------- 시드 ----------
 
-function caseItems(caseId: CaseId): RecordItem[] {
+function caseItems(caseId: CaseId, language: NativeLang = DEFAULT_NATIVE_LANG): RecordItem[] {
   return cases[caseId].draft.items.map((value) => ({
     item_key: value.item_key as ItemKey,
     status: value.status as ItemStatus,
     value_ko: value.value_ko,
-    value_native: value.value_native,
+    value_native: language === DEFAULT_NATIVE_LANG ? value.value_native : "",
     evidence: value.evidence,
     reason: value.reason,
-    reason_native: "reason_native" in value ? String(value.reason_native ?? "") : "",
+    reason_native:
+      language === DEFAULT_NATIVE_LANG && "reason_native" in value
+        ? String(value.reason_native ?? "")
+        : "",
     confirmed_by_worker: false,
     resolution: null,
     source: "ai" as const,
@@ -289,8 +295,15 @@ export function recordId(residentId: string, careDate: string) {
   return `${residentId}-${careDate}`;
 }
 
-function blankRecord(resident: Resident, careDate: string, now: string, actor: string): DemoRecord {
+function blankRecord(
+  resident: Resident,
+  careDate: string,
+  now: string,
+  actor: string,
+  nativeLang: NativeLang = DEFAULT_NATIVE_LANG,
+): DemoRecord {
   return {
+    nativeLang,
     id: recordId(resident.id, careDate),
     residentId: resident.id,
     careDate,
@@ -323,7 +336,7 @@ function filledRecord(resident: Resident, careDate: string, time: string, actor:
     ...caseTranscript(resident.caseId),
     draftState: "ready" as const,
     inputMode: "voice" as const,
-    items: caseItems(resident.caseId),
+    items: caseItems(resident.caseId, record.nativeLang),
     events: [...record.events, { type: "ai_filled" as const, actor: "AI", at: created }],
   };
 }
@@ -403,7 +416,7 @@ export function withMealAddition(record: DemoRecord): DemoRecord {
         ...item,
         status: patch.status as ItemStatus,
         value_ko: patch.value_ko,
-        value_native: patch.value_native,
+        value_native: record.nativeLang === DEFAULT_NATIVE_LANG ? patch.value_native : "",
         evidence: patch.evidence,
         reason: patch.reason,
         reason_native: "",
@@ -477,7 +490,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
     ...returned,
     status: "returned",
     returnReason,
-    returnReasonNative: nativeMessage("vi", "demo.returnReason"),
+    returnReasonNative: nativeMessage(DEFAULT_NATIVE_LANG, "demo.returnReason"),
     returnedBy: reviewer,
     returnedAt,
     updatedAt: returnedAt,
@@ -487,7 +500,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
             ...item,
             before_ko: item.value_ko,
             value_ko: "점심 죽 절반 정도 드심.",
-            value_native: nativeMessage("vi", "demo.meal"),
+            value_native: nativeMessage(DEFAULT_NATIVE_LANG, "demo.meal"),
             source: "reviewer" as const,
             confirmed_by_worker: false,
           }
@@ -578,6 +591,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
       name: worker,
       email: "worker@codyssey.carebridge.test",
       org: "케어브릿지 데모 요양센터",
+      nativeLang: DEFAULT_NATIVE_LANG,
     },
     reviewer: { name: reviewer },
     onboarded: false,
@@ -778,7 +792,13 @@ export function ensureRecord(
   if (db.noCareDays.some((day) => day.residentId === residentId && day.careDate === careDate)) {
     return { error: "no_care_day" };
   }
-  const record = blankRecord(resident, careDate, now, db.worker.name);
+  const record = blankRecord(
+    resident,
+    careDate,
+    now,
+    db.worker.name,
+    db.worker.nativeLang ?? DEFAULT_NATIVE_LANG,
+  );
   return { db: { ...db, records: { ...db.records, [record.id]: record } }, id: record.id };
 }
 
@@ -815,7 +835,7 @@ export function fillMockDraft(db: DemoDb, id: string, now: string): DemoDb {
       transcript: record.transcript || transcript,
       transcriptKo: record.transcript ? record.transcriptKo : transcriptKo,
       // 작성자·관리자가 쓴 항목(source가 ai가 아님)은 AI가 덮어쓰지 않는다(AGENTS.md 원칙 4).
-      items: caseItems(resident.caseId).map(
+      items: caseItems(resident.caseId, record.nativeLang).map(
         (item) =>
           record.items.find((old) => old.item_key === item.item_key && old.source !== "ai") ?? item,
       ),
@@ -892,16 +912,21 @@ export function supportMinutesTotal(record: DemoRecord): number {
 }
 
 /** 코드가 쓰는 이유는 한국어·모국어 문장을 함께 정해 둔다(확인필요이유병기 결정 2번). */
-export function minutesReason(total: number, visit: number) {
+export function minutesReason(
+  total: number,
+  visit: number,
+  language: NativeLang = DEFAULT_NATIVE_LANG,
+) {
   return {
     reason: `지원별 제공시간 합(${total}분)이 방문 시간(${visit}분)보다 김`,
-    reason_native: nativeMessage("vi", "demo.supportTime", { total: total, visit: visit }),
+    reason_native: nativeMessage(language, "demo.supportTime", { total: total, visit: visit }),
   };
 }
 
 /** 코드(검사 5)가 붙이는 이유인지. 재검사 때 이 이유만 걷어 내고 다시 붙인다. */
 const MINUTES_REASON_KO = "지원별 제공시간 합(";
-const MINUTES_REASON_NATIVE = nativeMessage("vi", "demo.supportTimePrefix");
+const minutesReasonNative = (language: NativeLang) =>
+  nativeMessage(language, "demo.supportTimePrefix");
 const splitReasons = (text: string) =>
   text
     .split(";")
@@ -925,10 +950,12 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
         (part) => !part.startsWith(MINUTES_REASON_KO),
       );
       const keptNative = splitReasons(item.reason_native ?? "").filter(
-        (part) => !part.startsWith(MINUTES_REASON_NATIVE),
+        (part) =>
+          !minutesReasonNative(record.nativeLang ?? DEFAULT_NATIVE_LANG) ||
+          !part.startsWith(minutesReasonNative(record.nativeLang ?? DEFAULT_NATIVE_LANG)),
       );
       if (visit !== null && total > visit) {
-        const added = minutesReason(total, visit);
+        const added = minutesReason(total, visit, record.nativeLang);
         return {
           ...item,
           status: "needs_check" as const,

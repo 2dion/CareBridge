@@ -1,3 +1,4 @@
+import { DEFAULT_NATIVE_LANG, type NativeLang } from "@/lib/i18n/languages";
 import { nativeMessage } from "@/lib/i18n/messages";
 
 // W6(도우미) Mock 답변. 실제로는 POST /api/helper/ask가 교재 절(manual_sections)에서 찾아 답한다.
@@ -6,6 +7,7 @@ import { nativeMessage } from "@/lib/i18n/messages";
 import glossary from "./glossary.json";
 
 export type HelperAnswer = {
+  nativeLang?: NativeLang;
   ko: string;
   native: string;
   /** 교재 장·절·쪽. 못 찾았으면 null. */
@@ -13,15 +15,16 @@ export type HelperAnswer = {
   found: boolean;
 };
 
-const canned: { keys: string[][]; answer: HelperAnswer }[] = [
+const canned = (language: NativeLang): { keys: string[][]; answer: HelperAnswer }[] => [
   {
     keys: [
       ["밥", "식사", "드시"],
       ["안", "싫", "거부"],
     ],
     answer: {
+      nativeLang: language,
       ko: "먼저 식사를 원하지 않는 이유를 차분하게 여쭤보세요. 억지로 권하지 말고 평소와 다르면 관리자에게 알려주세요.",
-      native: nativeMessage("vi", "demo.helper.foodRefusal"),
+      native: nativeMessage(language, "demo.helper.foodRefusal"),
       source: "요양보호사 표준교재 10장 3절 식사 돕기",
       found: true,
     },
@@ -29,24 +32,29 @@ const canned: { keys: string[][]; answer: HelperAnswer }[] = [
   {
     keys: [["넘어", "낙상"]],
     answer: {
+      nativeLang: language,
       ko: "어르신을 바로 일으키지 말고 다친 곳이 있는지 먼저 살핀 뒤, 관리자에게 바로 알리세요.",
-      native: nativeMessage("vi", "demo.helper.fall"),
+      native: nativeMessage(language, "demo.helper.fall"),
       source: "요양보호사 표준교재 12장 응급상황 대처",
       found: true,
     },
   },
 ];
 
-const notFound: HelperAnswer = {
+const notFound = (language: NativeLang): HelperAnswer => ({
+  nativeLang: language,
   ko: "교재에서 이 내용에 대한 답을 찾지 못했어요. 관리자에게 물어보세요.",
-  native: nativeMessage("vi", "demo.helper.notFound"),
+  native: nativeMessage(language, "demo.helper.notFound"),
   source: null,
   found: false,
-};
+});
 
-export function mockHelperAnswer(question: string): HelperAnswer {
+export function mockHelperAnswer(
+  question: string,
+  language: NativeLang = DEFAULT_NATIVE_LANG,
+): HelperAnswer {
   const text = question.trim();
-  for (const entry of canned) {
+  for (const entry of canned(language)) {
     if (entry.keys.every((group) => group.some((key) => text.includes(key)))) return entry.answer;
   }
   const term = glossary.find(
@@ -56,16 +64,17 @@ export function mockHelperAnswer(question: string): HelperAnswer {
   );
   if (term) {
     return {
+      nativeLang: language,
       ko: `‘${term.expression}’는 기록에 ‘${term.term_ko}’(이)라고 써요. ${term.plain_ko}.`,
-      native: nativeMessage("vi", "demo.helper.term", {
+      native: nativeMessage(language, "demo.helper.term", {
         expression: term.expression,
-        term: term.term_native,
+        term: language === DEFAULT_NATIVE_LANG ? term.term_native : "",
       }),
       source: `요양보호사 표준교재 ${term.chapter}${term.page ? ` · ${term.page}쪽` : ""}`,
       found: true,
     };
   }
-  return notFound;
+  return notFound(language);
 }
 
 export const helperSuggestions = [

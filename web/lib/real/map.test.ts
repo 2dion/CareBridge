@@ -559,3 +559,15 @@ describe("actions 도우미 함수", () => {
     expect(actionError("unresolved_needs_check", ["meal"]).items).toEqual(["meal"]);
   });
 });
+
+it("실제 기록의 작성 언어를 계정 언어와 별도로 보존한다(#313)", () => {
+  for (const language of ["ko", "vi", "zh", "mn", "en"] as const) {
+    const mapped = mapRecord(
+      { ...record, native_lang: language },
+      { items: [], events: [], jobs: [] },
+      () => "",
+    );
+    expect(mapped.nativeLang).toBe(language);
+  }
+  expect(mapRecord(record, { items: [], events: [], jobs: [] }, () => "").nativeLang).toBe("ko");
+});
