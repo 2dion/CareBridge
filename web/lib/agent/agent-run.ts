@@ -1,6 +1,6 @@
 import "server-only";
 
-import { parseNativeLang } from "@/lib/auth/signup";
+import { readRecordNativeLang } from "@/lib/records/record-lang";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -63,15 +63,12 @@ export async function buildValidateContext(
   workerId: string,
   transcript: string,
 ): Promise<ValidateContext> {
-  const { data: profile } = await userClient
-    .from("profiles")
-    .select("native_lang")
-    .eq("id", workerId)
-    .single();
+  // 번역 언어는 기록을 만든 때 언어(records.native_lang). 작성자가 나중에 바꾼 프로필 언어가 아니다(이슈 #336)
+  const recordLang = await readRecordNativeLang(userClient, record.id);
   const context: ValidateContext = {
     transcript,
     careType: careTypeOf(record.form_type),
-    nativeLang: parseNativeLang(profile?.native_lang),
+    nativeLang: recordLang ?? "ko",
     blockedNames: await getBlockedNames(serverClient, record.id, workerId),
   };
   if (record.visit_start && record.visit_end) {

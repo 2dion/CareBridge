@@ -171,7 +171,7 @@ function PeriodPrint() {
           승인한 기록으로 돌아가기
         </Link>
       </header>
-      <section className="panel" style={{ padding: 24 }}>
+      <section className="panel desk-stack" style={{ padding: 24 }}>
         <div className="actions" style={{ flexWrap: "wrap", alignItems: "end" }}>
           <label className="flabel">
             어르신
