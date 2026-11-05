@@ -22,7 +22,7 @@ export const REASONS_NATIVE: Partial<Record<NativeLang, Record<string, string>>>
 /**
  * 코드 이유의 번역. "지원별 제공시간 합이 방문 시간보다 김 (200분 > 180분)"처럼 숫자가 붙은 이유는
  * 앞부분으로 찾아 뒤의 숫자를 그대로 붙인다. 모르는 이유나 고정문이 없는 언어는 빈칸(번역 완료가 아님).
- * ko는 번역이 없으므로 한국어 이유를 그대로 돌려준다.
+ * ko는 번역이 없으므로 빈칸이다(한국어 이유는 reason에 있다).
  */
 export function reasonTranslation(reason: string, lang: NativeLang = "vi"): string {
   // ko는 번역 없음이라 모국어 칸을 비운다. 한국어 이유는 reason에 이미 있다(이슈 #336)
