@@ -166,7 +166,10 @@ export default function TodayPage() {
                 <span className="spacer" />
                 <span className="label two">
                   <b>{action.ko}</b>
-                  <Native as="small">{action.native}</Native>
+                  {/* 버튼 안에서는 회색(.native) 대신 버튼 글자색을 따른다 */}
+                  <Native as="small" className="">
+                    {action.native}
+                  </Native>
                 </span>
                 <Icon name="next" />
               </Link>
