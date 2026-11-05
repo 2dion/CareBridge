@@ -171,7 +171,8 @@ export function headerFields(
   } else {
     add("name", name, 145, 110, 34);
     add("org", org, 150, 129, 145, 14);
-    add("year", year, 110, 149, 28);
+    // 서식의 괄호 사이(117.61~177.72pt)에 둔다. 110pt는 왼쪽 괄호와 겹친다.
+    add("year", year, 135, 149, 28);
   }
   return fields;
 }
@@ -193,7 +194,19 @@ export function dayFields(record: DemoRecord, notesArea: NoteArea | "", column =
   const right = dateColumns[formType][column + 1];
   const { fields, add } = sink([], dx, right);
   const marks: PrintMark[] = [];
-  const mark = (x: number, top: number) => marks.push({ x: x + dx, top });
+  const mark = (x: number, top: number) => {
+    // 제16호 지원 체크는 열 경계와 다른 간격으로 배치돼 있다.
+    // 서식 네모의 x 차이(pt). 식사 종류·섭취량 번호는 기존 열 간격을 쓴다.
+    const supportOffsets: Record<number, readonly number[]> = {
+      281: [0, 122.16, 249.24],
+      305: [0, 119.16, 244.8],
+      362: [0, 122.16, 249.24],
+      409: [0, 122.16, 249.24],
+      427: [0, 122.28, 249.24],
+    };
+    const offset = formType === "16" ? (supportOffsets[top]?.[column] ?? dx) : dx;
+    marks.push({ x: x + offset, top });
+  };
   const value = (key: ItemKey) => printableItem(record, key)?.value_ko.trim() ?? "";
   const notes = value("notes");
   if (formType === "16" && notes && !notesArea)
