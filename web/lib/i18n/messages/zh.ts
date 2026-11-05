@@ -53,6 +53,7 @@ export const zh = {
   "w5.privacy": "个人信息说明",
   "w5.logout": "退出登录",
   "w4.archive.title": "记录",
+  "w4.archive.allResidents": "全部",
   "w4.view.title": "查看记录",
   "w6.title": "助手",
   "privacy.purpose.title": "收集和使用目的",

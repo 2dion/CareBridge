@@ -55,6 +55,7 @@ export const en = {
   "w5.privacy": "Privacy information",
   "w5.logout": "Sign out",
   "w4.archive.title": "Records",
+  "w4.archive.allResidents": "All",
   "w4.view.title": "View record",
   "w6.title": "Helper",
   "privacy.purpose.title": "Purpose",
