@@ -4,6 +4,7 @@
 // 켜져 있으면 칸 아래에 한 줄 안내(한국어 위·베트남어 아래)를 보인다. 칸을 떠나면 안내를 감춘다.
 // 비밀번호 TextInput은 그대로 두고 props만 넘긴다.
 import { type KeyboardEvent, useState } from "react";
+import { Native } from "./native";
 
 export function useCapsLock() {
   const [on, setOn] = useState(false);
@@ -20,7 +21,7 @@ export function CapsLockNote({ on }: { on: boolean }) {
   if (!on) return null;
   return (
     <small className="hint-line caps-note" role="status">
-      Caps Lock이 켜져 있어요 · <span className="vi">Caps Lock đang bật</span>
+      Caps Lock이 켜져 있어요 · <Native id="account.capsLock" language="vi" />
     </small>
   );
 }

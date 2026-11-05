@@ -3,18 +3,32 @@
 // 작성자 화면에서 여러 번 쓰는 작은 조각: 버튼 글자, 듣기 버튼, 확인 창.
 import { type ReactNode, useEffect } from "react";
 
-import { SHOW_FRAME_VI } from "@/lib/bilingual";
+import { SHOW_FRAME_NATIVE } from "@/lib/bilingual";
+import { nativeMessage, type MessageId } from "@/lib/i18n/messages";
 import { speakKorean } from "@/lib/speech";
+import { useNativeLanguage } from "./native";
 
 import { Icon } from "./icon";
 
 /** 버튼 글자. 버튼은 화면 틀이라 병기 원칙이면 한국어만, 예외 화면은 always. */
-export function BtnLabel({ ko, vi, always }: { ko: string; vi?: string; always?: boolean }) {
-  if (vi && (always || SHOW_FRAME_VI)) {
+export function BtnLabel({
+  ko,
+  native,
+  always,
+  nativeId,
+}: {
+  ko: string;
+  native?: string;
+  always?: boolean;
+  nativeId?: MessageId;
+}) {
+  const lang = useNativeLanguage();
+  const translation = nativeId ? nativeMessage(always ? "vi" : lang, nativeId) : native;
+  if (translation && (always || (SHOW_FRAME_NATIVE && lang !== "ko"))) {
     return (
       <span className="label two">
         <b>{ko}</b>
-        <small>{vi}</small>
+        <small lang={always ? "vi" : lang}>{translation}</small>
       </span>
     );
   }

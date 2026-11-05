@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W4(기록): 작성 전 / 임시 저장 / 전송 완료 / 수정 필요 / 승인 완료, 기간 거르기, 기록 없음 처리.
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -37,14 +41,6 @@ const tabs: { key: Tab; label: string }[] = [
   { key: "returned", label: "수정 필요" },
   { key: "approved", label: "승인 완료" },
 ];
-
-const empties: Record<Tab, { ko: string; vi: string }> = {
-  missed: { ko: "작성 전 기록이 없습니다.", vi: "Không có ngày nào chưa ghi." },
-  draft: { ko: "임시 저장한 기록이 없습니다.", vi: "Không có bản ghi lưu tạm." },
-  submitted: { ko: "전송 완료된 기록이 없습니다.", vi: "Không có bản ghi đã gửi." },
-  returned: { ko: "수정 필요 기록이 없습니다.", vi: "Không có bản ghi cần sửa." },
-  approved: { ko: "승인 완료된 기록이 없습니다.", vi: "Không có bản ghi đã duyệt." },
-};
 
 function isTab(value: string | null): value is Tab {
   return tabs.some((tab) => tab.key === value);
@@ -95,6 +91,30 @@ function DateBox({ date }: { date: string }) {
 }
 
 export default function ArchivePage() {
+  const nativeLanguage = useNativeLanguage();
+  const empties: Record<Tab, { ko: string; native: string }> = {
+    missed: {
+      ko: "작성 전 기록이 없습니다.",
+      native: nativeMessage(nativeLanguage, "w4.archive.empty.missed"),
+    },
+    draft: {
+      ko: "임시 저장한 기록이 없습니다.",
+      native: nativeMessage(nativeLanguage, "w4.archive.empty.draft"),
+    },
+    submitted: {
+      ko: "전송 완료된 기록이 없습니다.",
+      native: nativeMessage(nativeLanguage, "w4.archive.empty.submitted"),
+    },
+    returned: {
+      ko: "수정 필요 기록이 없습니다.",
+      native: nativeMessage(nativeLanguage, "w4.archive.empty.returned"),
+    },
+    approved: {
+      ko: "승인 완료된 기록이 없습니다.",
+      native: nativeMessage(nativeLanguage, "w4.archive.empty.approved"),
+    },
+  };
+
   const search = useSearchParams();
   const router = useRouter();
   const demo = useDemo();
@@ -124,7 +144,7 @@ export default function ArchivePage() {
     <MobileScreen tab="archive">
       <AppBar
         title="기록"
-        vi="Danh sách bản ghi"
+        native={nativeMessage(nativeLanguage, "w4.archive.title")}
         right={
           <button
             type="button"
@@ -169,7 +189,7 @@ export default function ArchivePage() {
           {counts[tab] === 0 ? (
             <div className="empty" style={{ marginTop: 40 }}>
               <p>{empties[tab].ko}</p>
-              <span className="vi">{empties[tab].vi}</span>
+              <Native className="native">{empties[tab].native}</Native>
             </div>
           ) : tab === "missed" ? (
             <div className="rec-list">
@@ -184,15 +204,17 @@ export default function ArchivePage() {
               ))}
               <p className="foot-note" style={{ margin: "4px 6px 0" }}>
                 기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 {names.reviewer}에게 알려 주세요.
-                <span className="vi">
-                  Sau 7 ngày sẽ không thể viết. Khi đó hãy báo {names.reviewerVi}.
-                </span>
+                <Native className="native">
+                  {nativeMessage(nativeLanguage, "w4.archive.expiryHint")}
+                  {names.reviewerNative}.
+                </Native>
               </p>
               <p className="foot-note" style={{ margin: "0 6px 16px" }}>
                 돌봄 날짜보다 늦게 전송한 기록은 {names.reviewer} 화면에 ‘지연전송’으로 보여요.
-                <span className="vi">
-                  Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho {names.reviewerVi}.
-                </span>
+                <Native className="native">
+                  {nativeMessage(nativeLanguage, "w4.archive.lateHint")}
+                  {names.reviewerNative}.
+                </Native>
               </p>
             </div>
           ) : (
@@ -225,7 +247,9 @@ export default function ArchivePage() {
             // no_care_days에 바로 넣는다(작성자, 내 담당 어르신, 오늘~7일 전)
             return demo.real.actions.addNoCare(day).then((result) => {
               if (result.ok) setNoCare(null);
-              return result.ok ? "" : `${result.ko} ${result.vi}`;
+              return result.ok
+                ? ""
+                : `${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`;
             });
           }
           demo.update(change);
@@ -247,6 +271,7 @@ function MissedCard({
   row: MissedRecord;
   onNoCare: (row: MissedRecord) => void;
 }) {
+  const nativeLanguage = useNativeLanguage();
   const resident = getResident(db, row.residentId);
   const record = row.recordId ? db.records[row.recordId] : undefined;
   if (!resident) return null;
@@ -263,7 +288,7 @@ function MissedCard({
       {row.kind === "draft" && record ? (
         <Link className="btn btn-outline btn-sm btn-center" href={recordHref(record)}>
           <Icon name="pencil" />
-          <BtnLabel ko="이어 쓰기" vi="Viết tiếp" />
+          <BtnLabel ko="이어 쓰기" native={nativeMessage(nativeLanguage, "w4.archive.resume")} />
         </Link>
       ) : (
         <div className="btn-row">
@@ -272,10 +297,16 @@ function MissedCard({
             href={`/start/${row.residentId}?date=${row.careDate}`}
           >
             <Icon name="pencil" />
-            <BtnLabel ko="지금 쓰기" vi="Viết ngay" />
+            <BtnLabel
+              ko="지금 쓰기"
+              native={nativeMessage(nativeLanguage, "w4.archive.writeNow")}
+            />
           </Link>
           <button type="button" className="btn btn-soft btn-sm" onClick={() => onNoCare(row)}>
-            <BtnLabel ko="이 날 기록 없음" vi="Không có chăm sóc" />
+            <BtnLabel
+              ko="이 날 기록 없음"
+              native={nativeMessage(nativeLanguage, "w4.archive.noCare")}
+            />
           </button>
         </div>
       )}
@@ -306,9 +337,9 @@ function RecordRow({ db, record }: { db: DemoDb; record: DemoRecord }) {
         <div className="reason-box" style={{ flexBasis: "100%", marginTop: 0 }}>
           {record.returnReason}
           {record.returnReasonNative && (
-            <span className="vi" style={{ display: "block" }}>
+            <Native className="native" style={{ display: "block" }}>
               {record.returnReasonNative}
-            </span>
+            </Native>
           )}
         </div>
       )}
@@ -419,6 +450,7 @@ function NoCareSheet({
     day: { residentId: string; careDate: string; reason: NoCareReason; note: string },
   ) => Promise<string>;
 }) {
+  const nativeLanguage = useNativeLanguage();
   const [reason, setReason] = useState<NoCareReason | null>(null);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -461,9 +493,9 @@ function NoCareSheet({
         <>
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700 }}>이 날은 돌봄이 없었나요?</h2>
-            <span className="vi" style={{ fontSize: 13 }}>
-              Ngày này không có chăm sóc?
-            </span>
+            <Native className="native" style={{ fontSize: 13 }}>
+              {nativeMessage(nativeLanguage, "w4.archive.noCareQuestion")}
+            </Native>
             <p style={{ marginTop: 4, fontSize: 14, color: "var(--color-sub)" }}>
               {monthDayWeek(row.careDate)} · {resident?.name}
             </p>
@@ -481,7 +513,7 @@ function NoCareSheet({
                 <span className="radio" />
                 <span>
                   <b>{noCareReasonLabel[key].ko}</b>
-                  <span className="vi">{noCareReasonLabel[key].vi}</span>
+                  <Native className="native">{noCareReasonLabel[key].native}</Native>
                 </span>
               </button>
             ))}
@@ -513,10 +545,13 @@ function NoCareSheet({
               onClick={close}
               style={{ flex: "0 0 34%" }}
             >
-              <BtnLabel ko="취소" vi="Hủy" />
+              <BtnLabel ko="취소" native={nativeMessage(nativeLanguage, "w4.archive.cancel")} />
             </button>
             <button type="button" className="btn btn-primary" disabled={!reason} onClick={save}>
-              <BtnLabel ko="기록 없음으로 처리" vi="Xác nhận không có chăm sóc" />
+              <BtnLabel
+                ko="기록 없음으로 처리"
+                native={nativeMessage(nativeLanguage, "w4.archive.confirmNoCare")}
+              />
             </button>
           </div>
         </>

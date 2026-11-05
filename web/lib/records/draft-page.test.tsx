@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/components/demo/demo-provider", () => ({
   useDemo: () => ({ db: fixture.db, today: "2026-10-30", real: null, update: vi.fn() }),
-  useRoleNames: () => ({ reviewer: "관리자", reviewerVi: "người quản lý" }),
+  useRoleNames: () => ({ reviewer: "관리자", reviewerNative: "người quản lý" }),
   nowIso: () => "2026-10-30T10:00:00+09:00",
 }));
 vi.mock("@/components/mobile/use-action-lock", () => ({

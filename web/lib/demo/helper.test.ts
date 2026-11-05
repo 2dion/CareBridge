@@ -7,7 +7,7 @@ describe("도우미 Mock 답변", () => {
     const answer = mockHelperAnswer("어르신이 밥을 안 드시려고 해요");
     expect(answer.found).toBe(true);
     expect(answer.source).toContain("교재");
-    expect(answer.vi).not.toBe("");
+    expect(answer.native).not.toBe("");
   });
 
   it("용어표 표현은 교재 용어로 풀어 준다", () => {

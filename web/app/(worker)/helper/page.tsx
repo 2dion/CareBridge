@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W6(도우미): 교재 근거 질문·답. 기록을 대신 쓰거나 고치지 않는다.
 // 답변은 남이 쓴 내용이라 병기(원칙 ②), 내 질문은 그대로(①).
 // 대화는 서버(helper_messages)에 남기고, 열 때 GET /api/helper/messages로 지난 대화를 불러와 이어 보인다(이슈 #218).
@@ -67,6 +71,7 @@ function HelperChat({
   selected: string | null;
   fresh: boolean;
 }) {
+  const nativeLanguage = useNativeLanguage();
   const demo = useDemo()!;
   const search = useSearchParams();
   const router = useRouter();
@@ -228,7 +233,7 @@ function HelperChat({
     <MobileScreen tab="helper" className="helper-screen">
       <AppBar
         title="도우미"
-        vi="Trợ lý chăm sóc"
+        native={nativeMessage(nativeLanguage, "w6.title")}
         right={
           // 서버 기록은 작성자가 지우지 않으므로 실제 모드에서는 숨긴다. Mock 데모만 있다
           !real && messages.length > 0 ? (
@@ -239,9 +244,9 @@ function HelperChat({
               onClick={() => setClearOpen(true)}
             >
               대화 지우기
-              <span className="vi" style={{ display: "block", fontSize: 11 }}>
-                Xóa trò chuyện
-              </span>
+              <Native className="native" style={{ display: "block", fontSize: 11 }}>
+                {nativeMessage(nativeLanguage, "w6.clearTitle")}
+              </Native>
             </button>
           ) : undefined
         }
@@ -254,7 +259,7 @@ function HelperChat({
           onClick={startNew}
         >
           <Icon name="write" />
-          <BtnLabel ko="새 대화" vi="Cuộc trò chuyện mới" />
+          <BtnLabel ko="새 대화" native={nativeMessage(nativeLanguage, "w6.newConversation")} />
         </button>
         <button
           type="button"
@@ -267,24 +272,31 @@ function HelperChat({
           }
         >
           <Icon name="list" />
-          <BtnLabel ko="이전 대화" vi="Trò chuyện trước" />
+          <BtnLabel
+            ko="이전 대화"
+            native={nativeMessage(nativeLanguage, "w6.previousConversations")}
+          />
         </button>
       </div>
       <div className="reason-box big helper-notice" role="note">
         <b>건강·안전 문제는 {names.reviewer}에게 먼저 보고하세요.</b>
-        <span className="vi">Khi có vấn đề sức khỏe hoặc an toàn, hãy báo {names.reviewerVi}.</span>
+        <Native className="native">
+          {nativeMessage(nativeLanguage, "w6.safetyHint")}
+          {names.reviewerNative}.
+        </Native>
         <span>
           질문과 답은 저장되고 {names.reviewer}가 볼 수 있어요. 어르신·가족 실명은 쓰지 마세요.
         </span>
-        <span className="vi">
-          Câu hỏi và câu trả lời được lưu lại, {names.reviewerVi} có thể xem. Đừng ghi tên thật của
-          người cao tuổi và gia đình.
-        </span>
+        <Native className="native">
+          {nativeMessage(nativeLanguage, "w6.savedHintPrefix")}
+          {names.reviewerNative} {nativeMessage(nativeLanguage, "w6.savedHintSuffix")}
+        </Native>
       </div>
       <div className="chat" aria-live="polite">
         {history === "loading" && (
           <p role="status">
-            지난 대화를 불러오는 중이에요.<span className="vi">Đang tải cuộc trò chuyện…</span>
+            지난 대화를 불러오는 중이에요.
+            <Native className="native">{nativeMessage(nativeLanguage, "w6.loading")}</Native>
           </p>
         )}
         {history === "error" && (
@@ -292,7 +304,7 @@ function HelperChat({
             <Icon name="alert" />
             <div>
               <b>지난 대화를 불러오지 못했어요.</b>
-              <span className="vi">Không thể tải cuộc trò chuyện trước đó.</span>
+              <Native className="native">{nativeMessage(nativeLanguage, "w6.loadError")}</Native>
               <button
                 disabled={busy}
                 type="button"
@@ -303,9 +315,9 @@ function HelperChat({
                 }}
               >
                 다시 불러오기
-                <span className="vi" style={{ display: "block", fontSize: 11 }}>
-                  Tải lại
-                </span>
+                <Native className="native" style={{ display: "block", fontSize: 11 }}>
+                  {nativeMessage(nativeLanguage, "w6.reload")}
+                </Native>
               </button>
             </div>
           </div>
@@ -314,13 +326,13 @@ function HelperChat({
           <div className="stack" style={{ alignItems: "center", gap: 8, marginTop: 24 }}>
             <Art name="robot-face" width={120} />
             <p style={{ fontSize: 16, fontWeight: 700 }}>일하다 막히면 물어보세요.</p>
-            <span className="vi">Hãy hỏi khi bạn gặp khó khăn.</span>
+            <Native className="native">{nativeMessage(nativeLanguage, "w6.welcome")}</Native>
             <p style={{ fontSize: 13, color: "var(--color-muted)" }}>
               교재에 있는 내용으로만 답해요. 기록은 대신 써 주지 않아요.
             </p>
-            <span className="vi" style={{ fontSize: 12 }}>
-              Chỉ trả lời theo giáo trình. Không viết bản ghi thay bạn.
-            </span>
+            <Native className="native" style={{ fontSize: 12 }}>
+              {nativeMessage(nativeLanguage, "w6.scopeHint")}
+            </Native>
           </div>
         )}
         {rows.map(({ message, dayLabel }) => (
@@ -343,9 +355,13 @@ function HelperChat({
                     <div className="stack" style={{ alignItems: "center", gap: 4 }}>
                       <Art name="robot-face" width={80} />
                       <b>답변을 불러오지 못했어요.</b>
-                      <span className="vi">Không thể tải câu trả lời.</span>
+                      <Native className="native">
+                        {nativeMessage(nativeLanguage, "w6.answerError")}
+                      </Native>
                       <p style={{ fontSize: 13 }}>네트워크를 확인하고 다시 시도해 주세요.</p>
-                      <span className="vi">Vui lòng kiểm tra mạng và thử lại.</span>
+                      <Native className="native">
+                        {nativeMessage(nativeLanguage, "w6.networkHint")}
+                      </Native>
                       <button
                         type="button"
                         className="btn btn-soft btn-center btn-sm"
@@ -353,14 +369,17 @@ function HelperChat({
                         onClick={() => void ask(message.question, message.id)}
                       >
                         <Icon name="refresh" />
-                        <BtnLabel ko="다시 시도" vi="Thử lại" />
+                        <BtnLabel
+                          ko="다시 시도"
+                          native={nativeMessage(nativeLanguage, "w6.retry")}
+                        />
                       </button>
                     </div>
                   )}
                   {message.state === "done" && (
                     <>
                       <p>{message.answer.ko}</p>
-                      <span className="vi">{message.answer.vi}</span>
+                      <Native className="native">{message.answer.native}</Native>
                       <span className="source">
                         {message.answer.source
                           ? `출처 · ${message.answer.source}`
@@ -420,19 +439,19 @@ function HelperChat({
       <Modal open={clearOpen} onClose={() => setClearOpen(false)} label="대화를 지울까요?">
         <Art name="robot-face" width={96} />
         <h2 style={{ fontSize: 22, fontWeight: 700 }}>대화를 지울까요?</h2>
-        <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
-          Bạn có muốn xóa cuộc trò chuyện?
-        </span>
+        <Native className="native" style={{ fontSize: 13, marginTop: -6 }}>
+          {nativeMessage(nativeLanguage, "w6.clearQuestion")}
+        </Native>
         <p style={{ fontSize: 14 }}>지금 보고 있는 대화만 이 휴대폰에서 지워져요.</p>
-        <span className="vi" style={{ fontSize: 12, marginTop: -6 }}>
-          Chỉ cuộc trò chuyện đang xem trên máy này sẽ bị xóa.
-        </span>
+        <Native className="native" style={{ fontSize: 12, marginTop: -6 }}>
+          {nativeMessage(nativeLanguage, "w6.clearDescription")}
+        </Native>
         <div className="btn-row" style={{ width: "100%" }}>
           <button type="button" className="btn btn-outline" onClick={() => setClearOpen(false)}>
-            <BtnLabel ko="계속 대화하기" vi="Tiếp tục" />
+            <BtnLabel ko="계속 대화하기" native={nativeMessage(nativeLanguage, "w6.continue")} />
           </button>
           <button type="button" className="btn btn-primary" onClick={clearConversation}>
-            <BtnLabel ko="지우기" vi="Xóa" />
+            <BtnLabel ko="지우기" native={nativeMessage(nativeLanguage, "w6.clear")} />
           </button>
         </div>
       </Modal>

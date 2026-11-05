@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W5 · 글자 크기: 3단계, 미리보기 뒤 [적용].
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,6 +21,7 @@ const options: { key: FontSize; ko: string; px: number }[] = [
 const zoom: Record<FontSize, number> = { small: 0.92, normal: 1, large: 1.15 };
 
 export default function FontPage() {
+  const nativeLanguage = useNativeLanguage();
   const demo = useDemo();
   const router = useRouter();
   const [picked, setPicked] = useState<FontSize | null>(null);
@@ -25,12 +30,16 @@ export default function FontPage() {
 
   return (
     <MobileScreen tab="me">
-      <AppBar title="글자 크기" vi="Kích thước chữ" back="/me" />
+      <AppBar
+        title="글자 크기"
+        native={nativeMessage(nativeLanguage, "w5.font.title")}
+        back="/me"
+      />
       <div className="center" style={{ marginTop: 12 }}>
         <p style={{ fontSize: 18, fontWeight: 700 }}>읽기 편한 글자 크기를 선택해 주세요.</p>
-        <span className="vi" style={{ fontSize: 13 }}>
-          Chọn cỡ chữ dễ đọc nhất cho bạn.
-        </span>
+        <Native className="native" style={{ fontSize: 13 }}>
+          {nativeMessage(nativeLanguage, "w5.font.description")}
+        </Native>
       </div>
       <section className="preview card" style={{ zoom: zoom[size] }}>
         <span className="badge badge-green" style={{ alignSelf: "flex-start" }}>
@@ -40,7 +49,7 @@ export default function FontPage() {
         <div className="sample">
           <b>식사</b>
           <p>아침 식사를 잘하셨어요.</p>
-          <span className="vi">Bữa sáng diễn ra tốt.</span>
+          <Native className="native">{nativeMessage(nativeLanguage, "w5.font.example")}</Native>
         </div>
       </section>
       <h2 className="section-title" style={{ margin: "24px 20px 4px" }}>
@@ -77,7 +86,7 @@ export default function FontPage() {
             router.push("/me");
           }}
         >
-          <BtnLabel ko="적용" vi="Áp dụng" />
+          <BtnLabel ko="적용" native={nativeMessage(nativeLanguage, "w5.font.apply")} />
         </button>
       </div>
     </MobileScreen>

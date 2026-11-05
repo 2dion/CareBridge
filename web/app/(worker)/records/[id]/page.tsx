@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W3(기록 초안 확인): 정리 중 → 항목 카드 → 관리자에게 전송.
 // 항목 내용·확인 이유·되돌림 사유와 제목·버튼은 병기, 상태 배지·항목 이름은 한국어만.
 import Link from "next/link";
@@ -11,7 +15,13 @@ import { Art } from "@/components/mobile/art";
 import { Icon } from "@/components/mobile/icon";
 import { useActionLock } from "@/components/mobile/use-action-lock";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
-import { AppBar, FrameVi, Loading, MobileScreen, ResidentPill } from "@/components/mobile/shell";
+import {
+  AppBar,
+  FrameNative,
+  Loading,
+  MobileScreen,
+  ResidentPill,
+} from "@/components/mobile/shell";
 import type { ItemStatus } from "@/lib/demo/state";
 import {
   canSubmitRecord,
@@ -32,7 +42,7 @@ import {
   timeRangeLabel,
   visitMinutes,
 } from "@/lib/demo/store";
-import { capitalizeVi } from "@/lib/records/item-badge";
+import { capitalizeNative } from "@/lib/records/item-badge";
 
 const NOTES_LIMIT = 200;
 /** 재가 서식 칸 숫자: 입력이 이만큼 멈추면 저장한다 */
@@ -45,13 +55,23 @@ const statusBadge: Record<ItemStatus, { label: string; tone: string }> = {
   needs_check: { label: "확인 필요", tone: "orange" },
 };
 
-const processingSteps = [
-  { ko: "음성을 글자로 바꾸고 있어요.", vi: "Đang chuyển giọng nói thành văn bản." },
-  { ko: "내용을 항목별로 정리하고 있어요.", vi: "Đang sắp xếp nội dung theo mục." },
-  { ko: "확인할 곳을 찾고 있어요.", vi: "Đang tìm chỗ cần kiểm tra." },
-];
-
 export default function DraftPage() {
+  const nativeLanguage = useNativeLanguage();
+  const processingSteps = [
+    {
+      ko: "음성을 글자로 바꾸고 있어요.",
+      native: nativeMessage(nativeLanguage, "w3.processing.transcript"),
+    },
+    {
+      ko: "내용을 항목별로 정리하고 있어요.",
+      native: nativeMessage(nativeLanguage, "w3.processing.organize"),
+    },
+    {
+      ko: "확인할 곳을 찾고 있어요.",
+      native: nativeMessage(nativeLanguage, "w3.processing.check"),
+    },
+  ];
+
   const { id } = useParams<{ id: string }>();
   const search = useSearchParams();
   const router = useRouter();
@@ -65,7 +85,10 @@ export default function DraftPage() {
   const actionLock = useActionLock();
   const pending = actionLock.pending;
   const networkNotice = () =>
-    setToast("인터넷 연결을 확인하고 다시 시도해 주세요. Hãy kiểm tra kết nối mạng rồi thử lại.");
+    setToast(
+      "인터넷 연결을 확인하고 다시 시도해 주세요. " +
+        nativeMessage(nativeLanguage, "w3.networkError"),
+    );
 
   const record = demo?.db.records[id];
   const processing = record?.draftState === "processing";
@@ -120,16 +143,16 @@ export default function DraftPage() {
     const current = Math.min(step, steps.length - 1);
     return (
       <MobileScreen tab="today">
-        <AppBar title="정리 중" vi="Đang xử lý" />
+        <AppBar title="정리 중" native={nativeMessage(nativeLanguage, "w3.processing.title")} />
         <ResidentPill resident={resident} date={record.careDate} />
         <div className="grow stack" style={{ justifyContent: "center" }}>
           <Art name="robot-processing" width={215} priority />
         </div>
         <section className="sheet card" style={{ marginBottom: 14, gap: 10 }} aria-live="polite">
           <h2 style={{ fontSize: 20 }}>AI가 기록 초안을 만들고 있어요.</h2>
-          <span className="s-vi vi" style={{ marginTop: -8 }}>
-            AI đang soạn bản nháp.
-          </span>
+          <Native className="s-native native" style={{ marginTop: -8 }}>
+            {nativeMessage(nativeLanguage, "w3.processing.description")}
+          </Native>
           <div className="bar-track">
             <div
               className="bar-fill"
@@ -148,7 +171,7 @@ export default function DraftPage() {
                 </span>
                 <div>
                   <b>{item.ko}</b>
-                  <span className="vi">{item.vi}</span>
+                  <Native className="native">{item.native}</Native>
                 </div>
               </div>
             ))}
@@ -161,18 +184,24 @@ export default function DraftPage() {
   if (record.draftState === "failed") {
     return (
       <MobileScreen tab="today">
-        <AppBar title="기록 초안" vi="Bản nháp" back="/today" />
+        <AppBar
+          title="기록 초안"
+          native={nativeMessage(nativeLanguage, "w3.titleShort")}
+          back="/today"
+        />
         <ResidentPill resident={resident} date={record.careDate} />
         <div className="grow stack" style={{ justifyContent: "center" }}>
           <Art name="robot-full" width={240} />
         </div>
         <section className="sheet card" style={{ marginBottom: 14 }} role="alert">
           <h2>초안을 만들지 못했어요</h2>
-          <span className="s-vi vi">Không tạo được bản nháp.</span>
+          <Native className="s-native native">
+            {nativeMessage(nativeLanguage, "w3.failed.title")}
+          </Native>
           <p>잠시 뒤 다시 시도하거나 글로 써 주세요. 쓴 글은 남아 있어요.</p>
-          <span className="p-vi vi">
-            Hãy thử lại sau hoặc viết trực tiếp. Nội dung đã viết vẫn còn.
-          </span>
+          <Native className="p-native native">
+            {nativeMessage(nativeLanguage, "w3.failed.description")}
+          </Native>
           <button
             type="button"
             className="btn btn-primary"
@@ -186,7 +215,8 @@ export default function DraftPage() {
                   if (demo.real) {
                     // 원문·입력 방법을 보존한 채 다시 정리한다. 실패하면 같은 자리에서 재시도한다.
                     const result = await demo.real.actions.retryDraft(id);
-                    if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+                    if (!result.ok)
+                      setToast(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
                     return;
                   }
                   demo.update((db) => retryDraft(db, id, nowIso()));
@@ -197,16 +227,26 @@ export default function DraftPage() {
           >
             <BtnLabel
               ko={pending === "retry" ? "처리 중" : "다시 시도"}
-              vi={pending === "retry" ? "Đang xử lý" : "Thử lại"}
+              native={
+                pending === "retry"
+                  ? nativeMessage(nativeLanguage, "w3.retry.processing")
+                  : nativeMessage(nativeLanguage, "w3.retry")
+              }
             />
           </button>
           <Link className="btn btn-outline" href={`/records/${id}/write`}>
-            <span className="label">글로 쓰기 · Viết trực tiếp</span>
+            <span className="label">
+              {(nativeLanguage === "ko" ? "글로 쓰기" : "글로 쓰기 · ") +
+                nativeMessage(nativeLanguage, "w3.writeInstead")}
+            </span>
           </Link>
         </section>
         {(pending || toast) && (
           <p className="toast" role="status">
-            {pending ? "처리 중이에요. · Đang xử lý." : toast}
+            {pending
+              ? (nativeLanguage === "ko" ? "처리 중이에요." : "처리 중이에요. · ") +
+                nativeMessage(nativeLanguage, "w3.busy")
+              : toast}
           </p>
         )}
       </MobileScreen>
@@ -231,7 +271,7 @@ export default function DraftPage() {
       .run(`confirm:${key}`, async () => {
         if (!real) return act((db) => confirmItem(db, id, key, nowIso()));
         const result = await real.actions.patchItem(id, key, { confirmed_by_worker: true });
-        if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+        if (!result.ok) setToast(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
       })
       .catch(networkNotice);
   };
@@ -245,7 +285,7 @@ export default function DraftPage() {
       ...record.formFields,
       ...sentFields.current,
     });
-    if (!result.ok) setToast(`${result.ko} ${result.vi}`);
+    if (!result.ok) setToast(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
     return result.ok;
   };
 
@@ -257,7 +297,7 @@ export default function DraftPage() {
           const result = await real.actions.submit(id);
           if (!result.ok) {
             justSent.current = false;
-            setToast(`${result.ko} ${result.vi}`);
+            setToast(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
             return;
           }
           setConfirmOpen(false);
@@ -277,14 +317,20 @@ export default function DraftPage() {
 
   return (
     <MobileScreen tab="today">
-      <AppBar title="기록 초안 확인" vi="Kiểm tra bản nháp" back="/today" />
+      <AppBar
+        title="기록 초안 확인"
+        native={nativeMessage(nativeLanguage, "w3.title")}
+        back="/today"
+      />
       <ResidentPill resident={resident} date={record.careDate} />
       <div className="scroll" style={{ marginTop: 12, paddingBottom: 12 }}>
         {record.status === "returned" && (
           <div className="reason-box big" role="note">
             <b>수정 요청 사유</b>
             {record.returnReason}
-            {record.returnReasonNative && <span className="vi">{record.returnReasonNative}</span>}
+            {record.returnReasonNative && (
+              <Native className="native">{record.returnReasonNative}</Native>
+            )}
             <span style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 4 }}>
               {record.returnedBy}
             </span>
@@ -298,7 +344,10 @@ export default function DraftPage() {
             </span>
             <span className="stack">
               <b>{total}개 모두 봤어요</b>
-              <FrameVi>Đã xem cả {total} mục</FrameVi>
+              <FrameNative>
+                {nativeMessage(nativeLanguage, "w3.allConfirmedPrefix")}
+                {total} {nativeMessage(nativeLanguage, "w3.allConfirmedSuffix")}
+              </FrameNative>
             </span>
             <span className="grow" />
             {needsLeft > 0 && (
@@ -313,9 +362,10 @@ export default function DraftPage() {
               <b>
                 {total}개 중 {doneCount}개 봤어요
               </b>
-              <FrameVi>
-                Đã xem {doneCount}/{total} mục
-              </FrameVi>
+              <FrameNative>
+                {nativeMessage(nativeLanguage, "w3.confirmedPrefix")}
+                {doneCount}/{total} {nativeMessage(nativeLanguage, "w3.confirmedSuffix")}
+              </FrameNative>
             </span>
             <span className="grow" />
             <span className="done-note">남은 항목 {total - doneCount}개</span>
@@ -361,9 +411,11 @@ export default function DraftPage() {
         {needsLeft > 0 && (
           <p className="foot-note">
             ‘확인 필요’가 남아 있어도 보낼 수 있어요. {names.reviewer}가 정해요.
-            <span className="vi">
-              Vẫn gửi được khi còn mục cần kiểm tra. {capitalizeVi(names.reviewerVi)} sẽ quyết định.
-            </span>
+            <Native className="native">
+              {nativeMessage(nativeLanguage, "w3.needsCheckPrefix")}
+              {capitalizeNative(names.reviewerNative)}{" "}
+              {nativeMessage(nativeLanguage, "w3.needsCheckSuffix")}
+            </Native>
           </p>
         )}
       </div>
@@ -377,7 +429,7 @@ export default function DraftPage() {
             window.setTimeout(() => router.push("/today"), 700);
           }}
         >
-          <BtnLabel ko="임시 저장" vi="Lưu tạm" />
+          <BtnLabel ko="임시 저장" native={nativeMessage(nativeLanguage, "w3.save")} />
         </button>
         <button
           type="button"
@@ -385,12 +437,18 @@ export default function DraftPage() {
           disabled={!canSend || pending !== null}
           onClick={() => setConfirmOpen(true)}
         >
-          <BtnLabel ko={`${names.reviewer}에게 전송`} vi={`Gửi ${names.reviewerVi}`} />
+          <BtnLabel
+            ko={`${names.reviewer}에게 전송`}
+            native={nativeMessage(nativeLanguage, "w3.submitToReviewer", {
+              reviewer: names.reviewerNative,
+            })}
+          />
         </button>
       </div>
       {!canSend && (
         <p className="sr-only" role="status">
-          {total}개를 모두 보면 보낼 수 있어요. Xem hết {total} mục là có thể gửi.
+          {total}개를 모두 보면 보낼 수 있어요.
+          <Native id="w3.remainingHint" params={{ count: total }} />
         </p>
       )}
       <Modal
@@ -406,16 +464,15 @@ export default function DraftPage() {
         <h2 style={{ fontSize: 24, fontWeight: 700 }}>{names.reviewer}에게 전송할까요?</h2>
         <hr style={{ width: "100%" }} />
         <p style={{ fontSize: 17 }}>전송한 뒤에는 고칠 수 없어요.</p>
-        <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
-          Sau khi gửi, bạn không thể chỉnh sửa.
-        </span>
+        <Native className="native" style={{ fontSize: 13, marginTop: -6 }}>
+          {nativeMessage(nativeLanguage, "w3.submitWarning")}
+        </Native>
         {record.status === "returned" && (
           <p style={{ fontSize: 17 }}>
             고친 항목과 관련된 특이사항·다음 확인사항도 맞는지 봤나요?
-            <span className="vi" style={{ display: "block", fontSize: 13 }}>
-              Bạn đã xem lại ghi chú đặc biệt và mục cần kiểm tra tiếp theo liên quan đến mục đã sửa
-              chưa?
-            </span>
+            <Native className="native" style={{ display: "block", fontSize: 13 }}>
+              {nativeMessage(nativeLanguage, "w3.relatedItemsHint")}
+            </Native>
           </p>
         )}
         <div className="btn-row" style={{ width: "100%", marginTop: 6 }}>
@@ -425,7 +482,7 @@ export default function DraftPage() {
             disabled={pending !== null}
             onClick={() => setConfirmOpen(false)}
           >
-            <BtnLabel ko="취소" vi="Hủy" />
+            <BtnLabel ko="취소" native={nativeMessage(nativeLanguage, "w3.cancel")} />
           </button>
           <button
             type="button"
@@ -436,14 +493,23 @@ export default function DraftPage() {
           >
             <BtnLabel
               ko={pending === "submit" ? "전송 중" : "전송"}
-              vi={pending === "submit" ? "Đang gửi" : "Gửi"}
+              native={
+                pending === "submit"
+                  ? nativeMessage(nativeLanguage, "w3.submitting")
+                  : nativeMessage(nativeLanguage, "w3.submit")
+              }
             />
           </button>
         </div>
       </Modal>
       {(pending || toast) && (
         <p className="toast" role="status">
-          {pending ? "처리 중이에요. 잠시만 기다려 주세요. · Đang xử lý. Vui lòng đợi." : toast}
+          {pending
+            ? (nativeLanguage === "ko"
+                ? "처리 중이에요. 잠시만 기다려 주세요."
+                : "처리 중이에요. 잠시만 기다려 주세요. · ") +
+              nativeMessage(nativeLanguage, "w3.wait")
+            : toast}
         </p>
       )}
     </MobileScreen>
@@ -499,6 +565,7 @@ function ItemCard({
   onConfirm: (key: RecordItem["item_key"]) => void;
   pending: string | null;
 }) {
+  const nativeLanguage = useNativeLanguage();
   const [open, setOpen] = useState(false);
   const names = useRoleNames();
   const label = itemLabel(item.item_key);
@@ -536,7 +603,7 @@ function ItemCard({
       {item.status === "not_mentioned" && !item.value_ko ? (
         <>
           <p>말한 내용에 없어요.</p>
-          <span className="vi">Không có trong lời kể.</span>
+          <Native className="native">{nativeMessage(nativeLanguage, "w3.notMentioned")}</Native>
         </>
       ) : (
         <>
@@ -544,7 +611,7 @@ function ItemCard({
             <p>{item.value_ko}</p>
             <Listen text={item.value_ko} />
           </div>
-          {item.value_native && <span className="vi">{item.value_native}</span>}
+          {item.value_native && <Native className="native">{item.value_native}</Native>}
         </>
       )}
       {item.before_ko && item.source === "reviewer" && (
@@ -555,18 +622,19 @@ function ItemCard({
       {item.source === "reviewer" && !item.confirmed_by_worker && (
         <span style={{ fontSize: 12, color: "var(--color-warn-text)" }}>
           {names.reviewer}가 고쳤어요. 맞는지 확인해 주세요.
-          <span className="vi" style={{ display: "block" }}>
-            {capitalizeVi(names.reviewerVi)} đã sửa. Hãy kiểm tra lại.
-          </span>
+          <Native className="native" style={{ display: "block" }}>
+            {capitalizeNative(names.reviewerNative)}{" "}
+            {nativeMessage(nativeLanguage, "w3.reviewerChangedSuffix")}
+          </Native>
         </span>
       )}
       {item.status === "needs_check" && item.reason && (
         <div className="reason-box">
           확인 이유 · {item.reason}
           {item.reason_native && (
-            <span className="vi" style={{ display: "block" }}>
+            <Native className="native" style={{ display: "block" }}>
               {item.reason_native}
-            </span>
+            </Native>
           )}
         </div>
       )}
@@ -608,7 +676,7 @@ function ItemCard({
                 if (pending) event.preventDefault();
               }}
             >
-              <BtnLabel ko="내용 수정" vi="Sửa nội dung" />
+              <BtnLabel ko="내용 수정" native={nativeMessage(nativeLanguage, "w3.item.edit")} />
             </Link>
             <button
               type="button"
@@ -618,7 +686,11 @@ function ItemCard({
             >
               <BtnLabel
                 ko={confirming ? "확인 중" : "확인 완료"}
-                vi={confirming ? "Đang kiểm tra" : "Xác nhận"}
+                native={
+                  confirming
+                    ? nativeMessage(nativeLanguage, "w3.item.confirming")
+                    : nativeMessage(nativeLanguage, "w3.item.confirm")
+                }
               />
             </button>
           </div>
@@ -632,7 +704,7 @@ function ItemCard({
                 if (pending) event.preventDefault();
               }}
             >
-              <BtnLabel ko="내용 추가" vi="Thêm nội dung" />
+              <BtnLabel ko="내용 추가" native={nativeMessage(nativeLanguage, "w3.item.add")} />
             </Link>
             <button
               type="button"
@@ -642,7 +714,11 @@ function ItemCard({
             >
               <BtnLabel
                 ko={confirming ? "확인 중" : "해당 없음"}
-                vi={confirming ? "Đang kiểm tra" : "Không có"}
+                native={
+                  confirming
+                    ? nativeMessage(nativeLanguage, "w3.item.checkingEmpty")
+                    : nativeMessage(nativeLanguage, "w3.item.notApplicable")
+                }
               />
             </button>
           </div>
@@ -656,7 +732,11 @@ function ItemCard({
             >
               <BtnLabel
                 ko={confirming ? "확인 중" : "확인 완료"}
-                vi={confirming ? "Đang kiểm tra" : "Xác nhận"}
+                native={
+                  confirming
+                    ? nativeMessage(nativeLanguage, "w3.item.checkingObserved")
+                    : nativeMessage(nativeLanguage, "w3.item.confirmObserved")
+                }
               />
             </button>
             <Link
@@ -667,7 +747,10 @@ function ItemCard({
                 if (pending) event.preventDefault();
               }}
             >
-              <BtnLabel ko="내용 수정" vi="Sửa nội dung" />
+              <BtnLabel
+                ko="내용 수정"
+                native={nativeMessage(nativeLanguage, "w3.item.editObserved")}
+              />
             </Link>
           </div>
         ))}

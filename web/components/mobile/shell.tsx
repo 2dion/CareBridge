@@ -8,7 +8,9 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { useDemo } from "@/components/demo/demo-provider";
-import { SHOW_FRAME_VI } from "@/lib/bilingual";
+import { SHOW_FRAME_NATIVE } from "@/lib/bilingual";
+import { nativeMessage, type MessageId } from "@/lib/i18n/messages";
+import { Native, useNativeLanguage } from "./native";
 import { TRAINING_BAND } from "@/lib/demo/roles";
 import { monthDay, type Resident } from "@/lib/demo/store";
 import type { RecordStatus } from "@/lib/demo/state";
@@ -71,33 +73,37 @@ export function TabBar({ active }: { active: TabKey | null }) {
 }
 
 /** 화면 틀의 베트남어(제목·일반 버튼). 병기 원칙이면 숨긴다. */
-export function FrameVi({
+export function FrameNative({
   children,
-  className = "vi",
+  className = "native",
 }: {
   children: ReactNode;
   className?: string;
 }) {
-  if (!SHOW_FRAME_VI) return null;
-  return <span className={className}>{children}</span>;
+  if (!SHOW_FRAME_NATIVE) return null;
+  return <Native className={className}>{children}</Native>;
 }
 
 export function AppBar({
   title,
-  vi,
-  viAlways,
+  native,
+  nativeId,
+  nativeAlways,
   back,
   right,
 }: {
   title: string;
-  vi?: string;
+  native?: string;
+  nativeId?: MessageId;
   /** 병기 원칙 예외 화면(W0·A1·A2)이면 베트남어를 늘 보인다. */
-  viAlways?: boolean;
+  nativeAlways?: boolean;
   /** 링크 주소, 함수, 또는 true면 브라우저 뒤로 */
   back?: string | true | (() => void);
   right?: ReactNode;
 }) {
   const router = useRouter();
+  const lang = useNativeLanguage();
+  const translation = nativeId ? nativeMessage(nativeAlways ? "vi" : lang, nativeId) : native;
   return (
     <header className="app-bar">
       <div className="side">
@@ -117,7 +123,12 @@ export function AppBar({
       </div>
       <div className="title">
         <strong>{title}</strong>
-        {vi && (viAlways ? <span className="vi">{vi}</span> : <FrameVi>{vi}</FrameVi>)}
+        {translation &&
+          (nativeAlways ? (
+            <Native language="vi">{translation}</Native>
+          ) : (
+            <FrameNative>{translation}</FrameNative>
+          ))}
       </div>
       <div className="side side-right">{right}</div>
     </header>
