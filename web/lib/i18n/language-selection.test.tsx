@@ -53,7 +53,7 @@ describe("A2·W5 모국어 선택(#313)", () => {
     expect(
       renderToStaticMarkup(
         <NativeLanguageProvider language="en">
-          <Native requiredIds={["w6.savedHintPrefix", "w6.savedHintSuffix"]}>reviewer</Native>
+          <Native requiredIds={["w6.savedHint"]}>saved</Native>
         </NativeLanguageProvider>,
       ),
     ).toBe("");
