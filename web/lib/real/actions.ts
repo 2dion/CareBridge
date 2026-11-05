@@ -167,7 +167,11 @@ export function audioMime(type: string): "audio/webm" | "audio/mp4" | null {
   return null;
 }
 
-export function createRealActions(supabase: SupabaseClient, reload: () => Promise<void>) {
+export function createRealActions(
+  supabase: SupabaseClient,
+  reload: () => Promise<void>,
+  options: { onConfirmed?: (recordId: string, key: ItemKey) => void } = {},
+) {
   const after = async <T extends { ok: boolean }>(result: T) => {
     await reload();
     return result;
@@ -227,9 +231,23 @@ export function createRealActions(supabase: SupabaseClient, reload: () => Promis
       return after(await callApi(`/api/records/${recordId}/items/${key}`, { body: { text } }));
     },
     async patchItem(recordId: string, key: ItemKey, patch: Record<string, unknown>) {
-      return after(
-        await callApi(`/api/records/${recordId}/items/${key}`, { method: "PATCH", body: patch }),
-      );
+      const result = await callApi(`/api/records/${recordId}/items/${key}`, {
+        method: "PATCH",
+        body: patch,
+      });
+      if (
+        result.ok &&
+        options.onConfirmed &&
+        patch.confirmed_by_worker === true &&
+        Object.keys(patch).length === 1
+      ) {
+        // 서버가 확인을 저장한 뒤 해당 항목을 먼저 반영한다(#154).
+        // 전체 목록 재조회는 뒤에서 하며, 내용 수정·실패는 기존 재조회 흐름을 유지한다.
+        options.onConfirmed(recordId, key);
+        void reload().catch(() => {});
+        return result;
+      }
+      return after(result);
     },
     /** 재가 방문 시작·종료는 records.visit_start·visit_end에 둔다(작성자가 씀) */
     async setVisitTime(recordId: string, start: string, end: string) {
