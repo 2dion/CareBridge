@@ -1,5 +1,5 @@
 // 기록 검증 (Agent 도구 ③ validate_draft). AI 판단이 아니라 서버 코드 검사다.
-// 근거: 문서/설계/ai규칙-v2.0.4.md '서버 검사와 예외 처리' 검사 1~6,
+// 근거: 문서/설계/ai규칙-v2.0.5.md '서버 검사와 예외 처리' 검사 1~6,
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
 import type { NativeLang } from "@/lib/auth/signup";
