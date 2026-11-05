@@ -95,7 +95,7 @@ export default function StartPage() {
   const draftBadge = (
     <span className="badge badge-green" style={{ marginTop: 6 }}>
       <Icon name="doc" />
-      임시저장 1개
+      임시 저장 1개
     </span>
   );
 

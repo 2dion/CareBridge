@@ -95,8 +95,8 @@ function Settings() {
             {!real
               ? "Supabase에 연결하면 기관의 가입 코드(join_codes)를 여기서 읽어요. Mock 모드에는 실제 코드가 없어요."
               : workerCodes.length === 0
-                ? `이 기관에 켜진 ${writer}용 코드가 없어요. 팀장에게 요청하세요.`
-                : `새 ${writer}은(는) 이 코드로 직접 가입해요. 코드를 만들거나 끄는 것은 팀장이 합니다. ${names.reviewer}용 코드는 화면에 보이지 않아요.`}
+                ? `이 기관에 켜진 ${writer}용 코드가 없어요. 가입 코드를 새로 받아야 해요.`
+                : `새 ${writer}은(는) 이 코드로 직접 가입해요. 이 화면에서는 코드를 보거나 복사할 수 있어요. ${names.reviewer}용 코드는 화면에 보이지 않아요.`}
           </p>
         </section>
       </div>
