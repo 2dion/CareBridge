@@ -4,6 +4,7 @@
 // 방문 요일은 1=월 … 7=일(assignments.visit_days). 담당 시작일부터 못 쓴 기록을 센다(데이터구조 v1.6.4).
 // 실제 모드는 기관 작성자 목록(list_org_staff)에서 여럿을 고르고, 담당 연결은 어르신·작성자 한 쌍마다 한 줄로 저장한다(이슈 #95).
 // 방문 시간은 표시용 assignments.schedule에 저장한다.
+import { LANGUAGES } from "@/lib/i18n/languages";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -39,7 +40,9 @@ const dayNames = ["월", "화", "수", "목", "금", "토", "일"];
 /** Mock 모드의 작성자 한 명(실제 모드는 list_org_staff) */
 const MOCK_WORKER_ID = "mock-worker";
 /** 작성자 모국어 표시(화면 설계 v1.3 M4 "작성자: 이름, 모국어", 결정 2026-10-30-명단모국어) */
-const LANG_LABEL: Record<StaffMember["nativeLang"], string> = { ko: "한국어", vi: "베트남어" };
+const LANG_LABEL: Record<StaffMember["nativeLang"], string> = Object.fromEntries(
+  LANGUAGES.map((language) => [language.code, language.nameKo]),
+) as Record<StaffMember["nativeLang"], string>;
 
 function VisitDays({ days }: { days: number[] | null }) {
   if (days === null) return <span className="muted">매일 (시설)</span>;

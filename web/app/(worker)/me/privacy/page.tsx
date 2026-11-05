@@ -8,7 +8,7 @@ import { nativeMessage } from "@/lib/i18n/messages";
 import { useRoleNames } from "@/components/demo/demo-provider";
 import { Icon, type IconName } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
-import { PRIVACY_SECTIONS } from "@/lib/privacy";
+import { privacySections } from "@/lib/privacy";
 import type { RoleNames } from "@/lib/demo/roles";
 
 export default function PrivacyPage() {
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
   const buildSections = (
     names: RoleNames,
   ): { icon: IconName; ko: string; native: string; body: string; bodyNative: string }[] => [
-    ...PRIVACY_SECTIONS,
+    ...privacySections(nativeLanguage),
     {
       icon: "headset",
       ko: "문의",

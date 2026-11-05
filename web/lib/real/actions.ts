@@ -2,7 +2,7 @@ import { nativeMessage } from "@/lib/i18n/messages";
 
 // 실제 모드의 화면 동작: 서버 API(공통 계약 10개)와 Supabase(RLS) 직접 쓰기. 끝나면 화면이 다시 읽는다(reload).
 // AI 결과는 서버가 만들고, 화면은 가짜 결과를 만들지 않는다.
-// 근거: 문서/설계/데이터구조-v2.3.5.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
+// 근거: 문서/설계/데이터구조-v2.3.6.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
 import type { NativeLang } from "@/lib/auth/signup";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -38,108 +38,112 @@ export type ActionError = {
   items?: ItemKey[];
 };
 
-const MESSAGES: Record<string, { ko: string; native: string }> = {
+const messages = (lang: NativeLang): Record<string, { ko: string; native: string }> => ({
   // 여기서는 기관을 몰라 reviewer_only처럼 '관리자(강사)'로 함께 쓴다(이슈 #146)
   ai_not_configured: {
     ko: "AI 기능이 아직 켜지지 않았어요. 관리자(강사)에게 알려 주세요.",
-    native: nativeMessage("vi", "actions.aiNotConfigured"),
+    native: nativeMessage(lang, "actions.aiNotConfigured"),
   },
   unconfirmed_items: {
     ko: "확인 전 항목이 있어요.",
-    native: nativeMessage("vi", "actions.unconfirmed"),
+    native: nativeMessage(lang, "actions.unconfirmed"),
   },
   unresolved_needs_check: {
     ko: "정하지 않은 ‘확인 필요’ 항목이 남아 있어요.",
-    native: nativeMessage("vi", "actions.unresolved"),
+    native: nativeMessage(lang, "actions.unresolved"),
   },
   return_reason_required: {
     ko: "되돌리는 이유를 써 주세요.",
-    native: nativeMessage("vi", "actions.returnReason"),
+    native: nativeMessage(lang, "actions.returnReason"),
   },
-  note_required: { ko: "사유를 써 주세요.", native: nativeMessage("vi", "actions.noteRequired") },
+  note_required: { ko: "사유를 써 주세요.", native: nativeMessage(lang, "actions.noteRequired") },
   invalid_transition: {
     ko: "지금 상태에서는 할 수 없어요. 화면을 새로 고쳐 주세요.",
-    native: nativeMessage("vi", "actions.invalidTransition"),
+    native: nativeMessage(lang, "actions.invalidTransition"),
   },
   has_records: {
     ko: "기록이 있는 어르신은 지울 수 없어요.",
-    native: nativeMessage("vi", "actions.hasRecords"),
+    native: nativeMessage(lang, "actions.hasRecords"),
   },
   record_locked: {
     ko: "승인된 기록은 고칠 수 없어요.",
-    native: nativeMessage("vi", "actions.recordLocked"),
+    native: nativeMessage(lang, "actions.recordLocked"),
   },
   // 권한·날짜 거절(이슈 #114). DB 트리거·API 오류 키와 같은 글자(supabase/README.md, 공통 계약 '응답 코드와 오류 키')
   reviewer_only: {
     ko: "관리자(강사)만 할 수 있어요.",
-    native: nativeMessage("vi", "actions.reviewerOnly"),
+    native: nativeMessage(lang, "actions.reviewerOnly"),
   },
   not_record_worker: {
     ko: "이 기록을 쓴 사람만 할 수 있어요.",
-    native: nativeMessage("vi", "actions.notRecordWorker"),
+    native: nativeMessage(lang, "actions.notRecordWorker"),
   },
   org_mismatch: {
     ko: "다른 기관의 어르신이에요. 화면을 새로 고쳐 주세요.",
-    native: nativeMessage("vi", "actions.orgMismatch"),
+    native: nativeMessage(lang, "actions.orgMismatch"),
   },
   care_date_out_of_range: {
     ko: "처리할 수 있는 기간이 아닌 날짜예요. 화면을 새로 고쳐 주세요.",
-    native: nativeMessage("vi", "actions.dateOutOfRange"),
+    native: nativeMessage(lang, "actions.dateOutOfRange"),
   },
   record_exists: {
     ko: "이 날은 이미 기록이 있어요. 화면을 새로 고쳐 주세요.",
-    native: nativeMessage("vi", "actions.recordExists"),
+    native: nativeMessage(lang, "actions.recordExists"),
   },
   no_care_day_exists: {
     ko: "이 날은 ‘기록 없음’으로 정리된 날이에요.",
-    native: nativeMessage("vi", "actions.noCareDayExists"),
+    native: nativeMessage(lang, "actions.noCareDayExists"),
   },
   duplicate_entry: {
     ko: "이미 처리된 내용이에요. 화면을 새로 고쳐 주세요.",
-    native: nativeMessage("vi", "actions.duplicate"),
+    native: nativeMessage(lang, "actions.duplicate"),
   },
   not_signed_in: {
     ko: "다시 로그인해 주세요.",
-    native: nativeMessage("vi", "actions.notSignedIn"),
+    native: nativeMessage(lang, "actions.notSignedIn"),
   },
   rate_limited: {
     ko: "요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.",
-    native: nativeMessage("vi", "actions.rateLimited"),
+    native: nativeMessage(lang, "actions.rateLimited"),
   },
   stt_failed: {
     ko: "음성을 글자로 바꾸지 못했어요. 다시 올리거나 글로 써 주세요.",
-    native: nativeMessage("vi", "actions.sttFailed"),
+    native: nativeMessage(lang, "actions.sttFailed"),
   },
   empty_transcript: {
     ko: "녹음에서 말을 찾지 못했어요. 다시 녹음해 주세요.",
-    native: nativeMessage("vi", "actions.emptyTranscript"),
+    native: nativeMessage(lang, "actions.emptyTranscript"),
   },
   value_ko_not_korean: {
     ko: "공식 기록 칸에는 한국어로 써 주세요.",
-    native: nativeMessage("vi", "actions.koreanRequired"),
+    native: nativeMessage(lang, "actions.koreanRequired"),
   },
   fill_failed: {
     ko: "고칠 내용을 정리하지 못했어요. 다시 시도해 주세요.",
-    native: nativeMessage("vi", "actions.fillFailed"),
+    native: nativeMessage(lang, "actions.fillFailed"),
   },
   stale_item: {
     ko: "그사이 내용이 바뀌었어요. 화면을 새로 고친 뒤 다시 해 주세요.",
-    native: nativeMessage("vi", "actions.staleItem"),
+    native: nativeMessage(lang, "actions.staleItem"),
   },
   agent_failed: {
     ko: "초안을 만들지 못했어요. 다시 시도하거나 글로 써 주세요.",
-    native: nativeMessage("vi", "actions.agentFailed"),
+    native: nativeMessage(lang, "actions.agentFailed"),
   },
-};
-const NETWORK = {
+});
+const network = (lang: NativeLang) => ({
   ko: "인터넷 연결을 확인하고 다시 시도해 주세요.",
-  native: nativeMessage("vi", "actions.network"),
-};
+  native: nativeMessage(lang, "actions.network"),
+});
 
-export function actionError(error: string, items?: ItemKey[]): ActionError {
-  const message = MESSAGES[error] ?? {
+export function actionError(
+  error: string,
+  items?: ItemKey[],
+  lang: NativeLang = "vi",
+): ActionError {
+  const message = messages(lang)[error] ?? {
     ko: "처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
-    native: nativeMessage("vi", "actions.failed"),
+    native: nativeMessage(lang, "actions.failed"),
   };
   return { ok: false, error, ...message, ...(items ? { items } : {}) };
 }
@@ -147,8 +151,9 @@ export function actionError(error: string, items?: ItemKey[]): ActionError {
 /** 서버 API 부르기. 실패하면 응답의 error 키로 안내 문구를 고른다 */
 export async function callApi<T = Record<string, unknown>>(
   path: string,
-  init: { method?: string; body?: unknown } = {},
+  init: { method?: string; body?: unknown; lang?: NativeLang } = {},
 ): Promise<{ ok: true; data: T } | ActionError> {
+  const lang = init.lang ?? "vi";
   let response: Response;
   try {
     response = await fetch(path, {
@@ -157,19 +162,33 @@ export async function callApi<T = Record<string, unknown>>(
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
   } catch {
-    return { ok: false, error: "network", ...NETWORK };
+    return { ok: false, error: "network", ...network(lang) };
   }
   const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
     const error = typeof data.error === "string" ? data.error : `http_${response.status}`;
-    return actionError(error, Array.isArray(data.items) ? (data.items as ItemKey[]) : undefined);
+    return actionError(
+      error,
+      Array.isArray(data.items) ? (data.items as ItemKey[]) : undefined,
+      lang,
+    );
   }
   return { ok: true, data: data as T };
 }
 
 // DB가 돌려준 오류: 트리거는 message에 오류 키를 담고, 같은 행이 이미 있으면(unique) code 23505다
-const dbError = (error: { message: string; code?: string } | null): ActionError | null =>
-  error ? actionError(error.code === "23505" ? "duplicate_entry" : error.message) : null;
+const dbError = (
+  error: { message: string; code?: string } | null,
+  lang: NativeLang = "vi",
+): ActionError | null =>
+  error
+    ? actionError(error.code === "23505" ? "duplicate_entry" : error.message, undefined, lang)
+    : null;
+
+// createRealActions 안에서는 작성자 모국어를 따라가는 같은 이름의 함수를 쓴다(이슈 #312)
+const baseCallApi = callApi;
+const baseActionError = actionError;
+const baseDbError = dbError;
 
 /** MediaRecorder 형식(audio/webm;codecs=opus 등)을 서버가 받는 두 형식으로 맞춘다 */
 export function audioMime(type: string): "audio/webm" | "audio/mp4" | null {
@@ -181,8 +200,19 @@ export function audioMime(type: string): "audio/webm" | "audio/mp4" | null {
 export function createRealActions(
   supabase: SupabaseClient,
   reload: () => Promise<void>,
-  options: { onConfirmed?: (recordId: string, key: ItemKey) => void } = {},
+  options: {
+    onConfirmed?: (recordId: string, key: ItemKey) => void;
+    /** 안내문의 모국어 줄 언어(작성자 프로필). 없으면 베트남어 */
+    nativeLang?: NativeLang;
+  } = {},
 ) {
+  const lang = options.nativeLang ?? "vi";
+  const callApi = <T = Record<string, unknown>>(
+    path: string,
+    init: { method?: string; body?: unknown } = {},
+  ) => baseCallApi<T>(path, { ...init, lang });
+  const actionError = (error: string, items?: ItemKey[]) => baseActionError(error, items, lang);
+  const dbError = (error: { message: string; code?: string } | null) => baseDbError(error, lang);
   const after = async <T extends { ok: boolean }>(result: T) => {
     await reload();
     return result;
@@ -204,7 +234,7 @@ export function createRealActions(
     const { error } = await supabase.storage
       .from("audio")
       .uploadToSignedUrl(url.data.storage_path, url.data.token, blob, { contentType: mime });
-    if (error) return { ok: false as const, error: "upload_failed", ...NETWORK };
+    if (error) return { ok: false as const, error: "upload_failed", ...network(lang) };
     return callApi<{ id: string; status: string }>(`/api/records/${recordId}/audio`, {
       body: { ...target, storage_path: url.data.storage_path },
     });

@@ -45,8 +45,12 @@ describe("parseNativeLang", () => {
     expect(parseNativeLang("vi")).toBe("vi");
   });
 
+  it("목록에 더한 언어(zh·mn·en)는 저장된 값으로 읽는다", () => {
+    for (const value of ["zh", "mn", "en"]) expect(parseNativeLang(value)).toBe(value);
+  });
+
   it("모르는 언어·빈값은 베트남어가 아니라 ko(번역 없음)", () => {
-    for (const value of ["en", "VI", "", null, undefined, 1]) {
+    for (const value of ["th", "VI", "", null, undefined, 1]) {
       expect(parseNativeLang(value)).toBe("ko");
     }
   });
