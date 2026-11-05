@@ -150,6 +150,11 @@ describe("Mock 데이터 규칙 (데이터구조 v1.6.2)", () => {
     for (const item of db.records[made.id].items) {
       if (item.status !== "needs_check") db = confirmItem(db, made.id, item.item_key, NOW);
     }
+    // 확인 필요도 작성자 확인을 받아야 전송한다. 관리자의 해결·승인과는 별개다(#283).
+    expect(canSubmitRecord(db.records[made.id])).toBe(false);
+    for (const item of db.records[made.id].items) {
+      if (item.status === "needs_check") db = confirmItem(db, made.id, item.item_key, NOW);
+    }
     expect(canSubmitRecord(db.records[made.id])).toBe(true);
     db = submitRecord(db, made.id, NOW);
     expect(db.records[made.id].status).toBe("submitted");
