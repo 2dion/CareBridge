@@ -203,9 +203,21 @@ export function itemsSnapshot(items: RunItem[]): string {
 /** [글로 쓰기]·[다시 시도]는 작업 행이 없어 시작 시각으로 본다(이슈 #237). 항목이 달라졌으면 null(끝남) */
 export function textRunStateOf(
   items: RunItem[],
-  run: { startedAt: number; snapshot: string },
+  run: { startedAt: number; snapshot: string; pendingJobs?: string[] },
   now: number,
+  jobs: AudioJobRow[] = [],
 ): "processing" | "failed" | null {
+  // 재시도 전 실패·처리 중이던 작업이 done이 되면 같은 초안도 저장 완료다(#296).
+  // 원래 done이던 작업이나 항목 녹음은 이번 실행의 완료 근거가 아니다.
+  if (
+    jobs.some(
+      (job) =>
+        job.target === "record" &&
+        job.status === "done" &&
+        run.pendingJobs?.includes(job.created_at),
+    )
+  )
+    return null;
   if (itemsSnapshot(items) !== run.snapshot) return null;
   return now - run.startedAt > PROCESSING_LIMIT_MS ? "failed" : "processing";
 }
