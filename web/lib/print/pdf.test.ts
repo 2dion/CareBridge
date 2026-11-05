@@ -32,8 +32,8 @@ describe("법정 원문 기록 PDF", () => {
     const record = Object.values(db.records).find(
       (entry) => entry.formType === "16" && entry.status === "approved",
     )!;
-    expect(() => printFields(record, "김○○ 어르신", db.worker.org, "")).toThrow("영역");
-    const output = printFields(record, "김○○ 어르신", db.worker.org, "cognition");
+    expect(() => printFields(record, "김○○ 어르신", db.worker.org, [])).toThrow("영역");
+    const output = printFields(record, "김○○ 어르신", db.worker.org, ["cognition"]);
     const note = record.items.find((item) => item.item_key === "notes")!;
     expect(output.fields.find((field) => field.key === "notes-cognition")?.text).toContain(
       note.value_ko,
@@ -53,7 +53,7 @@ describe("법정 원문 기록 PDF", () => {
             : item,
       ),
     };
-    const output = printFields(edited, "이○○ 어르신", db.worker.org, "");
+    const output = printFields(edited, "이○○ 어르신", db.worker.org, []);
     const cognition = record.items.find((item) => item.item_key === "cognition")!;
     expect(output.fields.find((field) => field.key === "notes")?.text).not.toContain(
       cognition.value_ko,
@@ -77,7 +77,7 @@ describe("법정 원문 기록 PDF", () => {
         record,
         residentName: "김○○ 어르신",
         org: db.worker.org,
-        notesArea: "physical",
+        notesAreas: ["physical"],
       });
       const loaded = await PDFDocument.load(pdf.bytes);
       expect(loaded.getPageCount()).toBe(pdf.recordPages + original.getPageCount() - 1);
@@ -114,8 +114,8 @@ describe("법정 원문 기록 PDF", () => {
         fontBytes,
         formType,
         days: [
-          { record: dated(0), column: 0, notesArea: "physical" },
-          { record: dated(days - 1), column: days - 1, notesArea: "cognition" },
+          { record: dated(0), column: 0, notesAreas: ["physical"] },
+          { record: dated(days - 1), column: days - 1, notesAreas: ["cognition"] },
         ],
         residentName: "김○○ 어르신",
         org: db.worker.org,
@@ -148,7 +148,7 @@ describe("법정 원문 기록 PDF", () => {
         formType: "16",
         days: columns.map((column) => ({
           column,
-          notesArea: "physical" as const,
+          notesAreas: ["physical" as const],
           record: { ...record, careDate: addDays(from, column) },
         })),
         residentName: "김○○ 어르신",
@@ -197,7 +197,7 @@ describe("법정 원문 기록 PDF", () => {
       formType: "12",
       days: Array.from({ length: 7 }, (_, column) => ({
         column,
-        notesArea: "" as const,
+        notesAreas: [],
         record: {
           ...record,
           careDate: addDays(from, column),
@@ -371,7 +371,7 @@ describe("planLegalForm", () => {
     const record = Object.values(db.records).find(
       (entry) => entry.formType === "16" && entry.status === "approved",
     )!;
-    const { fields } = printFields(record, "김○○ 어르신", db.worker.org, "physical");
+    const { fields } = printFields(record, "김○○ 어르신", db.worker.org, ["physical"]);
     const [, month, day] = record.careDate.split("-");
     expect(fields.find((entry) => entry.key === "notes-physical")?.label).toBe(
       `${Number(month)}/${Number(day)} 신체활동지원 특이사항`,

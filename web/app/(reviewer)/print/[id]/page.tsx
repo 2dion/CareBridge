@@ -8,7 +8,8 @@ import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { useToast } from "@/components/desk/shell";
 import { formFieldHint } from "@/lib/demo/review";
 import { displayOrder, getResident, itemLabel, monthDayWeek } from "@/lib/demo/store";
-import { legalForms, type NoteArea, noteAreas, printableItem } from "@/lib/print/fields";
+import { NoteAreaChecks } from "@/components/print/note-area-checks";
+import { allNoteAreas, legalForms, type NoteArea, printableItem } from "@/lib/print/fields";
 import { callApi } from "@/lib/real/actions";
 import { applyPrintData, type PrintData } from "@/lib/real/map";
 
@@ -21,7 +22,7 @@ export default function PrintPage() {
   const toast = useToast();
   // 교육용 기관이면 '(강사 선택)'(이슈 #146)
   const names = useRoleNames();
-  const [notesArea, setNotesArea] = useState<NoteArea | "">("");
+  const [notesAreas, setNotesAreas] = useState<NoteArea[]>(allNoteAreas);
   const [generated, setGenerated] = useState<GeneratedPdf | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -56,7 +57,7 @@ export default function PrintPage() {
   const resultKey = JSON.stringify([
     id,
     record.updatedAt,
-    notesArea,
+    notesAreas,
     record.items,
     record.formFields,
     resident?.name,
@@ -96,7 +97,7 @@ export default function PrintPage() {
         record: source,
         residentName: resident?.name ?? "",
         org: db.worker.org,
-        notesArea,
+        notesAreas,
         training,
       });
       if (current !== request.current) return;
@@ -168,22 +169,12 @@ export default function PrintPage() {
               유의사항과 서명란은 그대로 남깁니다.
             </p>
             {needsArea && (
-              <label className="flabel">
-                특이사항을 넣을 영역 ({names.reviewer} 선택)
-                <select
-                  className="field"
-                  value={notesArea}
-                  disabled={busy}
-                  onChange={(event) => setNotesArea(event.target.value as NoteArea | "")}
-                >
-                  <option value="">영역을 골라 주세요</option>
-                  {noteAreas.map(({ key, label }) => (
-                    <option value={key} key={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <NoteAreaChecks
+                legend={`특이사항을 넣을 영역 (${names.reviewer} 선택)`}
+                value={notesAreas}
+                disabled={busy}
+                onChange={setNotesAreas}
+              />
             )}
             <p className="info-note">
               기록에 없는 정보와 서명은 비워 둡니다. 칸보다 긴 내용은 같은 법정 양식에 이어 쓰며
@@ -193,7 +184,7 @@ export default function PrintPage() {
             <button
               type="button"
               className="dbtn primary"
-              disabled={busy || (needsArea && !notesArea)}
+              disabled={busy || (needsArea && notesAreas.length === 0)}
               onClick={generate}
             >
               {busy ? "기록 PDF 만드는 중" : "기록 채운 PDF 만들기"}
