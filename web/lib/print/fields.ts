@@ -19,6 +19,8 @@ export type PrintField = {
   width: number;
   height: number;
   flow?: boolean;
+  /** 긴 글(flow) 칸의 이름. 칸을 넘친 글을 이어쓰기 쪽에 찍을 때 제목으로 쓴다(이슈 #317) */
+  label?: string;
 };
 export type PrintMark = { x: number; top: number };
 
@@ -137,20 +139,40 @@ type FieldSink = {
     width: number,
     height?: number,
     flow?: boolean,
+    label?: string,
   ) => void;
 };
 
 function sink(fields: PrintField[], dx = 0, right = Infinity): FieldSink {
   return {
     fields,
-    add(key, text, x, top, width, height = 11, flow = false) {
+    add(key, text, x, top, width, height = 11, flow = false, label) {
       // 좁은 열(제16호 2번째)에서는 칸 오른쪽 경계를 넘지 않게 너비를 줄인다
       const shifted = x + dx;
       const clipped = Math.min(width, right - shifted - 2);
+      const named = label ? { label } : {};
       if (typeof text === "string" && text.trim())
-        fields.push({ key, text: text.trim(), x: shifted, top, width: clipped, height, flow });
+        fields.push({
+          key,
+          text: text.trim(),
+          x: shifted,
+          top,
+          width: clipped,
+          height,
+          flow,
+          ...named,
+        });
       if (typeof text === "number" && Number.isFinite(text))
-        fields.push({ key, text: String(text), x: shifted, top, width: clipped, height, flow });
+        fields.push({
+          key,
+          text: String(text),
+          x: shifted,
+          top,
+          width: clipped,
+          height,
+          flow,
+          ...named,
+        });
     },
   };
 }
@@ -266,11 +288,31 @@ export function dayFields(record: DemoRecord, notesArea: NoteArea | "", column =
       health: { top: 611.5, height: 13 },
       rehab: { top: 718, height: 14 },
     };
-    for (const { key } of noteAreas) {
+    // 원문 특이사항 칸은 날짜 열마다 한두 줄뿐이다. 넘친 글은 이어쓰기 쪽에 날짜·칸 이름과 함께 찍는다(이슈 #317)
+    const dated = `${Number(month)}/${Number(day)}`;
+    for (const { key, label } of noteAreas) {
       const text = [...new Set(areaValues[key].filter(Boolean))].join(" ");
-      add(`notes-${key}`, text, 156, tops[key].top, 120, tops[key].height, true);
+      add(
+        `notes-${key}`,
+        text,
+        156,
+        tops[key].top,
+        120,
+        tops[key].height,
+        true,
+        `${dated} ${label} 특이사항`,
+      );
     }
-    add("stay", value("visit_time"), 156, 748, 120, 34, true);
+    add(
+      "stay",
+      value("visit_time"),
+      156,
+      748,
+      120,
+      34,
+      true,
+      `${dated} 입·퇴소 시간, 외박 및 복귀 시간, 외출 시간`,
+    );
     return { fields, marks, notesText: "" };
   }
 
@@ -361,7 +403,7 @@ export function dayFields(record: DemoRecord, notesArea: NoteArea | "", column =
 
 /** 제12호 특이사항 가로 칸(한 장에 하나) */
 function form12Notes(fields: PrintField[], text: string) {
-  sink(fields).add("notes", text, 143, 639, 391, 24, true);
+  sink(fields).add("notes", text, 143, 639, 391, 24, true, "특이사항");
 }
 
 /** 기록 1건 = 1장(첫 날짜 열). 기존 M3 [인쇄·PDF] */
