@@ -182,7 +182,20 @@ export default function ItemEditPage() {
           router.push(back);
           return;
         }
-        demo.update((db) => workerEditItem(db, id, key, { value_ko: value, detail }, nowIso()));
+        demo.update((db) =>
+          workerEditItem(
+            db,
+            id,
+            key,
+            {
+              value_ko: value,
+              detail,
+              // 실제 모드의 rewriteItemText 결과처럼 글 입력은 확인 전, 시간·분만 직접 수정하면 확인.
+              confirmed_by_worker: !text.trim(),
+            },
+            nowIso(),
+          ),
+        );
         router.push(back);
       })
       .catch(networkNotice);

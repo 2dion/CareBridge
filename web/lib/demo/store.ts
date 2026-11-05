@@ -349,9 +349,8 @@ function withSeedEdit(record: DemoRecord, key: ItemKey): DemoRecord {
 function confirmAll(record: DemoRecord): DemoRecord {
   return {
     ...record,
-    items: record.items.map((item) =>
-      item.status === "needs_check" ? item : { ...item, confirmed_by_worker: true },
-    ),
+    // 전송까지 끝난 합성 사례는 확인 필요를 포함해 작성자가 모든 항목을 확인한 상태다.
+    items: record.items.map((item) => ({ ...item, confirmed_by_worker: true })),
   };
 }
 
@@ -753,7 +752,8 @@ export function canSubmitRecord(record: DemoRecord): boolean {
   return (
     (record.status === "draft" || record.status === "returned") &&
     record.draftState === "ready" &&
-    record.items.every((item) => item.status === "needs_check" || item.confirmed_by_worker)
+    record.items.length === itemOrder.length &&
+    record.items.every((item) => item.confirmed_by_worker)
   );
 }
 
@@ -860,7 +860,12 @@ export function confirmItem(db: DemoDb, id: string, key: ItemKey, now: string): 
   );
 }
 
-export type WorkerEdit = { value_ko: string; detail?: Record<string, unknown> };
+export type WorkerEdit = {
+  value_ko: string;
+  detail?: Record<string, unknown>;
+  /** AI가 다시 정리한 글은 false. 시간·분을 직접 수정한 경우는 기존처럼 확인한다. */
+  confirmed_by_worker?: boolean;
+};
 
 /** 제12호 지원별 분 키 6개(데이터구조 v1.6.2 support detail 칸 이름). */
 export const supportMinuteKeys = [
@@ -957,7 +962,7 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
   };
 }
 
-/** 작성자가 고침: source=worker, confirmed_by_worker=true. 수정 필요 기록이면 resolution을 비운다(되돌림재확인 결정). */
+/** 작성자 수정: 직접 수정은 확인하고, AI가 다시 정리한 글은 확인 전으로 둔다(#283). 수정 필요 기록이면 resolution을 비운다. */
 export function workerEditItem(
   db: DemoDb,
   id: string,
@@ -982,7 +987,7 @@ export function workerEditItem(
               reason_native: "",
               detail: edit.detail ?? item.detail,
               source: "worker" as const,
-              confirmed_by_worker: true,
+              confirmed_by_worker: edit.confirmed_by_worker ?? true,
               resolution: record.status === "returned" ? null : item.resolution,
             }
           : item,
@@ -1026,8 +1031,15 @@ export function mockVoiceAddition(
   return updateRecord(db, id, () => ({
     ...next,
     updatedAt: now,
-    items: next.items.map((item) =>
-      item.item_key === key && record.status === "returned" ? { ...item, resolution: null } : item,
+    // 실제 item 모드처럼 요청한 항목 하나만 바꾼다. 합성 사례의 특이사항 패치는 가져오지 않는다.
+    items: record.items.map((item) =>
+      item.item_key === key
+        ? {
+            ...next.items.find((patched) => patched.item_key === key)!,
+            confirmed_by_worker: false,
+            resolution: record.status === "returned" ? null : item.resolution,
+          }
+        : item,
     ),
     events: [
       ...record.events,

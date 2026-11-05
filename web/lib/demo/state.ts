@@ -127,8 +127,8 @@ export function countUnresolved(items: Item[]): number {
   return items.filter((item) => item.status === "needs_check" && !item.resolution).length;
 }
 export function canSubmit(items: Item[]): boolean {
-  // 기획안: 확인 필요는 미해결로 제출할 수 있다. 그 밖의 항목은 작성자가 확인해야 한다.
-  return items.every((item) => item.status === "needs_check" || item.confirmed_by_worker);
+  // 확인 필요도 작성자 확인은 받아야 한다. 미해결 확인 필요의 승인은 관리자가 맡는다(#236·#283).
+  return items.length === itemOrder.length && items.every((item) => item.confirmed_by_worker);
 }
 export function canApprove(state: DemoState): boolean {
   return state.status === "submitted" && countUnresolved(state.items) === 0;
