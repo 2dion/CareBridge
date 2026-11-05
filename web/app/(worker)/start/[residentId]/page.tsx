@@ -27,7 +27,7 @@ export default function StartPage() {
       native: nativeMessage(nativeLanguage, "w2.start.expired", { reviewer: names.reviewerNative }),
     },
     no_care_day: {
-      ko: "기록 없음으로 처리한 날이에요.",
+      ko: "기록을 건너뛴 날이에요.",
       native: nativeMessage(nativeLanguage, "w2.start.noCare"),
     },
   });

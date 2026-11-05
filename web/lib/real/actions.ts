@@ -91,7 +91,7 @@ const messages = (lang: NativeLang): Record<string, { ko: string; native: string
     native: nativeMessage(lang, "actions.recordExists"),
   },
   no_care_day_exists: {
-    ko: "이 날은 ‘기록 없음’으로 정리된 날이에요.",
+    ko: "이 날은 기록을 건너뛴 날이에요.",
     native: nativeMessage(lang, "actions.noCareDayExists"),
   },
   duplicate_entry: {

@@ -164,7 +164,7 @@ export default function SignupPage() {
           />
           {codeError ? (
             <FieldError
-              ko={`가입 코드가 맞지 않습니다. ${ROLE_NAMES_BOTH.reviewer}에게 다시 확인하세요.`}
+              ko={`가입 코드가 맞지 않아요. ${ROLE_NAMES_BOTH.reviewer}에게 다시 확인하세요.`}
               native={nativeMessage("vi", "a2.error.code", {
                 reviewer: ROLE_NAMES_BOTH.reviewerNative,
               })}

@@ -1,7 +1,7 @@
 "use client";
 
 // M5(설정): 기관 정보(읽기만), 작성자용 가입 코드 복사, AI 사용 원칙.
-// 가입 코드는 실제 모드에서 기관의 join_codes(active)를 RLS로 읽기만 한다. 만들거나 끄는 것은 팀장이 DB에서 한다(로그인가입 결정 6).
+// 가입 코드는 실제 모드에서 기관의 join_codes(active)를 RLS로 읽기만 한다. 만들거나 끄는 것은 케어브릿지 운영팀이 DB에서 한다(로그인가입 결정 6).
 // 관리자용 코드는 화면에 보이지 않는다(화면 v1.3 '가입 코드 보기'). 코드 값을 화면 코드에 두지 않는다(이슈 #119).
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { DeskShell, useToast } from "@/components/desk/shell";
@@ -95,8 +95,8 @@ function Settings() {
             {!real
               ? "Supabase에 연결하면 기관의 가입 코드(join_codes)를 여기서 읽어요. Mock 모드에는 실제 코드가 없어요."
               : workerCodes.length === 0
-                ? `이 기관에 켜진 ${writer}용 코드가 없어요. 팀장에게 요청하세요.`
-                : `새 ${writer}은(는) 이 코드로 직접 가입해요. 코드를 만들거나 끄는 것은 팀장이 합니다. ${names.reviewer}용 코드는 화면에 보이지 않아요.`}
+                ? "이 기관에 켜진 작성자용 코드가 없어요. 케어브릿지 운영팀에 요청해 주세요."
+                : "새 작성자는 이 코드로 직접 가입해요. 코드를 새로 만들거나 끄려면 케어브릿지 운영팀에 요청해 주세요."}
           </p>
         </section>
       </div>

@@ -94,23 +94,23 @@ export default function ArchivePage() {
   const nativeLanguage = useNativeLanguage();
   const empties: Record<Tab, { ko: string; native: string }> = {
     missed: {
-      ko: "작성 전 기록이 없습니다.",
+      ko: "작성 전 기록이 없어요.",
       native: nativeMessage(nativeLanguage, "w4.archive.empty.missed"),
     },
     draft: {
-      ko: "임시 저장한 기록이 없습니다.",
+      ko: "임시 저장한 기록이 없어요.",
       native: nativeMessage(nativeLanguage, "w4.archive.empty.draft"),
     },
     submitted: {
-      ko: "전송 완료된 기록이 없습니다.",
+      ko: "전송 완료된 기록이 없어요.",
       native: nativeMessage(nativeLanguage, "w4.archive.empty.submitted"),
     },
     returned: {
-      ko: "수정 필요 기록이 없습니다.",
+      ko: "수정 필요 기록이 없어요.",
       native: nativeMessage(nativeLanguage, "w4.archive.empty.returned"),
     },
     approved: {
-      ko: "승인 완료된 기록이 없습니다.",
+      ko: "승인 완료된 기록이 없어요.",
       native: nativeMessage(nativeLanguage, "w4.archive.empty.approved"),
     },
   };
@@ -304,7 +304,7 @@ function MissedCard({
           </Link>
           <button type="button" className="btn btn-soft btn-sm" onClick={() => onNoCare(row)}>
             <BtnLabel
-              ko="이 날 기록 없음"
+              ko="기록 건너뛰기"
               native={nativeMessage(nativeLanguage, "w4.archive.noCare")}
             />
           </button>
@@ -549,7 +549,7 @@ function NoCareSheet({
             </button>
             <button type="button" className="btn btn-primary" disabled={!reason} onClick={save}>
               <BtnLabel
-                ko="기록 없음으로 처리"
+                ko="기록 건너뛰기"
                 native={nativeMessage(nativeLanguage, "w4.archive.confirmNoCare")}
               />
             </button>
