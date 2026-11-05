@@ -28,7 +28,7 @@ function fakeStorage(): StorageLike & { data: Map<string, string> } {
   };
 }
 
-const answer = { ko: "답", vi: "Trả lời", source: "1장 2절", found: true };
+const answer = { ko: "답", native: "Trả lời", source: "1장 2절", found: true };
 const me = (id: number): StoredMessage => ({
   id,
   from: "me",
@@ -38,6 +38,25 @@ const me = (id: number): StoredMessage => ({
 const done = (id: number): StoredMessage => ({ id, from: "bot", state: "done", answer });
 
 describe("W6 도우미 대화 브라우저 저장 (이슈 #152)", () => {
+  it("옛 vi 답도 native로 읽어 기존 대화를 유지한다(#258)", () => {
+    const storage = fakeStorage();
+    storage.setItem(
+      helperHistoryKey("legacy"),
+      JSON.stringify([
+        me(1),
+        {
+          id: 2,
+          from: "bot",
+          state: "done",
+          answer: { ko: "합성 답", vi: "합성 번역", source: null, found: true },
+        },
+      ]),
+    );
+    const rows = loadHelperHistory(storage, "legacy");
+    expect(rows).toHaveLength(2);
+    expect(rows[1]).toMatchObject({ answer: { native: "합성 번역" } });
+    expect(rows[1]).not.toHaveProperty("answer.vi");
+  });
   it("계정별 키에 저장하고 그대로 다시 읽는다(질문·답·출처)", () => {
     const storage = fakeStorage();
     saveHelperHistory(storage, "user-a", [me(1), done(2)]);

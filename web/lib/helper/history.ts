@@ -60,7 +60,7 @@ export function loadHelperHistory(
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isStoredMessage);
+    return parsed.map(normalizeStoredMessage).filter(isStoredMessage);
   } catch {
     return [];
   }
@@ -105,6 +105,20 @@ export function clearAllHelperHistory(storage: StorageLike | undefined): void {
   }
 }
 
+/** 옛 Mock의 vi 답도 새 이름으로 읽어 기존 대화를 잃지 않는다(#258). */
+function normalizeStoredMessage(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const row = value as Record<string, unknown>;
+  const answer = row.answer as Record<string, unknown> | undefined;
+  if (row.from !== "bot" || row.state !== "done" || !answer || typeof answer !== "object")
+    return value;
+  const { vi, ...rest } = answer;
+  return {
+    ...row,
+    answer: { ...rest, native: typeof answer.native === "string" ? answer.native : vi },
+  };
+}
+
 function isStoredMessage(value: unknown): value is StoredMessage {
   if (!value || typeof value !== "object") return false;
   const row = value as Record<string, unknown>;
@@ -114,7 +128,7 @@ function isStoredMessage(value: unknown): value is StoredMessage {
   if (row.state === "error") return typeof row.question === "string";
   if (row.state === "done") {
     const answer = row.answer as Record<string, unknown> | null | undefined;
-    return Boolean(answer) && typeof answer?.ko === "string" && typeof answer?.vi === "string";
+    return Boolean(answer) && typeof answer?.ko === "string" && typeof answer?.native === "string";
   }
   return false;
 }
@@ -159,18 +173,24 @@ export function loadMockConversations(
       const value: unknown = JSON.parse(raw);
       if (!Array.isArray(value)) return [];
       return sortedConversations(
-        value.filter(
-          (row): row is MockConversation =>
-            Boolean(row) &&
-            typeof row === "object" &&
-            typeof row.id === "string" &&
-            typeof row.title === "string" &&
-            typeof row.last_message_at === "string" &&
-            !Number.isNaN(Date.parse(row.last_message_at)) &&
-            typeof row.message_count === "number" &&
-            Array.isArray(row.messages) &&
-            row.messages.every(isStoredMessage),
-        ),
+        value
+          .map((row) =>
+            row && typeof row === "object" && Array.isArray(row.messages)
+              ? { ...row, messages: row.messages.map(normalizeStoredMessage) }
+              : row,
+          )
+          .filter(
+            (row): row is MockConversation =>
+              Boolean(row) &&
+              typeof row === "object" &&
+              typeof row.id === "string" &&
+              typeof row.title === "string" &&
+              typeof row.last_message_at === "string" &&
+              !Number.isNaN(Date.parse(row.last_message_at)) &&
+              typeof row.message_count === "number" &&
+              Array.isArray(row.messages) &&
+              row.messages.every(isStoredMessage),
+          ),
       );
     }
     // 옛 Mock 기록은 서버 마이그레이션처럼 한국 날짜별로 묶는다. 저장 성공 전에는 원본을 지우지 않는다.

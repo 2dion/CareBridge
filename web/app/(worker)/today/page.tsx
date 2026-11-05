@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W1(오늘): 오늘 기록이 있어야 하는 어르신 카드. 수정 필요·작성 전 알림은 머리(짙은 초록) 안 날짜 아래(이슈 #149).
 // 병기(10/26): 카드 버튼·머리 알림은 병기, 날짜·배지·탭은 한국어만. 카드 안내 줄은 뺐다(10/29, 배지·버튼과 뜻이 겹침).
 // 종 버튼은 두지 않는다(10/28 알림표시 결정): 수정 필요 알림과 하는 일이 같다.
@@ -22,48 +26,54 @@ import {
   todayCards,
 } from "@/lib/demo/store";
 
-type CardAction = { ko: string; vi: string; href: string; primary: boolean };
+type CardAction = { ko: string; native: string; href: string; primary: boolean };
 
 /** 머리 알림 한 칸. 이름은 용어집 v1.0 상태 이름, 건수는 W4 탭 숫자와 같은 값 */
 type HeaderAlert = {
   key: "returned" | "missed";
   ko: string;
-  vi: string;
+  native: string;
   count: number;
   href: string;
 };
 
-function cardAction(resident: Resident, today: string, record?: DemoRecord): CardAction {
-  const start = `/start/${resident.id}?date=${today}`;
-  if (!record || record.draftState === "empty") {
-    return { ko: "기록 시작하기", vi: "Bắt đầu ghi chép", href: start, primary: true };
-  }
-  switch (record.status) {
-    case "draft":
-      return {
-        ko: "이어 쓰기",
-        vi: "Viết tiếp",
-        href: record.draftState === "ready" ? `/records/${record.id}` : start,
-        primary: true,
-      };
-    case "returned":
-      return {
-        ko: "기록 수정하기",
-        vi: "Sửa bản ghi",
-        href: `/records/${record.id}`,
-        primary: true,
-      };
-    default:
-      return {
-        ko: "기록 보기",
-        vi: "Xem bản ghi",
-        href: `/records/${record.id}/view`,
-        primary: false,
-      };
-  }
-}
-
 export default function TodayPage() {
+  const nativeLanguage = useNativeLanguage();
+  function cardAction(resident: Resident, today: string, record?: DemoRecord): CardAction {
+    const start = `/start/${resident.id}?date=${today}`;
+    if (!record || record.draftState === "empty") {
+      return {
+        ko: "기록 시작하기",
+        native: nativeMessage(nativeLanguage, "w1.start"),
+        href: start,
+        primary: true,
+      };
+    }
+    switch (record.status) {
+      case "draft":
+        return {
+          ko: "이어 쓰기",
+          native: nativeMessage(nativeLanguage, "w1.resume"),
+          href: record.draftState === "ready" ? `/records/${record.id}` : start,
+          primary: true,
+        };
+      case "returned":
+        return {
+          ko: "기록 수정하기",
+          native: nativeMessage(nativeLanguage, "w1.edit"),
+          href: `/records/${record.id}`,
+          primary: true,
+        };
+      default:
+        return {
+          ko: "기록 보기",
+          native: nativeMessage(nativeLanguage, "w1.view"),
+          href: `/records/${record.id}/view`,
+          primary: false,
+        };
+    }
+  }
+
   const demo = useDemo();
   // 교육용 기관이면 문의 상대가 '강사'(이슈 #146)
   const names = useRoleNames();
@@ -77,14 +87,14 @@ export default function TodayPage() {
     {
       key: "returned",
       ko: "수정 필요",
-      vi: "Cần sửa",
+      native: nativeMessage(nativeLanguage, "w1.returned"),
       count: returned.length,
       href: "/archive?tab=returned",
     },
     {
       key: "missed",
       ko: "작성 전",
-      vi: "Chưa ghi",
+      native: nativeMessage(nativeLanguage, "w1.missed"),
       count: missed.length,
       href: "/archive?tab=missed",
     },
@@ -114,7 +124,7 @@ export default function TodayPage() {
                 <span className="dot" />
                 <span className="txt">
                   <strong>{alert.ko}</strong>
-                  <span className="vi">{alert.vi}</span>
+                  <Native className="native">{alert.native}</Native>
                 </span>
                 <b className="count">{alert.count}</b>
                 <Icon name="next" />
@@ -156,7 +166,7 @@ export default function TodayPage() {
                 <span className="spacer" />
                 <span className="label two">
                   <b>{action.ko}</b>
-                  <small>{action.vi}</small>
+                  <Native as="small">{action.native}</Native>
                 </span>
                 <Icon name="next" />
               </Link>
@@ -173,10 +183,9 @@ export default function TodayPage() {
           <div className="empty">
             <strong>오늘 담당 어르신이 없습니다.</strong>
             <p style={{ marginTop: 6 }}>{names.reviewer}에게 문의하세요.</p>
-            <span className="vi">
-              Hôm nay bạn chưa có người cao tuổi được phân công chăm sóc. Vui lòng hỏi{" "}
-              {names.reviewerVi}.
-            </span>
+            <Native className="native">
+              {nativeMessage(nativeLanguage, "w1.noAssignment")} {names.reviewerNative}.
+            </Native>
           </div>
           <div className="pad">
             <Link className="btn btn-primary" href="/archive">

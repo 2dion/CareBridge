@@ -13,11 +13,11 @@ describe("W4 상세 항목 배지 (이슈 #98)", () => {
     expect(itemBadge(item, org)).toEqual({
       kind: "confirmed",
       ko: "관리자 확인함",
-      vi: "Người quản lý đã xác nhận",
+      native: "Người quản lý đã xác nhận",
       tone: "green",
     });
     expect(itemBadge(item, training)?.ko).toBe("강사 확인함");
-    expect(itemBadge(item, training)?.vi).toBe("Giảng viên đã xác nhận");
+    expect(itemBadge(item, training)?.native).toBe("Giảng viên đã xác nhận");
   });
 
   it("[기록 안 함]으로 승인한 항목은 '관리자 기록 안 함'", () => {
@@ -25,7 +25,7 @@ describe("W4 상세 항목 배지 (이슈 #98)", () => {
     expect(itemBadge(item, org)).toMatchObject({
       kind: "omitted",
       ko: "관리자 기록 안 함",
-      vi: "Người quản lý không ghi",
+      native: "Người quản lý không ghi",
     });
   });
 
@@ -33,7 +33,7 @@ describe("W4 상세 항목 배지 (이슈 #98)", () => {
     expect(itemBadge({ status: "needs_check", resolution: null }, org)).toMatchObject({
       kind: "needs_check",
       ko: "확인 필요",
-      vi: null,
+      native: null,
     });
     expect(itemBadge({ status: "observed", resolution: null }, org)).toBeNull();
     expect(itemBadge({ status: "not_mentioned", resolution: null }, org)).toBeNull();

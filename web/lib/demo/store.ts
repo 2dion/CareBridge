@@ -1,3 +1,5 @@
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // 작성자·관리자 화면이 함께 쓰는 Mock 데이터(브라우저 저장).
 // 실제 API·Supabase가 붙기 전까지 화면이 같은 규칙(데이터구조 v1.6.2 공통 계약)으로 움직이게 한다.
 // 상태 변화·승인 조건·못 쓴 기록 계산은 여기 코드가 맡고, AI에게 맡기지 않는다(AGENTS.md 원칙 5).
@@ -135,11 +137,11 @@ export const DB_STORAGE_KEY = "carebridge-demo-db-v3";
 
 const cases = { "S-F01": f01, "S-F05": f05, "S-H01": h01 } as const;
 
-export const noCareReasonLabel: Record<NoCareReason, { ko: string; vi: string }> = {
-  hospital: { ko: "입원", vi: "Nhập viện" },
-  overnight: { ko: "하루 종일 외박", vi: "Vắng mặt cả ngày" },
-  visit_cancelled: { ko: "방문 취소", vi: "Hủy thăm" },
-  other: { ko: "기타 (직접 쓰기)", vi: "Khác" },
+export const noCareReasonLabel: Record<NoCareReason, { ko: string; native: string }> = {
+  hospital: { ko: "입원", native: nativeMessage("vi", "noCare.hospital") },
+  overnight: { ko: "하루 종일 외박", native: nativeMessage("vi", "noCare.overnight") },
+  visit_cancelled: { ko: "방문 취소", native: nativeMessage("vi", "noCare.visitCancelled") },
+  other: { ko: "기타 (직접 쓰기)", native: nativeMessage("vi", "noCare.other") },
 };
 
 /** W3·M2 표시 순서: 별지 제12호·제16호처럼 인지 변화를 복약 관찰 앞에 둔다(화면 v1.3 W3 항목 순서). */
@@ -157,7 +159,7 @@ export const displayOrder: ItemKey[] = [
 
 export function itemLabel(key: ItemKey) {
   const found = itemOrder.find((item) => item.key === key);
-  return found ?? { key, ko: key, vi: "" };
+  return found ?? { key, ko: key, native: "" };
 }
 
 // ---------- 날짜 (한국 시간) ----------
@@ -475,7 +477,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
     ...returned,
     status: "returned",
     returnReason,
-    returnReasonNative: "Tôi đã sửa lượng ăn thành “khoảng một nửa”. Hãy kiểm tra lại.",
+    returnReasonNative: nativeMessage("vi", "demo.returnReason"),
     returnedBy: reviewer,
     returnedAt,
     updatedAt: returnedAt,
@@ -485,7 +487,7 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
             ...item,
             before_ko: item.value_ko,
             value_ko: "점심 죽 절반 정도 드심.",
-            value_native: "Bữa trưa bà ăn khoảng một nửa bát cháo.",
+            value_native: nativeMessage("vi", "demo.meal"),
             source: "reviewer" as const,
             confirmed_by_worker: false,
           }
@@ -893,13 +895,13 @@ export function supportMinutesTotal(record: DemoRecord): number {
 export function minutesReason(total: number, visit: number) {
   return {
     reason: `지원별 제공시간 합(${total}분)이 방문 시간(${visit}분)보다 김`,
-    reason_native: `Tổng thời gian hỗ trợ (${total} phút) dài hơn thời gian thăm (${visit} phút).`,
+    reason_native: nativeMessage("vi", "demo.supportTime", { total: total, visit: visit }),
   };
 }
 
 /** 코드(검사 5)가 붙이는 이유인지. 재검사 때 이 이유만 걷어 내고 다시 붙인다. */
 const MINUTES_REASON_KO = "지원별 제공시간 합(";
-const MINUTES_REASON_VI = "Tổng thời gian hỗ trợ (";
+const MINUTES_REASON_NATIVE = nativeMessage("vi", "demo.supportTimePrefix");
 const splitReasons = (text: string) =>
   text
     .split(";")
@@ -922,8 +924,8 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
       const keptKo = splitReasons(item.reason).filter(
         (part) => !part.startsWith(MINUTES_REASON_KO),
       );
-      const keptVi = splitReasons(item.reason_native ?? "").filter(
-        (part) => !part.startsWith(MINUTES_REASON_VI),
+      const keptNative = splitReasons(item.reason_native ?? "").filter(
+        (part) => !part.startsWith(MINUTES_REASON_NATIVE),
       );
       if (visit !== null && total > visit) {
         const added = minutesReason(total, visit);
@@ -931,7 +933,7 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
           ...item,
           status: "needs_check" as const,
           reason: [...keptKo, added.reason].join("; "),
-          reason_native: [...keptVi, added.reason_native].join("; "),
+          reason_native: [...keptNative, added.reason_native].join("; "),
         };
       }
       // 합이 맞음: 코드가 붙인 이유가 없었으면 손대지 않는다
@@ -945,7 +947,7 @@ function checkSupportMinutes(record: DemoRecord): DemoRecord {
               ? ("observed" as const)
               : ("not_mentioned" as const),
         reason: keptKo.join("; "),
-        reason_native: keptVi.join("; "),
+        reason_native: keptNative.join("; "),
       };
     }),
   };
