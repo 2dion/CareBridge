@@ -928,6 +928,11 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
       lower(REASONS.visibleSign);
     }
 
+    // 기록 언어가 한국어(ko)면 번역을 두지 않는다. AI가 모국어 칸을 채워 와도 비운다(이슈 #336)
+    if (ctx.nativeLang === "ko" && (item.value_native || item.reason_native)) {
+      item = { ...item, value_native: "", reason_native: "" };
+    }
+
     // 검사 6: 기록(한국어·모국어)에 실명이 있는지. 근거(evidence)는 원문이라 보지 않는다.
     const found = names.find(
       (name) => item.value_ko.includes(name) || item.value_native.includes(name),
