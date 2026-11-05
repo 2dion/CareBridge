@@ -259,7 +259,7 @@ export function createRealActions(
     async sendItemVoice(recordId: string, key: ItemKey, blob: Blob) {
       return after(await sendAudio(recordId, blob, { target: "item", item_key: key }));
     },
-    /** [글로 쓰기]: 쓴 글을 원문으로 저장하고 Agent를 돌린다 */
+    /** [글로 기록]: 쓴 글을 원문으로 저장하고 Agent를 돌린다 */
     async writeText(recordId: string, text: string) {
       return after(await callApi(`/api/records/${recordId}/agent-run`, { body: { text } }));
     },

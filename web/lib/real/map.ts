@@ -201,7 +201,7 @@ export function itemsSnapshot(items: RunItem[]): string {
     .join("\n");
 }
 
-/** [글로 쓰기]·[다시 시도]는 작업 행이 없어 시작 시각으로 본다(이슈 #237). 항목이 달라졌으면 null(끝남) */
+/** [글로 기록]·[다시 시도]는 작업 행이 없어 시작 시각으로 본다(이슈 #237). 항목이 달라졌으면 null(끝남) */
 export function textRunStateOf(
   items: RunItem[],
   run: { startedAt: number; snapshot: string; pendingJobs?: string[] },
@@ -241,7 +241,7 @@ export function draftStateOf(
 }
 
 /** 입력 방법: 기록 전체 녹음 작업(audio_jobs.target = record)이 있으면 음성, 없고 원문만 있으면 글(이슈 #135).
- *  글로 쓴 기록을 음성으로 보면 W3 ‘정리 중’에 “음성을 글자로” 단계가 나오고 W2 · 글로 쓰기에 쓴 글이 다시 채워지지 않는다 */
+ *  글로 쓴 기록을 음성으로 보면 W3 ‘정리 중’에 “음성을 글자로” 단계가 나오고 W2 · 글로 기록에 쓴 글이 다시 채워지지 않는다 */
 export function inputModeOf(record: RecordRow, jobs: AudioJobRow[]): DemoRecord["inputMode"] {
   const voiced = jobs.some((job) => job.record_id === record.id && job.target === "record");
   return voiced ? "voice" : record.transcript ? "text" : null;

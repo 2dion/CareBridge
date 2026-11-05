@@ -236,7 +236,7 @@ export default function DraftPage() {
           </button>
           <Link className="btn btn-outline" href={`/records/${id}/write`}>
             <span className="label">
-              {(nativeLanguage === "ko" ? "글로 쓰기" : "글로 쓰기 · ") +
+              {(nativeLanguage === "ko" ? "글로 기록" : "글로 기록 · ") +
                 nativeMessage(nativeLanguage, "w3.writeInstead")}
             </span>
           </Link>

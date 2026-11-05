@@ -257,8 +257,8 @@ function ReviewRecord() {
         <span>
           {names.worker} 수정: {summary.worker.map((key) => itemLabel(key).ko).join(", ") || "없음"}{" "}
           · {names.reviewer} 수정:{" "}
-          {summary.reviewer.map((key) => itemLabel(key).ko).join(", ") || "없음"} · AI 그대로{" "}
-          {summary.aiCount}개
+          {summary.reviewer.map((key) => itemLabel(key).ko).join(", ") || "없음"} · 언급 없음{" "}
+          {record.items.filter((item) => item.status === "not_mentioned").length}개
         </span>
         <span className={`checks ${unresolved === 0 ? "ok" : ""}`}>
           확인 필요 {unresolved} · 처리 완료 {resolvedCount}
@@ -297,7 +297,7 @@ function ReviewRecord() {
           <p className="hint-note">
             <Icon name="info" />
             {selectedItem && !highlight
-              ? `${itemLabel(selectedItem.item_key).ko}은(는) ${names.reviewer}가 고친 항목이라 고치기 전 근거를 칠하지 않아요`
+              ? `${itemLabel(selectedItem.item_key).ko}은(는) ${names.reviewer}가 고친 항목이라 수정 전 근거를 칠하지 않아요`
               : selectedItem
                 ? `노란 줄 = 오른쪽에서 고른 항목(${itemLabel(selectedItem.item_key).ko})의 근거 문장`
                 : "오른쪽 항목을 누르면 근거 문장을 노랗게 보여 줘요"}
@@ -471,7 +471,7 @@ function ReviewItem({
           서버 PATCH는 value_ko만 바꾸고 reason·evidence는 그대로 둔다 */}
       {item.status === "needs_check" && item.reason && item.source === "reviewer" && (
         <details className="reason old" onClick={(event) => event.stopPropagation()}>
-          <summary>고치기 전 AI 판단</summary>
+          <summary>수정 전 AI 판단</summary>
           <p>{item.reason}</p>
         </details>
       )}
@@ -489,7 +489,7 @@ function ReviewItem({
         }}
       />
       {item.before_ko !== undefined && item.before_ko !== item.value_ko && (
-        <p className="before">고치기 전: {item.before_ko || "(빈칸)"}</p>
+        <p className="before">수정 전: {item.before_ko || "(빈칸)"}</p>
       )}
       {showMinutes && (
         <div className="minutes" aria-label="지원별 제공시간">
