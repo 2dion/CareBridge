@@ -11,6 +11,8 @@ export const noteAreas = [
   { key: "rehab", label: "기능회복훈련" },
 ] as const;
 export type NoteArea = (typeof noteAreas)[number]["key"];
+/** 특이사항을 넣을 영역의 기본값: 4개 모두(이슈 #321). 관리자가 필요 없는 영역만 끈다 */
+export const allNoteAreas: NoteArea[] = noteAreas.map(({ key }) => key);
 export type PrintField = {
   key: string;
   text: string;
@@ -300,7 +302,7 @@ export function toiletCountOf(record: DemoRecord): number | undefined {
  * 제12호 특이사항은 열 밖 가로 칸이라 글만 돌려주고(notesText), 넣는 쪽이 날짜를 붙여 별지 묶음으로 만든다.
  * 특이사항 칸에는 ‘별지 참조’만 찍고 글 전체는 별지로 보낸다(결정 2026-11-05-특이사항별지참조, 이슈 #330).
  */
-export function dayFields(record: DemoRecord, notesArea: NoteArea | "", column = 0): DayFields {
+export function dayFields(record: DemoRecord, notesAreas: NoteArea[], column = 0): DayFields {
   const formType = record.formType;
   const dx = columnOffset(formType, column);
   const right = dateColumns[formType][column + 1];
@@ -321,8 +323,8 @@ export function dayFields(record: DemoRecord, notesArea: NoteArea | "", column =
   };
   const value = (key: ItemKey) => printableItem(record, key)?.value_ko.trim() ?? "";
   const notes = value("notes");
-  if (formType === "16" && notes && !notesArea)
-    throw new Error("특이사항을 넣을 법정 양식 영역을 골라 주세요.");
+  if (formType === "16" && notes && notesAreas.length === 0)
+    throw new Error("특이사항을 넣을 법정 양식 영역을 하나 이상 골라 주세요.");
   const [, month, day] = record.careDate.split("-");
   const support = printableItem(record, "support");
   const checks = Array.isArray(support?.detail?.checks) ? (support.detail.checks as string[]) : [];
@@ -355,7 +357,7 @@ export function dayFields(record: DemoRecord, notesArea: NoteArea | "", column =
     };
     // 식사 자유 서술도 빠뜨리지 않는다. 복약 관찰을 간호 행위 체크로 바꾸지 않는다.
     if (value("meal")) areaValues.physical.unshift(value("meal"));
-    if (notes && notesArea) areaValues[notesArea].push(notes);
+    if (notes) for (const area of new Set(notesAreas)) areaValues[area].push(notes);
     const tops: Record<NoteArea, { top: number; height: number }> = {
       physical: { top: 435.5, height: 11 },
       cognition: { top: 501.5, height: 17 },
@@ -498,10 +500,10 @@ export function printFields(
   record: DemoRecord,
   residentName: string,
   org: string,
-  notesArea: NoteArea | "",
+  notesAreas: NoteArea[],
 ): { fields: PrintField[]; marks: PrintMark[] } {
   const [year] = record.careDate.split("-");
-  const day = dayFields(record, notesArea, 0);
+  const day = dayFields(record, notesAreas, 0);
   const fields = [...headerFields(record.formType, residentName, org, year), ...day.fields];
   if (record.formType === "12") form12Notes(fields, form12Attached(record, day.notesText));
   return { fields, marks: day.marks };
@@ -511,8 +513,8 @@ export type PeriodDay = {
   record: DemoRecord;
   /** 시작 날짜로부터 며칠째인지(0부터). 그 날짜 열에 찍는다 */
   column: number;
-  /** 제16호에서 notes를 넣을 영역(날마다 고름). 제12호는 "" */
-  notesArea: NoteArea | "";
+  /** 제16호에서 notes를 넣을 영역(날마다 고름, 기본 4개 모두). 제12호는 [] */
+  notesAreas: NoteArea[];
 };
 
 /**
@@ -534,7 +536,7 @@ export function periodFields(
   for (const day of [...days].sort((a, b) => a.column - b.column)) {
     if (day.record.formType !== formType)
       throw new Error(`별지 제${formType}호에 다른 서식의 기록을 넣을 수 없습니다.`);
-    const filled = dayFields(day.record, day.notesArea, day.column);
+    const filled = dayFields(day.record, day.notesAreas, day.column);
     fields.push(...filled.fields);
     marks.push(...filled.marks);
     notes.push(...form12Attached(day.record, filled.notesText));

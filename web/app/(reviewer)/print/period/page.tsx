@@ -6,8 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import { useDemo } from "@/components/demo/demo-provider";
 import { DeskShell } from "@/components/desk/shell";
 import { kstDateOf, monthDayWeek } from "@/lib/demo/store";
-import { legalForms, noteAreas, printableItem, type NoteArea } from "@/lib/print/fields";
+import { NoteAreaChecks } from "@/components/print/note-area-checks";
+import { legalForms, printableItem, type NoteArea } from "@/lib/print/fields";
 import {
+  areasOf,
   missingAreas,
   mockPeriod,
   periodStart,
@@ -47,7 +49,7 @@ function PeriodPrint() {
     null,
   );
   const [retry, setRetry] = useState(0);
-  const [areas, setAreas] = useState<Record<string, NoteArea | "">>({});
+  const [areas, setAreas] = useState<Record<string, NoteArea[]>>({});
   const [busy, setBusy] = useState(false);
   const generationLock = useRef(false);
   const [pdfError, setPdfError] = useState("");
@@ -134,7 +136,7 @@ function PeriodPrint() {
         writer: demo.db.worker.name,
         formType: view.formType,
         days: view.days.flatMap((day, column) =>
-          day.record ? [{ record: day.record, column, notesArea: areas[day.date] ?? "" }] : [],
+          day.record ? [{ record: day.record, column, notesAreas: areasOf(areas, day.date) }] : [],
         ),
         residentName: resident!.name,
         org: demo.db.worker.org,
@@ -304,28 +306,15 @@ function PeriodPrint() {
                           <span>{day.record.workerName ?? demo.db.worker.name}</span>
                           {formType === "16" &&
                             Boolean(printableItem(day.record, "notes")?.value_ko.trim()) && (
-                              <label className="flabel" style={{ marginTop: 12 }}>
-                                특이사항을 넣을 영역
-                                <select
-                                  className="field"
-                                  value={areas[day.date] ?? ""}
-                                  disabled={busy}
-                                  onChange={(event) => {
-                                    setAreas((previous) => ({
-                                      ...previous,
-                                      [day.date]: event.target.value as NoteArea | "",
-                                    }));
-                                    clearPdf();
-                                  }}
-                                >
-                                  <option value="">영역을 골라 주세요</option>
-                                  {noteAreas.map((area) => (
-                                    <option key={area.key} value={area.key}>
-                                      {area.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
+                              <NoteAreaChecks
+                                legend="특이사항을 넣을 영역"
+                                value={areasOf(areas, day.date)}
+                                disabled={busy}
+                                onChange={(next) => {
+                                  setAreas((previous) => ({ ...previous, [day.date]: next }));
+                                  clearPdf();
+                                }}
+                              />
                             )}
                         </>
                       ) : (
@@ -342,7 +331,7 @@ function PeriodPrint() {
           승인한 기록만 채우고 서명과 없는 정보는 비워 둡니다. 합성 사례 · 공식 기록지 아님
           {view?.training ? " · 연습용" : ""} 표시가 들어갑니다.
         </p>
-        {needsAreas && <p role="status">특이사항 영역을 골라 주세요.</p>}
+        {needsAreas && <p role="status">특이사항 영역을 하나 이상 골라 주세요.</p>}
         <button
           className="dbtn primary"
           disabled={busy || loading || !count || needsAreas}

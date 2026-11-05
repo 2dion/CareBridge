@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { createDemoDb, type DemoRecord } from "../demo/store";
 import {
+  allNoteAreas,
   checkMatches,
   columnOffset,
   dateColumns,
@@ -13,8 +14,11 @@ import {
   form12Checks,
   legalForms,
   mealTypeOf,
+  type NoteArea,
+  noteAreas,
   periodFields,
   type PrintMark,
+  printableItem,
   printFields,
   SEE_ATTACHED,
   toiletCountOf,
@@ -29,10 +33,10 @@ const base = Object.values(db.records).find(
 
 it("제12호 1건·기간 인쇄의 연도는 서식에 인쇄된 괄호 안에 있다", () => {
   const outputs = [
-    printFields(base, "가상 어르신", org, ""),
+    printFields(base, "가상 어르신", org, []),
     periodFields(
       "12",
-      [{ record: base, column: 0, notesArea: "" }],
+      [{ record: base, column: 0, notesAreas: [] }],
       "가상 어르신",
       org,
       "2026-10-27",
@@ -74,7 +78,7 @@ it.each([
     ),
   };
   for (let column = 0; column < 3; column++) {
-    const { marks } = dayFields(record, "", column);
+    const { marks } = dayFields(record, [], column);
     expect(marks).toHaveLength(1);
     expect(marks[0].x).toBeGreaterThanOrEqual(boxes[column]);
     expect(marks[0].x + 6).toBeLessThanOrEqual(boxes[column] + 8.001);
@@ -139,7 +143,7 @@ describe("제12호 인쇄 칸 채우기", () => {
       withSupport({ checks: ["목욕", "청소", "말벗"] }),
       "이○○",
       org,
-      "",
+      [],
     );
     expect(marked(marks, box("body_wash"))).toBe(true);
     expect(marked(marks, box("chores"))).toBe(true);
@@ -152,7 +156,7 @@ describe("제12호 인쇄 칸 채우기", () => {
       withSupport({ checks: [], minutes: { physical: 60, housework: 60 } }),
       "이○○",
       org,
-      "",
+      [],
     );
     expect(marked(marks, box("chores"))).toBe(true);
     expect(fields.find((field) => field.key === "minutes-housework")?.text).toBe("60");
@@ -165,7 +169,7 @@ describe("제12호 인쇄 칸 채우기", () => {
       withSupport({ checks: ["외출 동행"], minutes: { housework: 30 } }),
       "이○○",
       org,
-      "",
+      [],
     );
     expect(marked(marks, box("personal_activity"))).toBe(true);
     expect(marked(marks, box("chores"))).toBe(false);
@@ -176,14 +180,14 @@ describe("제12호 인쇄 칸 채우기", () => {
       withSupport({ checks: [], minutes: { housework: 0 } }),
       "이○○",
       org,
-      "",
+      [],
     );
     expect(marked(marks, box("chores"))).toBe(false);
   });
 
   it("총시간은 방문 시작·종료로 계산하고, 없을 때만 form_fields.total_minutes를 쓴다", () => {
     const total = (record: DemoRecord) =>
-      printFields(record, "이○○", org, "").fields.find((field) => field.key === "total")?.text;
+      printFields(record, "이○○", org, []).fields.find((field) => field.key === "total")?.text;
     // 데모 재가 기록은 14:00~17:00. form_fields 값이 달라도 방문 시간이 기준
     expect(total(withSupport({}, { formFields: { total_minutes: 999 } }))).toBe("180");
     const noVisit = withSupport({}, { formFields: { total_minutes: 150 } });
@@ -203,18 +207,18 @@ describe("제12호 인쇄 칸 채우기", () => {
       ),
       "이○○",
       org,
-      "",
+      [],
     ).marks;
     expect(marked(filled, { x: trendX.improved, top: trendTops.body_trend })).toBe(true);
     expect(marked(filled, { x: trendX.same, top: trendTops.meal_trend })).toBe(true);
     expect(marked(filled, { x: trendX.worse, top: trendTops.cognition_trend })).toBe(true);
 
-    const empty = printFields(withSupport({}, { formFields: {} }), "이○○", org, "").marks;
+    const empty = printFields(withSupport({}, { formFields: {} }), "이○○", org, []).marks;
     const invalid = printFields(
       withSupport({}, { formFields: { body_trend: "better", meal_trend: 1 as never } }),
       "이○○",
       org,
-      "",
+      [],
     ).marks;
     for (const top of Object.values(trendTops)) {
       expect(empty.some((mark) => mark.top === top)).toBe(false);
@@ -227,7 +231,7 @@ describe("제12호 인쇄 칸 채우기", () => {
     record.items = record.items.map((item) =>
       item.item_key === "cognition" ? { ...item, detail: { trend: "same" } } : item,
     );
-    const { marks } = printFields(record, "이○○", org, "");
+    const { marks } = printFields(record, "이○○", org, []);
     expect(marked(marks, { x: 277, top: trendTops.cognition_trend })).toBe(true);
   });
 
@@ -236,7 +240,7 @@ describe("제12호 인쇄 칸 채우기", () => {
       { checks: ["목욕", "청소"], minutes: { physical: 60, housework: 60, emotional: 60 } },
       { formFields: { body_trend: "same", stool_accidents: 1 } },
     );
-    const { marks, fields } = printFields(record, "이○○", org, "");
+    const { marks, fields } = printFields(record, "이○○", org, []);
     const template = readFileSync(resolve("public" + legalForms["12"].href));
     const pdf = await createRecordPdf({
       template,
@@ -244,7 +248,7 @@ describe("제12호 인쇄 칸 채우기", () => {
       record,
       residentName: "이○○ 어르신",
       org,
-      notesArea: "",
+      notesAreas: [],
     });
     const loaded = await PDFDocument.load(pdf.bytes);
     const { width, height } = loaded.getPage(0).getSize();
@@ -282,7 +286,7 @@ describe("날짜 열 좌표(기간 인쇄)", () => {
 
   it.each([0, 3, 6])("제12호 %i번째 열의 글·체크가 모두 그 열 안에 찍힌다", (column) => {
     const [left, right] = [dateColumns["12"][column], dateColumns["12"][column + 1]];
-    const { fields, marks } = dayFields(home, "", column);
+    const { fields, marks } = dayFields(home, [], column);
     expect(fields.length).toBeGreaterThan(5);
     expect(marks.length).toBeGreaterThan(2);
     for (const field of fields) {
@@ -300,7 +304,7 @@ describe("날짜 열 좌표(기간 인쇄)", () => {
 
   it.each([0, 1, 2])("제16호 %i번째 열의 글·체크가 모두 그 열 안에 찍힌다", (column) => {
     const [left, right] = [dateColumns["16"][column], dateColumns["16"][column + 1]];
-    const { fields, marks } = dayFields(facility, "physical", column);
+    const { fields, marks } = dayFields(facility, ["physical"], column);
     expect(fields.some((field) => field.key.startsWith("notes-"))).toBe(true);
     for (const field of fields) {
       expect(field.x, field.key).toBeGreaterThanOrEqual(left);
@@ -319,8 +323,8 @@ describe("날짜 열 좌표(기간 인쇄)", () => {
     const { fields } = periodFields(
       "12",
       [
-        { record: day3, column: 2, notesArea: "" },
-        { record: day1, column: 0, notesArea: "" },
+        { record: day3, column: 2, notesAreas: [] },
+        { record: day1, column: 0, notesAreas: [] },
       ],
       "이○○ 어르신",
       org,
@@ -342,15 +346,34 @@ describe("날짜 열 좌표(기간 인쇄)", () => {
     expect(notes.attached!.every((block) => block.text.length > 0)).toBe(true);
     expect(fields.filter((field) => field.key === "notes")).toHaveLength(1);
     expect(() =>
-      periodFields("16", [{ record: day1, column: 0, notesArea: "" }], "이○○", org, "2026-10-27"),
+      periodFields("16", [{ record: day1, column: 0, notesAreas: [] }], "이○○", org, "2026-10-27"),
     ).toThrow("다른 서식");
   });
 
-  it("제16호 기간 인쇄는 notes가 있는 날마다 영역을 골라야 한다", () => {
+  it("제16호 특이사항은 고른 영역마다 들어가고, 기본(4개 모두)이면 4칸 모두 별지 묶음이 된다(칸에는 별지 참조, #330)", () => {
+    // 서식 칸에는 ‘별지 참조’만 찍고, 글은 그 칸의 별지 묶음에 있다
+    const text = (areas: NoteArea[]) =>
+      Object.fromEntries(
+        dayFields(facility, areas, 0)
+          .fields.filter((field) => field.key.startsWith("notes-"))
+          .map((field) => [field.key.slice(6), field.attached?.[0].text ?? ""]),
+      );
+    const notes = printableItem(facility, "notes")!.value_ko.trim();
+    const all = text(allNoteAreas);
+    for (const { key } of noteAreas) expect(all[key], key).toContain(notes);
+    const some = text(["health", "rehab"]);
+    expect(some.health).toContain(notes);
+    expect(some.rehab).toContain(notes);
+    expect(some.physical ?? "").not.toContain(notes);
+    expect(some.cognition ?? "").not.toContain(notes);
+    expect(text(["health", "health"]).health.split(notes)).toHaveLength(2);
+  });
+
+  it("제16호 기간 인쇄는 notes가 있는 날마다 영역을 하나 이상 골라야 한다", () => {
     expect(() =>
       periodFields(
         "16",
-        [{ record: facility, column: 1, notesArea: "" }],
+        [{ record: facility, column: 1, notesAreas: [] }],
         "김○○",
         org,
         "2026-10-26",
@@ -384,7 +407,7 @@ describe("제16호 세부 항목 채우기", () => {
         detail: { checks: ["세면 등", "체위변경", "화장실", "이동", "산책/외출"] },
       },
     });
-    const { marks } = dayFields(record, "physical", 0);
+    const { marks } = dayFields(record, ["physical"], 0);
     expect(has(marks, 214, 281)).toBe(true); // 세면·구강청결…
     expect(has(marks, 214, 362)).toBe(true); // 체위변경(2시간마다)
     expect(has(marks, 214, 409)).toBe(true); // 이동도움
@@ -403,7 +426,7 @@ describe("제16호 세부 항목 채우기", () => {
     expect(mealTypeOf(meal("죽 대신 일반식 드심"))).toBeNull();
     expect(mealTypeOf(meal("밥 두 그릇 드심"))).toBeNull();
     expect(mealTypeOf(meal("점심 드심", { meal_type: "특식" }))).toBeNull();
-    expect(has(dayFields(meal("점심: 죽, 조금 드심"), "physical", 0).marks, 195, 317)).toBe(true);
+    expect(has(dayFields(meal("점심: 죽, 조금 드심"), ["physical"], 0).marks, 195, 317)).toBe(true);
   });
 
   it("화장실이용하기 횟수: 저장 칸이 있으면 그 값, 없으면 글에 횟수가 하나일 때만", () => {
@@ -417,7 +440,7 @@ describe("제16호 세부 항목 채우기", () => {
     expect(toiletCountOf(support("소변 주머니 2~3회 비움"))).toBeUndefined();
     expect(toiletCountOf(support("기저귀 교환 3회, 화장실 2회"))).toBeUndefined();
     expect(toiletCountOf(support("체위변경 2회 실시"))).toBeUndefined();
-    const fields = dayFields(support("기저귀 교환 3회"), "physical", 0).fields;
+    const fields = dayFields(support("기저귀 교환 3회"), ["physical"], 0).fields;
     expect(fields.find((field) => field.key === "toilet")?.text).toBe("3");
   });
 

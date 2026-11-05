@@ -38,8 +38,12 @@ describe("기간 인쇄 화면", () => {
       ["2026-11-02", "2026-11-03"].map((date) => [date, recordFor(date)]),
     );
     const view = mockPeriod(db, resident.id, "2026-11-02");
-    expect(missingAreas(view, { "2026-11-02": "physical" })).toBe(true);
-    expect(missingAreas(view, { "2026-11-02": "physical", "2026-11-03": "health" })).toBe(false);
+    expect(missingAreas(view, {})).toBe(false);
+    expect(missingAreas(view, { "2026-11-02": [] })).toBe(true);
+    expect(missingAreas(view, { "2026-11-02": ["physical"] })).toBe(false);
+    expect(missingAreas(view, { "2026-11-02": ["physical"], "2026-11-03": ["health"] })).toBe(
+      false,
+    );
     view.days[0].record!.items.find((item) => item.item_key === "notes")!.resolution = "omitted";
     view.days[1].record!.items.find((item) => item.item_key === "notes")!.status = "not_mentioned";
     expect(missingAreas(view, {})).toBe(false);
@@ -135,8 +139,10 @@ describe("기간 인쇄 화면", () => {
     expect(view.training).toBe(true);
     expect(view.days[0].record?.workerName).toBe("가상 작성자");
     expect(view.days[0].record?.items).toHaveLength(1);
-    expect(missingAreas(view, {})).toBe(true);
-    expect(missingAreas(view, { "2026-11-01": "physical" })).toBe(false);
+    // 건드리지 않으면 4개 모두라서 막지 않고, 모두 끈 날만 막는다(이슈 #321)
+    expect(missingAreas(view, {})).toBe(false);
+    expect(missingAreas(view, { "2026-11-01": [] })).toBe(true);
+    expect(missingAreas(view, { "2026-11-01": ["physical"] })).toBe(false);
   });
 });
 

@@ -39,8 +39,8 @@ describe("법정 원문 기록 PDF", () => {
     const record = Object.values(db.records).find(
       (entry) => entry.formType === "16" && entry.status === "approved",
     )!;
-    expect(() => printFields(record, "김○○ 어르신", db.worker.org, "")).toThrow("영역");
-    const output = printFields(record, "김○○ 어르신", db.worker.org, "cognition");
+    expect(() => printFields(record, "김○○ 어르신", db.worker.org, [])).toThrow("영역");
+    const output = printFields(record, "김○○ 어르신", db.worker.org, ["cognition"]);
     const note = record.items.find((item) => item.item_key === "notes")!;
     // 칸에는 ‘별지 참조’만 찍고, 글은 별지 묶음에 있다(이슈 #330)
     const cell = output.fields.find((field) => field.key === "notes-cognition");
@@ -61,7 +61,7 @@ describe("법정 원문 기록 PDF", () => {
             : item,
       ),
     };
-    const output = printFields(edited, "이○○ 어르신", db.worker.org, "");
+    const output = printFields(edited, "이○○ 어르신", db.worker.org, []);
     const cognition = record.items.find((item) => item.item_key === "cognition")!;
     const notes = output.fields.find((field) => field.key === "notes")!;
     expect(notes.text).toBe(SEE_ATTACHED);
@@ -85,7 +85,7 @@ describe("법정 원문 기록 PDF", () => {
         record,
         residentName: "김○○ 어르신",
         org: db.worker.org,
-        notesArea: "physical",
+        notesAreas: ["physical"],
         writer: db.worker.name,
       });
       const loaded = await PDFDocument.load(pdf.bytes);
@@ -123,8 +123,8 @@ describe("법정 원문 기록 PDF", () => {
         fontBytes,
         formType,
         days: [
-          { record: dated(0), column: 0, notesArea: "physical" },
-          { record: dated(days - 1), column: days - 1, notesArea: "cognition" },
+          { record: dated(0), column: 0, notesAreas: ["physical"] },
+          { record: dated(days - 1), column: days - 1, notesAreas: ["cognition"] },
         ],
         residentName: "김○○ 어르신",
         org: db.worker.org,
@@ -157,7 +157,7 @@ describe("법정 원문 기록 PDF", () => {
         formType: "16",
         days: columns.map((column) => ({
           column,
-          notesArea: "physical" as const,
+          notesAreas: ["physical" as const],
           record: { ...record, careDate: addDays(from, column) },
         })),
         residentName: "김○○ 어르신",
@@ -206,7 +206,7 @@ describe("법정 원문 기록 PDF", () => {
       formType: "12",
       days: Array.from({ length: 7 }, (_, column) => ({
         column,
-        notesArea: "" as const,
+        notesAreas: [],
         record: {
           ...record,
           careDate: addDays(from, column),
@@ -260,7 +260,7 @@ describe("법정 원문 기록 PDF", () => {
         },
         residentName: "김○○ 어르신",
         org: db.worker.org,
-        notesArea: "",
+        notesAreas: [],
       });
       expect(pdf.recordPages).toBe(1);
     },
@@ -423,7 +423,7 @@ describe("planLegalForm", () => {
       { ...record, workerName: "박○○" },
       "김○○ 어르신",
       db.worker.org,
-      "physical",
+      ["physical"],
     );
     const [, month, day] = record.careDate.split("-");
     const name = `${Number(month)}/${Number(day)} 신체활동지원 특이사항`;
