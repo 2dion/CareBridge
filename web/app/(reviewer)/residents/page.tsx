@@ -578,74 +578,78 @@ function AssignDrawer({
         <p className="fhint">
           가입한 {workerLabel}만 고를 수 있어요. 고른 {workerLabel}마다 담당 연결 한 줄이 생겨요.
         </p>
-        <label className="flabel" htmlFor="assign-start">
-          담당 시작일
-        </label>
-        <input
-          id="assign-start"
-          className="field"
-          type="date"
-          max={today}
-          value={startDate}
-          onChange={(event) => setStartDate(event.target.value)}
-        />
-        <p className="fhint">이 날부터 작성 전 기록을 셉니다.</p>
-        {home ? (
-          <>
-            <p className="flabel">방문 요일</p>
-            <div className="days big" role="group" aria-label="방문 요일">
-              {dayNames.map((name, index) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={days.includes(index + 1) ? "on" : ""}
-                  aria-pressed={days.includes(index + 1)}
-                  onClick={() => toggle(index + 1)}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-            <p className="fhint">
-              급여제공계획서의 횟수대로 고르세요.
-              {days.length > 0 &&
-                ` ${days.map((d) => dayNames[d - 1]).join("·")} = 주 ${days.length}회`}
+        <div className="desk-stack">
+          <div>
+            <label className="flabel" htmlFor="assign-start">
+              담당 시작일
+            </label>
+            <input
+              id="assign-start"
+              className="field"
+              type="date"
+              max={today}
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+            />
+            <p className="fhint">이 날부터 작성 전 기록을 셉니다.</p>
+          </div>
+          {home ? (
+            <>
+              <p className="flabel">방문 요일</p>
+              <div className="days big" role="group" aria-label="방문 요일">
+                {dayNames.map((name, index) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={days.includes(index + 1) ? "on" : ""}
+                    aria-pressed={days.includes(index + 1)}
+                    onClick={() => toggle(index + 1)}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+              <p className="fhint">
+                급여제공계획서의 횟수대로 고르세요.
+                {days.length > 0 &&
+                  ` ${days.map((d) => dayNames[d - 1]).join("·")} = 주 ${days.length}회`}
+              </p>
+              <p className="flabel">방문 시간 (표시용)</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  className="field"
+                  type="time"
+                  aria-label="방문 시작"
+                  value={from}
+                  onChange={(event) => setFrom(event.target.value)}
+                />
+                –
+                <input
+                  className="field"
+                  type="time"
+                  aria-label="방문 끝"
+                  value={to}
+                  onChange={(event) => setTo(event.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="info-note">시설 어르신은 매일 기록해요. 방문 요일이 없어요.</p>
+          )}
+          {error && (
+            <p className="warn-text" role="alert">
+              {error}
             </p>
-            <p className="flabel">방문 시간 (표시용)</p>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                className="field"
-                type="time"
-                aria-label="방문 시작"
-                value={from}
-                onChange={(event) => setFrom(event.target.value)}
-              />
-              –
-              <input
-                className="field"
-                type="time"
-                aria-label="방문 끝"
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-              />
-            </div>
-          </>
-        ) : (
-          <p className="info-note">시설 어르신은 매일 기록해요. 방문 요일이 없어요.</p>
-        )}
-        {error && (
-          <p className="warn-text" role="alert">
-            {error}
-          </p>
-        )}
-        <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
-          <button type="button" className="dbtn" style={{ flex: 1 }} onClick={onClose}>
-            취소
-          </button>
-          <button type="button" className="dbtn primary" style={{ flex: 1 }} onClick={save}>
-            <Icon name="check" />
-            {busy ? "저장 중…" : "저장"}
-          </button>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+            <button type="button" className="dbtn" style={{ flex: 1 }} onClick={onClose}>
+              취소
+            </button>
+            <button type="button" className="dbtn primary" style={{ flex: 1 }} onClick={save}>
+              <Icon name="check" />
+              {busy ? "저장 중…" : "저장"}
+            </button>
+          </div>
         </div>
         {/* 잘못 더한 어르신을 지우는 용도. 기록은 공식 기록이라 기록이 있으면 지우지 않는다(이슈 #103) */}
         <div style={{ marginTop: 16 }}>
