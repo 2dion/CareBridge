@@ -213,6 +213,67 @@
   opacity: 1;
 }
 
+/* W4 어르신 사진 줄(이슈 #326 A안): 맨 앞 '전체'와 어르신 사진·이름. 고른 사진은 초록 테두리 */
+.m-app .resident-picks {
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.m-app button.resident-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 64px;
+  flex-shrink: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--color-sub);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.m-app .resident-pick .pick-ring {
+  display: inline-flex;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+
+.m-app .resident-pick.on .pick-ring {
+  border-color: var(--color-primary);
+}
+
+.m-app .resident-pick.on {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.m-app .resident-pick .all {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eceff0;
+}
+
+.m-app .resident-pick .name,
+.m-app .resident-pick .native {
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-app .resident-pick .native {
+  font-size: 11px;
+  font-weight: 400;
+}
+
 .m-app button.filter {
   border: 0;
   font: inherit;

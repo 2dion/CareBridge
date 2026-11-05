@@ -55,6 +55,7 @@ export const mn = {
   "w5.privacy": "Хувийн мэдээллийн тухай",
   "w5.logout": "Гарах",
   "w4.archive.title": "Тэмдэглэл",
+  "w4.archive.allResidents": "Бүгд",
   "w4.view.title": "Тэмдэглэл үзэх",
   "w6.title": "Туслах",
   "privacy.purpose.title": "Цуглуулах, ашиглах зорилго",

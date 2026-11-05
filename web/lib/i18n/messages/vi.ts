@@ -56,6 +56,7 @@ export const vi = {
   "w4.archive.empty.submitted": "Không có bản ghi đã gửi.",
   "w4.archive.empty.returned": "Không có bản ghi cần sửa.",
   "w4.archive.empty.approved": "Không có bản ghi đã duyệt.",
+  "w4.archive.allResidents": "Tất cả",
   "w4.archive.title": "Danh sách bản ghi",
   "w4.archive.expiryHint": "Sau 7 ngày sẽ không thể viết. Khi đó hãy báo ",
   "w4.archive.lateHint": "Bản ghi gửi muộn sẽ hiện là “gửi muộn” cho ",
