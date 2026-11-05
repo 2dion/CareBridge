@@ -5,6 +5,7 @@
 // - Mock 모드(Supabase 설정이 없는 로컬 개발): 브라우저(localStorage)에 두고 같은 브라우저의 다른 탭과 맞춘다.
 // 로그인과 같은 기준(supabaseConfigured)으로 가른다.
 import type { NativeLang } from "@/lib/auth/signup";
+import type { ItemKey } from "@/lib/demo/state";
 import {
   createContext,
   type ReactNode,
@@ -192,7 +193,31 @@ function RealProvider({ children }: { children: ReactNode }) {
 
   // [글로 쓰기]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다.
   // [글로 쓰기]는 서버가 다시 읽히기 전에도 입력 방법을 '글'로 보여, '정리 중'에 음성 단계가 나오지 않게 한다(이슈 #135)
-  const base = useMemo(() => createRealActions(supabase, reload), [supabase, reload]);
+  const reflectConfirmation = useCallback((recordId: string, key: ItemKey) => {
+    setState((prev) => {
+      const record = prev?.db.records[recordId];
+      if (!prev || !record) return prev;
+      return {
+        ...prev,
+        db: {
+          ...prev.db,
+          records: {
+            ...prev.db.records,
+            [recordId]: {
+              ...record,
+              items: record.items.map((item) =>
+                item.item_key === key ? { ...item, confirmed_by_worker: true } : item,
+              ),
+            },
+          },
+        },
+      };
+    });
+  }, []);
+  const base = useMemo(
+    () => createRealActions(supabase, reload, { onConfirmed: reflectConfirmation }),
+    [supabase, reload, reflectConfirmation],
+  );
   const actions = useMemo<RealActions>(() => {
     const remember = (id: string, run: DraftRun | null) => {
       setDraftRuns((prev) => {
