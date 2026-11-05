@@ -1,3 +1,5 @@
+import { nativeMessage } from "@/lib/i18n/messages";
+
 import fixture from "./s-f01.json";
 
 export type Screen =
@@ -55,16 +57,16 @@ export type DemoState = {
 };
 
 export const caseData = fixture;
-export const itemOrder: { key: ItemKey; ko: string; vi: string }[] = [
-  { key: "visit_time", ko: "방문 시점", vi: "Thời gian chăm sóc" },
-  { key: "support", ko: "제공 지원", vi: "Hỗ trợ đã thực hiện" },
-  { key: "meal", ko: "식사", vi: "Bữa ăn" },
-  { key: "sleep", ko: "수면", vi: "Giấc ngủ" },
-  { key: "discomfort", ko: "불편감 표현", vi: "Biểu hiện khó chịu" },
-  { key: "medication", ko: "복약 관찰", vi: "Quan sát dùng thuốc" },
-  { key: "cognition", ko: "인지 변화", vi: "Thay đổi nhận thức" },
-  { key: "notes", ko: "특이사항", vi: "Ghi chú đặc biệt" },
-  { key: "next_check", ko: "다음 확인사항", vi: "Điều cần kiểm tra tiếp" },
+export const itemOrder: { key: ItemKey; ko: string; native: string }[] = [
+  { key: "visit_time", ko: "방문 시점", native: nativeMessage("vi", "items.visitTime") },
+  { key: "support", ko: "제공 지원", native: nativeMessage("vi", "items.support") },
+  { key: "meal", ko: "식사", native: nativeMessage("vi", "items.meal") },
+  { key: "sleep", ko: "수면", native: nativeMessage("vi", "items.sleep") },
+  { key: "discomfort", ko: "불편감 표현", native: nativeMessage("vi", "items.discomfort") },
+  { key: "medication", ko: "복약 관찰", native: nativeMessage("vi", "items.medication") },
+  { key: "cognition", ko: "인지 변화", native: nativeMessage("vi", "items.cognition") },
+  { key: "notes", ko: "특이사항", native: nativeMessage("vi", "items.notes") },
+  { key: "next_check", ko: "다음 확인사항", native: nativeMessage("vi", "items.nextCheck") },
 ];
 export const statusLabel: Record<RecordStatus, string> = {
   draft: "임시 저장",
@@ -77,11 +79,11 @@ export const itemStatusLabel: Record<ItemStatus, string> = {
   not_mentioned: "언급 없음",
   needs_check: "확인 필요",
 };
-export const statusVi: Record<RecordStatus, string> = {
-  draft: "Đã lưu tạm",
-  submitted: "Đã gửi",
-  returned: "Cần sửa",
-  approved: "Đã duyệt",
+export const statusNative: Record<RecordStatus, string> = {
+  draft: nativeMessage("vi", "status.draft"),
+  submitted: nativeMessage("vi", "status.submitted"),
+  returned: nativeMessage("vi", "status.returned"),
+  approved: nativeMessage("vi", "status.approved"),
 };
 export const STORAGE_KEY = "carebridge-sf01-mock-v1";
 

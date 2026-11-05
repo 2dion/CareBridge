@@ -1,12 +1,21 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { PDFDocument } from "pdf-lib";
+import {
+  PDFArray,
+  PDFDict,
+  PDFDocument,
+  PDFName,
+  PDFNumber,
+  PDFRawStream,
+  decodePDFRawStream,
+} from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
 import { createDemoDb } from "../demo/store";
+import { addDays } from "../records/period-print";
 import { legalForms, printFields } from "./fields";
-import { createPeriodPdf, createRecordPdf, wrapText } from "./pdf";
+import { createPeriodPdf, createRecordPdf, embedPrintFont, wrapText } from "./pdf";
 
 const db = createDemoDb("2026-10-27");
 const fontBytes = readFileSync(resolve("public/fonts/noto-sans-kr.ttf"));
@@ -95,7 +104,7 @@ describe("법정 원문 기록 PDF", () => {
       const from = "2026-10-26";
       const dated = (offset: number) => ({
         ...record,
-        careDate: `2026-10-${String(26 + offset).padStart(2, "0")}`,
+        careDate: addDays(from, offset),
       });
       const template = readFileSync(resolve("public" + legalForms[formType].href));
       const pdf = await createPeriodPdf({
@@ -109,7 +118,7 @@ describe("법정 원문 기록 PDF", () => {
         residentName: "김○○ 어르신",
         org: db.worker.org,
         from,
-        to: `2026-10-${26 + days - 1}`,
+        to: addDays(from, days - 1),
         training: true,
       });
       const loaded = await PDFDocument.load(pdf.bytes);
@@ -137,4 +146,130 @@ describe("법정 원문 기록 PDF", () => {
       }),
     ).rejects.toThrow("승인한 기록");
   });
+
+  it("제12호 7일치 긴 특이사항은 이어쓰기 쪽을 만들고 서식 뒤쪽도 남긴다(#263)", async () => {
+    const record = Object.values(db.records).find(
+      (entry) => entry.formType === "12" && entry.status === "approved",
+    )!;
+    const from = "2026-10-26";
+    const template = readFileSync(resolve("public" + legalForms["12"].href));
+    const original = await PDFDocument.load(template);
+    const pdf = await createPeriodPdf({
+      template,
+      fontBytes,
+      formType: "12",
+      days: Array.from({ length: 7 }, (_, column) => ({
+        column,
+        notesArea: "" as const,
+        record: {
+          ...record,
+          careDate: addDays(from, column),
+          items: record.items.map((item) =>
+            item.item_key === "notes"
+              ? {
+                  ...item,
+                  status: "observed" as const,
+                  resolution: null,
+                  value_ko: "창가에서 쉬면서 대화를 나눔. 물을 드시도록 도움. ".repeat(15),
+                }
+              : item,
+          ),
+        },
+      })),
+      residentName: "가상 어르신",
+      org: db.worker.org,
+      from,
+      to: addDays(from, 6),
+      training: true,
+    });
+    expect(pdf.recordPages).toBeGreaterThan(1);
+    const saved = await PDFDocument.load(pdf.bytes);
+    expect(saved.getPageCount()).toBe(pdf.recordPages + original.getPageCount() - 1);
+    const outputDir = mkdtempSync(resolve(tmpdir(), "carebridge-period-overflow-"));
+    writeFileSync(resolve(outputDir, "overflow.pdf"), pdf.bytes);
+    console.info(`7일치 이어쓰기 확인: ${outputDir}/overflow.pdf`);
+  }, 20_000);
 });
+
+/** 실제 뷰어가 쓰는 CID 폭 표를 읽는다. 폭이 빠졌을 때 PDF 규격 기본값은 1000이다. */
+function cidWidths(font: PDFDict) {
+  const descendant = font.lookup(PDFName.of("DescendantFonts"), PDFArray).lookup(0, PDFDict);
+  const widths = descendant.lookup(PDFName.of("W"), PDFArray);
+  const fallback = descendant.lookupMaybe(PDFName.of("DW"), PDFNumber)?.asNumber() ?? 1000;
+  const map = new Map<number, number>();
+  for (let index = 0; index < widths.size();) {
+    const first = widths.lookup(index++, PDFNumber).asNumber();
+    const next = widths.lookup(index++);
+    if (next instanceof PDFArray) {
+      for (let offset = 0; offset < next.size(); offset++) {
+        map.set(first + offset, next.lookup(offset, PDFNumber).asNumber());
+      }
+    } else {
+      const last = (next as PDFNumber).asNumber();
+      const width = widths.lookup(index++, PDFNumber).asNumber();
+      for (let cid = first; cid <= last; cid++) map.set(cid, width);
+    }
+  }
+  return { map, fallback };
+}
+
+function unicodeMap(font: PDFDict) {
+  const stream = font.lookup(PDFName.of("ToUnicode"));
+  if (!(stream instanceof PDFRawStream)) throw new Error("PDF 문자 대응 스트림이 없습니다.");
+  const cmap = new TextDecoder().decode(decodePDFRawStream(stream).decode());
+  return new Map(
+    [...cmap.matchAll(/<([\da-f]+)>\s+<([\da-f]+)>/gi)].map((match) => {
+      const decoded = match[2]
+        .match(/.{4}/g)!
+        .map((code) => String.fromCharCode(parseInt(code, 16)))
+        .join("");
+      return [parseInt(match[1], 16), decoded];
+    }),
+  );
+}
+
+it("한글 공백 문장의 측정 폭이 저장한 PDF 폭과 같고, 공백도 원래 글로 복사된다 (#274)", async () => {
+  const samples = [
+    "가 나 다 라 마 바 사",
+    "가  나    다",
+    "식사 도움을 제공함. 창가에서 잠시 쉬심.",
+    "케어브릿지 데모 요양센터",
+    "합성 사례 · 공식 기록지 아님",
+    "2026년 11월 3일 PDF 12 16",
+  ];
+  const output = await PDFDocument.create();
+  const font = await embedPrintFont(output, fontBytes);
+  const encoded = samples.map((text) => ({ text, ids: font.encodeText(text).asBytes() }));
+  const saved = await PDFDocument.load(await output.save());
+  const embedded = saved.context.lookup(font.ref, PDFDict);
+  const { map, fallback } = cidWidths(embedded);
+  const unicode = unicodeMap(embedded);
+  for (const { text, ids } of encoded) {
+    let units = 0;
+    let copied = "";
+    for (let index = 0; index < ids.length; index += 2) {
+      const cid = ids[index] * 256 + ids[index + 1];
+      // 측정한 글리프가 W·ToUnicode에서 빠지면 줄 나누기와 뷰어의 출력이 달라진다.
+      expect(map.has(cid), `${text}: CID ${cid}의 폭`).toBe(true);
+      expect(unicode.has(cid), `${text}: CID ${cid}의 문자 대응`).toBe(true);
+      units += map.get(cid) ?? fallback;
+      copied += unicode.get(cid);
+    }
+    for (const size of [6, 8, 16]) {
+      expect((units * size) / 1000, `${text}: ${size}pt`).toBeCloseTo(
+        font.widthOfTextAtSize(text, size),
+        8,
+      );
+    }
+    expect(copied).toBe(text);
+    const lines = wrapText(text, 39, (line) => font.widthOfTextAtSize(line, 6));
+    expect(lines.join("")).toBe(text);
+    for (const line of lines) {
+      const bytes = font.encodeText(line).asBytes();
+      let actual = 0;
+      for (let index = 0; index < bytes.length; index += 2)
+        actual += ((map.get(bytes[index] * 256 + bytes[index + 1]) ?? fallback) * 6) / 1000;
+      expect(actual).toBeLessThanOrEqual(39);
+    }
+  }
+}, 20000);

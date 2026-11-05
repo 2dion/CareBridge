@@ -1,7 +1,7 @@
 "use client";
 
 // 시작 화면. Mock 모드는 로그인 대신 작성자·관리자를 고르는 시연 입구(화면 v1.3 '개발 환경': 전환 버튼은 Mock에서만).
-// 실제 모드(Supabase 설정 있음)는 A0(스플래시): 로고를 짧게(SPLASH_MS) 보인 뒤 자동으로 넘어간다(화면 v1.3 A0, 이슈 #111).
+// 실제 모드(Supabase 설정 있음)는 A0(스플래시): 로고와 한 줄 소개를 그려진 때부터 SPLASH_MS 동안 보인 뒤 자동으로 넘어간다(화면 v2.2.1 A0, 이슈 #111·#104).
 // 로그인한 사람은 역할 화면으로, 로그인 전이면 데이터 공급자가 같은 시간이 지난 뒤 A1(로그인)으로 보낸다. 누르면 바로 넘어간다.
 // 모드는 빌드 때 정해지는 값(supabaseConfigured)이라 서버·첫 화면이 같아, Mock 버튼·문구가 잠깐이라도 보이지 않는다(이슈 #97).
 import Image from "next/image";
@@ -9,11 +9,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { Native } from "@/components/mobile/native";
 import { useDemo } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { MobileScreen } from "@/components/mobile/shell";
 import { supabaseConfigured } from "@/lib/auth/session";
-import { splashRemaining } from "@/lib/auth/splash";
+import { markSplashShown, splashRemaining } from "@/lib/auth/splash";
 
 const MOCK = !supabaseConfigured();
 
@@ -24,6 +25,10 @@ export default function Home() {
   // 실제 모드: 로그인한 사람의 역할 화면으로 간다(역할은 가입 코드가 정함). 스플래시 시간이 남았으면 그만큼 기다린다
   const realRole = demo?.real?.role;
   const roleHref = realRole === "reviewer" ? "/overview" : workerHref;
+  // 그려진 때부터 센다. 페이지를 여는 데 오래 걸려도 한 줄 소개를 읽을 시간이 남는다(이슈 #104)
+  useEffect(() => {
+    if (!MOCK) markSplashShown();
+  }, []);
   useEffect(() => {
     if (MOCK || !realRole) return;
     const timer = window.setTimeout(() => router.replace(roleHref), splashRemaining());
@@ -51,8 +56,8 @@ export default function Home() {
           <p style={{ marginTop: 10, fontSize: 16, color: "var(--color-sub)" }}>
             말로 남기고, 확인만 하면 되는 돌봄 기록
           </p>
-          <p className="vi" style={{ fontSize: 13 }}>
-            Ghi chép chăm sóc bằng giọng nói
+          <p style={{ fontSize: 13 }}>
+            <Native id="a0.tagline" language="vi" />
           </p>
         </div>
         {MOCK ? (
@@ -94,7 +99,7 @@ export default function Home() {
             {/* 자동으로 넘어가지만, 키보드로도 건너뛸 수 있게 글자 버튼을 둔다. 누르면 바깥 onClick(skip)으로 올라간다 */}
             <button type="button" className="text-link splash-skip">
               눌러서 바로 가기
-              <span className="vi">Chạm để tiếp tục</span>
+              <Native id="a0.continue" language="vi" />
             </button>
             <p className="sr-only" role="status">
               불러오는 중

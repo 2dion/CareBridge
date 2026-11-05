@@ -1,5 +1,5 @@
 // ⑤ 도우미 답(W6): 교재 매뉴얼(manual_sections)과 용어 목록(glossary)에서 찾은 내용만으로 답한다. 답한 질문은 helper_messages에 남긴다(이슈 #218).
-// 근거: 문서/설계/ai규칙-v2.0.3.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.1.md '공통 계약' helper/ask
+// 근거: 문서/설계/ai규칙-v2.0.4.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.4.md '공통 계약' helper/ask
 // DB·Claude 호출은 HelperDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 // 이슈 #122: 교재 검색과 search_glossary는 한국어만 맞으므로, 한글이 없는 질문(베트남어 등)은 먼저 한국어로 옮겨 검색한다.
 // 건강·안전 안내 문구는 모델에 맡기지 않고 서버가 낱말 검사로 붙인다(질문 언어와 상관없이).
@@ -72,12 +72,19 @@ export type HelperDeps = {
 
 export const MAX_QUESTION_CHARS = 500;
 
+/** 질문 형식이 맞는지(빈 글·500자 초과가 아님). 라우트가 호출 제한을 세기 전에 본다(이슈 #279) */
+export function isValidHelperQuestion(body: unknown): boolean {
+  const input = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const question = typeof input.question === "string" ? input.question.trim() : "";
+  return question.length > 0 && question.length <= MAX_QUESTION_CHARS;
+}
+
 // 교재에서 찾지 못하면 상식으로 채우지 않는다(W6 2번).
 // 묻는 곳은 기관에 맞춘 이름: 일반 기관 관리자(người quản lý), 교육용 기관 강사(giảng viên)(이슈 #180)
 export function notFoundAnswer(names: RoleNames = roleNames(false)): HelperAnswer {
   return {
     ko: `교재에서 찾지 못했어요. ${names.reviewer}에게 물어보세요.`,
-    native: `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${names.reviewerVi}.`,
+    native: `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${names.reviewerNative}.`,
     source: null,
     found: false,
   };
@@ -90,7 +97,7 @@ export const NOT_FOUND: HelperAnswer = notFoundAnswer();
 export function safetyNotice(names: RoleNames = roleNames(false)) {
   return {
     ko: `${names.reviewer}에게 바로 보고하세요.`,
-    native: `Hãy báo ngay cho ${names.reviewerVi}.`,
+    native: `Hãy báo ngay cho ${names.reviewerNative}.`,
   };
 }
 
@@ -244,11 +251,9 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   if (!user) return { status: 401, body: { error: "not_signed_in" } };
   if (user.role !== "worker") return { status: 403, body: { error: "not_record_worker" } };
 
-  const input = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
-  const question = typeof input.question === "string" ? input.question.trim() : "";
-  if (!question || question.length > MAX_QUESTION_CHARS) {
-    return { status: 400, body: { error: "invalid_input" } };
-  }
+  if (!isValidHelperQuestion(body)) return { status: 400, body: { error: "invalid_input" } };
+  const input = body as Record<string, unknown>;
+  const question = (input.question as string).trim();
   // 이어 묻는 대화는 내 것인지 먼저 확인한다. 아니면 답을 만들지도 저장하지도 않는다(이슈 #251)
   const requestedConversation =
     typeof input.conversation_id === "string" && input.conversation_id.trim()

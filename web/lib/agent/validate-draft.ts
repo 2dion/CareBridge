@@ -1,5 +1,5 @@
 // 기록 검증 (Agent 도구 ③ validate_draft). AI 판단이 아니라 서버 코드 검사다.
-// 근거: 문서/설계/ai규칙-v2.0.3.md '서버 검사와 예외 처리' 검사 1~6,
+// 근거: 문서/설계/ai규칙-v2.0.4.md '서버 검사와 예외 처리' 검사 1~6,
 //       문서/설계/데이터구조-v1.2.md '공통 계약' Agent 도구 입출력.
 // AI를 부르지 않으므로 키 없이 테스트한다. return_draft도 저장 직전에 같은 함수를 부른다.
 import type { NativeLang } from "@/lib/auth/signup";
@@ -118,7 +118,7 @@ export const MINUTE_KEYS = [
 ] as const;
 
 // 재가(별지 제12호)에만 있는 form_fields 칸. 시설(별지 제16호) 기록에는 두지 않는다.
-// 근거: 문서/설계/데이터구조-v2.3.1.md 'form_fields (재가 제12호 전용)'
+// 근거: 문서/설계/데이터구조-v2.3.4.md 'form_fields (재가 제12호 전용)'
 export const HOME_ONLY_FORM_FIELDS = [
   "total_minutes",
   "body_trend",
@@ -789,7 +789,10 @@ export function validateDraft(draft: unknown, ctx: ValidateContext): ValidateRes
     // 언어(한국어·베트남어)와 상관없이 같은 값이다. AI가 섭취량 경계만을 이유로 '확인 필요'로 두었으면 '관찰'로 올린다.
     if (key === "meal" && item.status !== "not_mentioned") {
       const given = item.detail.intake;
-      const derived = isIntake(given) ? null : intakeFromText(`${item.evidence}\n${item.value_ko}`);
+      // 올바른 값은 그대로 쓴다(이슈 #293). 없거나 틀린 값만 근거·내용의 말로 한 양에서 정한다
+      const derived = isIntake(given)
+        ? given
+        : intakeFromText(`${item.evidence}\n${item.value_ko}`);
       if (given !== undefined && given !== null && !isIntake(given)) {
         problems.push({
           code: "invalid_intake",

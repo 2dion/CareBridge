@@ -1,5 +1,8 @@
 "use client";
 
+import { nativeMessage } from "@/lib/i18n/messages";
+import { useNativeLanguage } from "@/components/mobile/native";
+
 // W5(내 정보): 글자 크기, 사용 안내 다시 보기, AI 사용 원칙, 개인정보 안내, 로그아웃.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,12 +10,13 @@ import { useRouter } from "next/navigation";
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
 import { Icon, type IconName } from "@/components/mobile/icon";
-import { AppBar, FrameVi, Loading, MobileScreen } from "@/components/mobile/shell";
+import { AppBar, FrameNative, Loading, MobileScreen } from "@/components/mobile/shell";
 import { signOut } from "@/lib/auth/session";
 
 const fontLabel = { small: "작게", normal: "보통", large: "크게" } as const;
 
 export default function MePage() {
+  const nativeLanguage = useNativeLanguage();
   const demo = useDemo();
   const router = useRouter();
   // 교육용 기관이면 내 역할 배지가 '교육생'(이슈 #146)
@@ -24,7 +28,7 @@ export default function MePage() {
     href: string;
     icon: IconName;
     ko: string;
-    vi: string;
+    native: string;
     extra?: string;
     sub?: string;
   }[] = [
@@ -32,13 +36,28 @@ export default function MePage() {
       href: "/me/font",
       icon: "settings",
       ko: "글자 크기",
-      vi: "Cỡ chữ",
+      native: nativeMessage(nativeLanguage, "w5.font"),
       extra: fontLabel[db.fontSize],
       sub: `지금: ${fontLabel[db.fontSize]}`,
     },
-    { href: "/guide", icon: "book", ko: "사용 안내 다시 보기", vi: "Xem lại hướng dẫn" },
-    { href: "/me/ai", icon: "sparkle", ko: "AI 사용 원칙", vi: "Nguyên tắc sử dụng AI" },
-    { href: "/me/privacy", icon: "shield", ko: "개인정보 안내", vi: "Thông tin quyền riêng tư" },
+    {
+      href: "/guide",
+      icon: "book",
+      ko: "사용 안내 다시 보기",
+      native: nativeMessage(nativeLanguage, "w5.guide"),
+    },
+    {
+      href: "/me/ai",
+      icon: "sparkle",
+      ko: "AI 사용 원칙",
+      native: nativeMessage(nativeLanguage, "w5.ai"),
+    },
+    {
+      href: "/me/privacy",
+      icon: "shield",
+      ko: "개인정보 안내",
+      native: nativeMessage(nativeLanguage, "w5.privacy"),
+    },
   ];
 
   const logout = async () => {
@@ -48,7 +67,7 @@ export default function MePage() {
 
   return (
     <MobileScreen tab="me">
-      <AppBar title="내 정보" vi="Thông tin của tôi" />
+      <AppBar title="내 정보" native={nativeMessage(nativeLanguage, "w5.title")} />
       <section
         className="card"
         style={{
@@ -73,7 +92,7 @@ export default function MePage() {
       </section>
       <h2 className="section-title" style={{ margin: "22px 20px 8px" }}>
         설정
-        <FrameVi className="vi">Cài đặt</FrameVi>
+        <FrameNative className="native">{nativeMessage(nativeLanguage, "w5.settings")}</FrameNative>
       </h2>
       <nav className="card" style={{ margin: "0 16px", padding: "4px 0" }} aria-label="설정">
         {rows.map((row) => (
@@ -83,7 +102,7 @@ export default function MePage() {
             </span>
             <span className="grow">
               <b>{row.ko}</b>
-              <FrameVi>{row.vi}</FrameVi>
+              <FrameNative>{row.native}</FrameNative>
               {row.sub && <small>{row.sub}</small>}
             </span>
             {row.extra && <span className="extra">{row.extra}</span>}
@@ -95,7 +114,7 @@ export default function MePage() {
         <Icon name="logout" />
         <span className="grow">
           <b>로그아웃</b>
-          <FrameVi>Đăng xuất</FrameVi>
+          <FrameNative>{nativeMessage(nativeLanguage, "w5.logout")}</FrameNative>
         </span>
         <Icon name="next" />
       </button>

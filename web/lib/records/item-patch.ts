@@ -1,5 +1,5 @@
 // 항목 하나 고치기: PATCH /api/records/:id/items/:key (W3 작성자, M2 관리자·강사).
-// 근거: 문서/설계/데이터구조-v2.3.1.md '공통 계약' PATCH 규칙, 문서/결정/2026-10-28-항목하나저장.md
+// 근거: 문서/설계/데이터구조-v2.3.4.md '공통 계약' PATCH 규칙, 문서/결정/2026-10-28-항목하나저장.md
 // 순서: ① 로그인한 사람 권한으로 저장(트리거가 확인 풀림·재확인·옛 번역 비움·이력을 맡음)
 //       ② value_ko가 바뀌었으면 서버가 다시 번역 ③ save_ai_item(translation)으로 번역만 저장.
 // DB·번역 호출은 ItemPatchDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
@@ -45,6 +45,8 @@ export type ItemPatchDeps = {
   readItem(recordId: string, key: ItemKey): Promise<Record<string, unknown> | null>;
   /** 재가 제공 지원 재검사(검사 5). records/support-check.ts recheckSupportMinutes */
   recheckSupport(recordId: string, actorId: string): Promise<unknown>;
+  /** 번역 호출 제한(translate) 한 번 쓰기. 한도 안이면 true. 없으면 세지 않음(Mock·테스트) */
+  takeTranslateQuota?(): Promise<boolean>;
 };
 
 const fail = (status: number, error: string): ApiResult => ({ status, body: { error } });
@@ -135,6 +137,14 @@ export async function patchItem(
   const before = await deps.currentValueKo(recordId, itemKey);
   if (before === null) return fail(400, "invalid_item");
 
+  // value_ko가 실제로 바뀌는 요청만 다시 번역(Claude)하므로 그때만 호출 제한을 센다.
+  // 같은 값을 다시 보내면 세지 않고, 한도를 넘으면 저장도 하지 않는다(이슈 #279)
+  const nextValueKo = patch.value_ko;
+  const willRetranslate = nextValueKo !== undefined && nextValueKo !== before && nextValueKo !== "";
+  if (willRetranslate && deps.takeTranslateQuota && !(await deps.takeTranslateQuota())) {
+    return fail(429, "rate_limited");
+  }
+
   const updated = await deps.update(recordId, itemKey, patch);
   if (!updated.ok) {
     if (updated.error === "no_rows") return fail(409, "invalid_transition");
@@ -143,8 +153,8 @@ export async function patchItem(
   }
 
   // value_ko가 바뀐 항목만 다시 번역한다. 번역이 실패해도 저장한 수정은 그대로 둔다(번역 칸은 트리거가 비움).
-  if (patch.value_ko !== undefined && patch.value_ko !== before && patch.value_ko !== "") {
-    await retranslate(recordId, itemKey, record, user, patch.value_ko, deps).catch((error) => {
+  if (willRetranslate) {
+    await retranslate(recordId, itemKey, record, user, nextValueKo, deps).catch((error) => {
       console.error("item retranslate failed", recordId, itemKey, error);
     });
   }

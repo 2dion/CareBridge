@@ -4,7 +4,7 @@ Supabase(Postgres + 로그인 + Storage)의 표·권한(RLS)·시험 데이터�
 
 - **목적:** 표와 RLS를 대시보드에서 손으로 만들지 않고 파일로 남겨, 누가 언제 무엇을 바꿨는지 PR로 보이게 합니다.
 - **배경:** 모든 표를 기관별 RLS로 나눠야 하고(AGENTS.md 원칙 7), 여러 사람이 동시에 개발합니다.
-- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v2.3.1.md`), 기술 선택 v1.1 §3.
+- **근거:** 데이터 구조 v1.6.4(`문서/설계/데이터구조-v2.3.4.md`), 기술 선택 v1.1 §3.
 - **사유:** Supabase CLI의 기본 구조(`config.toml`, `migrations/`, `seed.sql`)를 그대로 써서 새로 배울 것을 줄입니다.
 
 ## 공모전 DB 변경 금지
@@ -87,6 +87,7 @@ npx supabase db push                               # migrations/ 를 클라우�
 | `unresolved_needs_check` | 정하지 않은 '확인 필요'가 남아 승인 불가 (`details` = 남은 개수) | 409 + 남은 항목 목록 |
 | `invalid_transition` | 상태 변화 표에 없는 변경 | 409 |
 | `record_locked` | approved 기록은 못 고침 | 409 |
+| `support_minutes_exceed_visit`, `visit_minutes_missing` | 재가 전송 때 지원별 분 합이 방문 시간보다 크거나, 방문 시간을 모르는데 분이 있음(검사 5). 제공 지원이 이미 '확인 필요'면 통과(이슈 #278) | 409 |
 | `return_reason_required` | 되돌리기 사유 없음 | 400 |
 | `reviewer_only`, `not_record_worker` | 그 사람은 못 하는 일 (교육용 기관의 강사도 관리자와 같음) | 403 |
 | `human_value_protected` | source가 worker·reviewer인 항목을 source = ai로 덮어쓰려 함 (원칙 4) | 건너뜀 |
@@ -101,7 +102,7 @@ npx supabase db push                               # migrations/ 를 클라우�
 - 작성자가 아닌 사람이 `value_ko`를 고치면 `confirmed_by_worker`가 자동으로 false가 됩니다. [맞아요](`confirmed_by_worker`)는 작성자만 바꿀 수 있습니다.
 - 기록이 returned일 때 작성자(작성자 권한으로 도는 AI 항목 보태기 포함)가 `value_ko`·`status`·`detail`을 바꾸면 그 항목의 `resolution`이 자동으로 비워집니다(결정 `2026-10-21-되돌림재확인`). 비운 일도 `edited` 이력의 before/after에 `resolution`으로 자동으로 남습니다.
 - 실명 검사: validate_draft·return_draft를 부를 때 `blockedNames`에 `getBlockedNames(serverClient, record_id, worker_id)`(`web/lib/agent/blocked-names.ts`) 결과를 넣습니다(결정 `2026-10-21-재가분칸-실명목록`).
-- 용어 검색(search_glossary)은 `supabase.rpc('search_glossary', { expression, max_results })`를 부릅니다. 결과 칸: `matched_expression, term_ko, term_vi, plain_ko, chapter, page`. 받아쓴 문장 안에 용어 표현이 들어 있어도 찾습니다.
+- 용어 검색(search_glossary)은 `supabase.rpc('search_glossary', { expression, max_results })`를 부릅니다. 결과 칸: `matched_expression, term_ko, plain_ko, chapter, page`. 받아쓴 문장 안에 용어 표현이 들어 있어도 찾습니다. `term_vi`는 11/04(#280)에 지웠습니다.
 
 ## 남은 것
 
@@ -112,7 +113,7 @@ npx supabase db push                               # migrations/ 를 클라우�
 ## 10/28 계약 보강
 
 - 기록 안 함은 needs_check + omitted이며 DB가 두 언어 내용을 비웁니다. 다시 정하기는 resolution을 비웁니다.
-- 제출은 9개 항목이 모두 confirmed_by_worker 또는 source=worker일 때 허용하며 거절 키는 unconfirmed_items입니다.
+- 제출은 9개 항목이 모두 confirmed_by_worker 또는 source=worker일 때 허용하며 거절 키는 unconfirmed_items입니다. 재가 기록은 지원 시간 합(검사 5)도 DB가 보고 `support_minutes_exceed_visit`·`visit_minutes_missing`으로 거절합니다(#278).
 - source·evidence·reason·value_native·reason_native는 authenticated가 직접 쓰지 못합니다. 출처는 실제 사용자 내용 수정에 맞춰 DB가 정합니다. 사람 항목을 ai로 재분류하면 human_value_protected로 거절합니다.
 - profiles는 자기 행만 직접 읽습니다. list_org_staff()는 관리자에게 같은 기관 id/name/role만 반환합니다.
 - record_blocked_names(record_id, worker_id)는 해당 기록의 기관 이름만 읽는 service_role 전용 RPC입니다.

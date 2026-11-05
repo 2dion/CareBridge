@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // POST /api/records/:id/agent-run: 작성자가 [다시 시도] 또는 [글로 쓰기] 뒤 부름(W3).
 // 입력: (글로 쓰기면) text. 출력: end_reason(draft_returned / auto_stopped / failed), items(9개), form_fields.
-// 근거: 문서/설계/데이터구조-v2.3.1.md '공통 계약', 문서/설계/ai규칙-v2.0.3.md '② 기록 검토 준비 Agent'
+// 근거: 문서/설계/데이터구조-v2.3.4.md '공통 계약', 문서/설계/ai규칙-v2.0.4.md '② 기록 검토 준비 Agent'
 export const maxDuration = 300; // Claude 응답 최대 4번
 
 const STATUS: Record<AgentRunError["code"], number> = {
@@ -15,12 +15,11 @@ const STATUS: Record<AgentRunError["code"], number> = {
   invalid_transition: 409,
   no_transcript: 400,
   ai_not_configured: 503,
+  rate_limited: 429,
 };
 
 export async function POST(request: Request, ctx: RouteContext<"/api/records/[id]/agent-run">) {
   const { id } = await ctx.params;
-  const limited = await enforceQuota("agent");
-  if (limited) return limited;
   let text: string | undefined;
   try {
     const body = (await request.json()) as { text?: unknown };
@@ -35,6 +34,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/records/[id
       createSupabaseAdminClient(),
       id,
       text,
+      // 호출 제한은 기록·원문 검사를 지난 뒤 Claude 직전에 센다(이슈 #279)
+      { takeQuota: async () => (await enforceQuota("agent")) === null },
     );
     return Response.json(result);
   } catch (error) {

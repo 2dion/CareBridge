@@ -19,6 +19,7 @@ import { Icon } from "@/components/mobile/icon";
 import { TextInput } from "@/components/mobile/text-field";
 import {
   addResident,
+  removeResident,
   type ResidentEdit,
   residentEditChanged,
   residentHasRecords,
@@ -251,6 +252,25 @@ function Residents() {
           workerLabel={names.worker}
           onClose={() => setEditing(null)}
           lockCareType={residentHasRecords(db, editing.id)}
+          onDelete={async () => {
+            if (demo.real) {
+              const result = await demo.real.actions.removeResident(editing.id);
+              if (!result.ok) return result.ko;
+              setEditing(null);
+              toast.show(
+                result.data.cleanup_pending
+                  ? "지웠어요. 사진 파일 정리는 다시 확인이 필요해요."
+                  : "지웠어요.",
+              );
+              return null;
+            }
+            const next = removeResident(db, editing.id);
+            if ("error" in next) return "기록이 있는 어르신은 지울 수 없어요.";
+            demo.update(() => next);
+            setEditing(null);
+            toast.show("지웠어요.");
+            return null;
+          }}
           onSave={async (edit, photo) => {
             const currentIds = db.assignments ? workerIdsOf(editing.id) : null;
             const changed = residentEditChanged(editing, currentIds, edit);
@@ -403,6 +423,7 @@ function AssignDrawer({
   lockCareType,
   onClose,
   onSave,
+  onDelete,
 }: {
   resident: Resident;
   today: string;
@@ -414,6 +435,8 @@ function AssignDrawer({
   onClose: () => void;
   /** 저장. 막히면 오류 키를 돌려준다 */
   onSave: (edit: ResidentEdit, photo: PhotoChange) => Promise<string | null>;
+  /** 어르신 삭제(이슈 #103). 기록이 없을 때만 버튼이 켜진다. 막히면 안내 문구를 돌려준다 */
+  onDelete: () => Promise<string | null>;
 }) {
   const [name, setName] = useState(resident.name);
   const [photo, setPhoto] = useState<PhotoChange>(null);
@@ -458,6 +481,22 @@ function AssignDrawer({
       if (result) setError(result);
     } catch {
       setError("저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (lockCareType) return;
+    if (!window.confirm(`${resident.name} 어르신을 지울까요? 담당 연결과 사진도 함께 지워져요.`))
+      return;
+    setError(null);
+    setBusy(true);
+    try {
+      const result = await onDelete();
+      if (result) setError(result);
+    } catch {
+      setError("지우지 못했어요. 연결을 확인하고 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -604,6 +643,17 @@ function AssignDrawer({
             <Icon name="check" />
             {busy ? "저장 중…" : "저장"}
           </button>
+        </div>
+        {/* 잘못 더한 어르신을 지우는 용도. 기록은 공식 기록이라 기록이 있으면 지우지 않는다(이슈 #103) */}
+        <div style={{ marginTop: 16 }}>
+          <button type="button" className="dbtn danger sm" disabled={lockCareType} onClick={remove}>
+            어르신 삭제
+          </button>
+          {lockCareType && (
+            <p className="muted" style={{ margin: "6px 0 0", fontSize: 13 }}>
+              기록이 있는 어르신은 지울 수 없어요. 기록은 공식 기록이라 남겨요.
+            </p>
+          )}
         </div>
       </fieldset>
     </DeskModal>

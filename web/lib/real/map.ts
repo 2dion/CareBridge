@@ -1,5 +1,5 @@
 // 실제 Supabase에서 읽은 줄을 화면이 쓰는 모양(DemoDb)으로 바꾼다. 화면 코드는 Mock과 같은 모양을 그대로 읽는다.
-// 근거: 문서/설계/데이터구조-v2.3.1.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
+// 근거: 문서/설계/데이터구조-v2.3.4.md 표 구조·상태 값. 계산(못 쓴 기록·지연전송 기록)은 DB 함수 결과를 그대로 쓴다.
 import { parseNativeLang } from "@/lib/auth/signup";
 import type { ItemKey, ItemStatus, RecordStatus, Resolution } from "../demo/state";
 import type {
@@ -203,9 +203,21 @@ export function itemsSnapshot(items: RunItem[]): string {
 /** [글로 쓰기]·[다시 시도]는 작업 행이 없어 시작 시각으로 본다(이슈 #237). 항목이 달라졌으면 null(끝남) */
 export function textRunStateOf(
   items: RunItem[],
-  run: { startedAt: number; snapshot: string },
+  run: { startedAt: number; snapshot: string; pendingJobs?: string[] },
   now: number,
+  jobs: AudioJobRow[] = [],
 ): "processing" | "failed" | null {
+  // 재시도 전 실패·처리 중이던 작업이 done이 되면 같은 초안도 저장 완료다(#296).
+  // 원래 done이던 작업이나 항목 녹음은 이번 실행의 완료 근거가 아니다.
+  if (
+    jobs.some(
+      (job) =>
+        job.target === "record" &&
+        job.status === "done" &&
+        run.pendingJobs?.includes(job.created_at),
+    )
+  )
+    return null;
   if (itemsSnapshot(items) !== run.snapshot) return null;
   return now - run.startedAt > PROCESSING_LIMIT_MS ? "failed" : "processing";
 }

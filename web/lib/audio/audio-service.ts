@@ -138,7 +138,9 @@ export async function receiveAudio(
     if (error || !audio) throw new Error(`녹음 파일 읽기 실패: ${error?.message ?? ""}`);
     transcript = await transcribeAudio(audio, input.storagePath.split("/").pop() ?? "audio");
   } catch (error) {
-    await setJob({ status: "failed", error: errorText(error) });
+    // audio_jobs.error는 같은 기관 사용자가 읽으므로 오류 키만 남기고 원문은 서버 로그로(이슈 #279)
+    console.error("audio transcribe failed", job.id, error);
+    await setJob({ status: "failed", error: "stt_failed" });
     return { status: 502, body: { id: job.id, status: "failed", error: "stt_failed" } };
   } finally {
     // 받아쓰기가 성공하든 실패하든 파일을 지우고 경로를 비운다(녹음업로드 결정 4번)
@@ -163,7 +165,8 @@ export async function receiveAudio(
       await setJob({ status: "done" });
       return { status: 200, body: { id: job.id, status: "done", item } };
     } catch (error) {
-      await setJob({ status: "failed", error: errorText(error) });
+      console.error("audio item rewrite failed", job.id, error);
+      await setJob({ status: "failed", error: "fill_failed" });
       return { status: 502, body: { id: job.id, status: "failed", error: "fill_failed" } };
     }
   }
@@ -175,9 +178,11 @@ export async function receiveAudio(
     .eq("id", recordId)
     .select("id");
   if (saveError) {
-    await setJob({ status: "failed", error: saveError.message });
-    // DB 오류 원문은 응답에 담지 않는다(이슈 #256). 트리거 오류 키만 그대로 돌려준다
+    // DB 오류 원문은 응답에도 audio_jobs.error에도 담지 않는다(이슈 #256, #279). 원문은 서버 로그에만 남기고
+    // 트리거 오류 키만 돌려준다
+    console.error("audio transcript save failed", job.id, saveError.message);
     const key = saveError.message === "record_locked" ? "record_locked" : "invalid_transition";
+    await setJob({ status: "failed", error: key });
     return { status: 409, body: { id: job.id, status: "failed", error: key } };
   }
   await setJob({ status: "filling" });
@@ -186,7 +191,8 @@ export async function receiveAudio(
       await runAgentForRecord(userClient, serverClient, recordId);
       await setJob({ status: "done" });
     } catch (error) {
-      await setJob({ status: "failed", error: errorText(error) });
+      console.error("audio agent run failed", recordId, error);
+      await setJob({ status: "failed", error: "agent_failed" });
     }
   });
   return { status: 202, body: { id: job.id, status: "filling", transcript } };
@@ -196,6 +202,15 @@ export async function receiveAudio(
 // W3 [수정 내용 적용]: 작성자가 글로 쓴 고칠 내용도 음성 보태기와 같은 길(③)로 그 항목만 다시 쓴다.
 // 한국어·베트남어 어느 쪽으로 써도 value_ko는 한국어 기록체, value_native는 모국어가 되고,
 // status·reason도 새 내용으로 다시 정한다(이슈 #118).
+/** POST /items/:key 본문의 글. 없거나 1,000자를 넘으면 null (라우트의 호출 제한 판단과 같은 기준, 이슈 #279) */
+export function parseItemText(body: unknown): string | null {
+  const text =
+    body && typeof body === "object" && typeof (body as { text?: unknown }).text === "string"
+      ? (body as { text: string }).text.trim()
+      : "";
+  return text && text.length <= 1000 ? text : null;
+}
+
 export async function addItemByText(
   userClient: SupabaseClient,
   serverClient: SupabaseClient,
@@ -203,11 +218,8 @@ export async function addItemByText(
   itemKey: ItemKey,
   body: unknown,
 ): Promise<ApiResult> {
-  const text =
-    body && typeof body === "object" && typeof (body as { text?: unknown }).text === "string"
-      ? (body as { text: string }).text.trim()
-      : "";
-  if (!text || text.length > 1000) return fail(400, "invalid_input");
+  const text = parseItemText(body);
+  if (text === null) return fail(400, "invalid_input");
   const loaded = await loadWorkerRecord(userClient, recordId);
   if (!loaded.ok) return loaded.result;
   if (getAiMode() === "mock") return fail(503, "ai_not_configured");

@@ -7,6 +7,6 @@ describe("rate_limited 안내", () => {
   it("한국어·베트남어 안내 문구가 있다", () => {
     const error = actionError("rate_limited");
     expect(error.ko).toContain("요청이 너무 많아요");
-    expect(error.vi).toContain("quá nhiều yêu cầu");
+    expect(error.native).toContain("quá nhiều yêu cầu");
   });
 });

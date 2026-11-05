@@ -252,3 +252,41 @@ describe("value_ko 한국어 검사 (이슈 #118)", () => {
     expect(r.status).toBe(200);
   });
 });
+
+// 이슈 #279: 번역 호출 제한은 value_ko가 실제로 바뀔 때만 센다
+describe("번역 호출 제한", () => {
+  it("같은 value_ko를 다시 보내면 세지 않고 번역도 하지 않는다", async () => {
+    const takeTranslateQuota = vi.fn(async () => false);
+    const deps = fakeDeps(draft, { takeTranslateQuota });
+    const r = await patchItem("rec-1", "meal", { value_ko: "점심 조금 드심" }, deps);
+    expect(r.status).toBe(200);
+    expect(takeTranslateQuota).not.toHaveBeenCalled();
+    expect(deps.translate).not.toHaveBeenCalled();
+    expect(deps.update).toHaveBeenCalled();
+  });
+
+  it("value_ko가 바뀌면 한 번 세고, 한도 안이면 저장·번역한다", async () => {
+    const takeTranslateQuota = vi.fn(async () => true);
+    const deps = fakeDeps(draft, { takeTranslateQuota });
+    const r = await patchItem("rec-1", "meal", { value_ko: "점심 절반 드심" }, deps);
+    expect(r.status).toBe(200);
+    expect(takeTranslateQuota).toHaveBeenCalledOnce();
+    expect(deps.translate).toHaveBeenCalledWith("점심 절반 드심", "vi");
+  });
+
+  it("한도를 넘으면 429 rate_limited로 끝나고 저장하지 않는다", async () => {
+    const deps = fakeDeps(draft, { takeTranslateQuota: vi.fn(async () => false) });
+    const r = await patchItem("rec-1", "meal", { value_ko: "점심 절반 드심" }, deps);
+    expect(r).toEqual({ status: 429, body: { error: "rate_limited" } });
+    expect(deps.update).not.toHaveBeenCalled();
+    expect(deps.translate).not.toHaveBeenCalled();
+  });
+
+  it("value_ko가 없는 수정([확인 완료] 등)은 세지 않는다", async () => {
+    const takeTranslateQuota = vi.fn(async () => false);
+    const deps = fakeDeps(draft, { takeTranslateQuota });
+    const r = await patchItem("rec-1", "meal", { confirmed_by_worker: true }, deps);
+    expect(r.status).toBe(200);
+    expect(takeTranslateQuota).not.toHaveBeenCalled();
+  });
+});

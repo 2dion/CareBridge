@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W0(사용 안내): 처음 한 번 3장. 로그인 전·처음 보는 곳이라 병기(화면 v1.3 병기 원칙 ③ 예외).
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -12,82 +16,84 @@ import type { RoleNames } from "@/lib/demo/roles";
 
 type Step = {
   title: [string, string, string];
-  vi: string;
+  native: string;
   desc: string[];
-  descVi: string;
+  descNative: string;
   art: ArtName;
   artWidth: number;
-  features?: { icon: IconName; ko: string; vi: string; desc: string[]; descVi: string }[];
-  tip?: { ko: string; vi: string; desc: string; descVi: string };
+  features?: { icon: IconName; ko: string; native: string; desc: string[]; descNative: string }[];
+  tip?: { ko: string; native: string; desc: string; descNative: string };
 };
 
-// 교육용 기관이면 '강사에게 전송'으로 보인다(이슈 #146)
-const buildSteps = (names: RoleNames): Step[] => [
-  {
-    title: ["안녕하세요,", "새싹로봇", "이에요."],
-    vi: "Xin chào, tôi là robot Mầm non.",
-    desc: ["케어브릿지에서 말로 돌봄 기록을", "시작해 볼게요."],
-    descVi: "Cùng CareBridge ghi chép bằng giọng nói.",
-    art: "robot-welcome",
-    artWidth: 200,
-    features: [
-      {
-        icon: "mic",
-        ko: "말로 기록",
-        vi: "Ghi bằng giọng nói",
-        desc: ["복잡한 입력 없이", "바로 시작해요."],
-        descVi: "Bắt đầu dễ dàng.",
-      },
-      {
-        icon: "doc",
-        ko: "쉽게 확인",
-        vi: "Dễ kiểm tra",
-        desc: ["AI가 내용을 정리해", "초안을 보여줘요."],
-        descVi: "AI soạn bản nháp.",
-      },
-    ],
-  },
-  {
-    title: ["말로 편하게", "기록", "해요."],
-    vi: "Ghi chép dễ dàng bằng giọng nói",
-    desc: ["오늘 돌본 내용을 말하면", "AI가 항목별 기록 초안을 정리해줘요."],
-    descVi: "AI soạn bản nháp từ lời kể chăm sóc.",
-    art: "robot-voice",
-    artWidth: 340,
-    features: [
-      {
-        icon: "mic",
-        ko: "음성으로 입력",
-        vi: "Nhập bằng giọng nói",
-        desc: ["타이핑 없이", "자연스럽게 말해 보세요."],
-        descVi: "Cứ nói tự nhiên.",
-      },
-      {
-        icon: "doc",
-        ko: "항목별 정리",
-        vi: "Sắp xếp theo mục",
-        desc: ["식사, 수면, 활동 등으로", "정리돼요."],
-        descVi: "Bữa ăn, giấc ngủ, hoạt động.",
-      },
-    ],
-  },
-  {
-    title: ["초안을 확인하고", "전송하면 끝", "이에요."],
-    vi: "Kiểm tra bản nháp rồi gửi là xong.",
-    desc: ["AI가 만든 초안을 보고 필요한 부분만", `수정한 뒤 ${names.reviewer}에게 전송하세요.`],
-    descVi: `Sửa phần cần thiết rồi gửi ${names.reviewerVi}.`,
-    art: "robot-done",
-    artWidth: 290,
-    tip: {
-      ko: "급하게 적지 않아도 돼요",
-      vi: "Không cần vội ghi chép.",
-      desc: "중요한 내용부터 차근차근 확인하세요.",
-      descVi: "Kiểm tra nội dung quan trọng trước.",
-    },
-  },
-];
-
 export default function GuidePage() {
+  const nativeLanguage = useNativeLanguage();
+  const buildSteps = (names: RoleNames): Step[] => [
+    {
+      title: ["안녕하세요,", "새싹로봇", "이에요."],
+      native: nativeMessage(nativeLanguage, "w0.welcome.title"),
+      desc: ["케어브릿지에서 말로 돌봄 기록을", "시작해 볼게요."],
+      descNative: nativeMessage(nativeLanguage, "w0.welcome.description"),
+      art: "robot-welcome",
+      artWidth: 200,
+      features: [
+        {
+          icon: "mic",
+          ko: "음성으로 기록",
+          native: nativeMessage(nativeLanguage, "w0.voice.title"),
+          desc: ["복잡한 입력 없이", "바로 시작해요."],
+          descNative: nativeMessage(nativeLanguage, "w0.voice.description"),
+        },
+        {
+          icon: "helper",
+          ko: "도우미에게 질문",
+          native: nativeMessage(nativeLanguage, "w0.helper.title"),
+          desc: ["모르는 말이나 돌봄 방법을", "알려 줘요."],
+          descNative: nativeMessage(nativeLanguage, "w0.helper.description"),
+        },
+      ],
+    },
+    {
+      title: ["말로 편하게", "기록", "해요."],
+      native: nativeMessage(nativeLanguage, "w0.record.title"),
+      desc: ["오늘 돌본 내용을 말하면", "AI가 항목별 기록 초안을 정리해줘요."],
+      descNative: nativeMessage(nativeLanguage, "w0.record.description"),
+      art: "robot-voice",
+      artWidth: 340,
+      features: [
+        {
+          icon: "mic",
+          ko: "편하게 말하기",
+          native: nativeMessage(nativeLanguage, "w0.speak.title"),
+          desc: ["생각나는 대로", "자연스럽게 말해 보세요."],
+          descNative: nativeMessage(nativeLanguage, "w0.speak.description"),
+        },
+        {
+          icon: "doc",
+          ko: "항목별 정리",
+          native: nativeMessage(nativeLanguage, "w0.organize.title"),
+          desc: ["식사, 수면, 활동 등으로", "정리돼요."],
+          descNative: nativeMessage(nativeLanguage, "w0.organize.description"),
+        },
+      ],
+    },
+    {
+      title: ["초안을 확인하고", "전송하면 끝", "이에요."],
+      native: nativeMessage(nativeLanguage, "w0.confirm.title"),
+      desc: ["AI가 만든 초안을 보고 필요한 부분만", `수정한 뒤 ${names.reviewer}에게 전송하세요.`],
+      descNative: nativeMessage(nativeLanguage, "w0.confirm.description", {
+        reviewer: names.reviewerNative,
+      }),
+      art: "robot-done",
+      artWidth: 330,
+      tip: {
+        ko: "급하게 적지 않아도 돼요",
+        native: nativeMessage(nativeLanguage, "w0.tip.title"),
+        desc: "중요한 내용부터 차근차근 확인하세요.",
+        descNative: nativeMessage(nativeLanguage, "w0.tip.description"),
+      },
+    },
+  ];
+
   const router = useRouter();
   const joined = useSearchParams().get("joined");
   const demo = useDemo();
@@ -106,8 +112,7 @@ export default function GuidePage() {
     <MobileScreen>
       <AppBar
         title="사용 안내"
-        vi="Hướng dẫn"
-        viAlways
+        native={nativeMessage(nativeLanguage, "w0.title")}
         back={index === 0 ? "/" : () => setIndex(index - 1)}
       />
       {joined && index === 0 && (
@@ -127,13 +132,17 @@ export default function GuidePage() {
           <em>{step.title[1]}</em>
           {step.title[2]}
         </h1>
-        <p className="hero-vi vi">{step.vi}</p>
+        <Native as="p" className="hero-native native">
+          {step.native}
+        </Native>
         <p className="desc">
           {step.desc[0]}
           <br />
           {step.desc[1]}
         </p>
-        <p className="desc-vi vi">{step.descVi}</p>
+        <Native as="p" className="desc-native native">
+          {step.descNative}
+        </Native>
       </section>
       <div className="grow stack" style={{ justifyContent: "center", padding: "8px 0" }}>
         <Art name={step.art} width={step.artWidth} priority />
@@ -146,27 +155,27 @@ export default function GuidePage() {
                 <Icon name={feature.icon} />
               </div>
               <strong>{feature.ko}</strong>
-              <span className="f-vi vi">{feature.vi}</span>
+              <Native className="f-native native">{feature.native}</Native>
               <p>
                 {feature.desc[0]}
                 <br />
                 {feature.desc[1]}
               </p>
-              <span className="p-vi vi">{feature.descVi}</span>
+              <Native className="p-native native">{feature.descNative}</Native>
             </div>
           ))}
         </div>
       )}
       {step.tip && (
-        <div className="tip">
-          <Icon name="bulb" />
+        <div className="tip card">
+          <div className="icon-bubble">
+            <Icon name="bulb" />
+          </div>
           <div>
             <strong>{step.tip.ko}</strong>
-            <span className="vi" style={{ fontSize: 13 }}>
-              {step.tip.vi}
-            </span>
+            <Native className="f-native native">{step.tip.native}</Native>
             <p>{step.tip.desc}</p>
-            <span className="vi">{step.tip.descVi}</span>
+            <Native className="p-native native">{step.tip.descNative}</Native>
           </div>
         </div>
       )}
@@ -177,7 +186,13 @@ export default function GuidePage() {
           onClick={() => (last ? finish() : setIndex(index + 1))}
         >
           <span className="spacer" />
-          <span className="label">{last ? "시작하기 · Bắt đầu" : "다음 · Tiếp"}</span>
+          <span className="label">
+            {last
+              ? (nativeLanguage === "ko" ? "시작하기" : "시작하기 · ") +
+                nativeMessage(nativeLanguage, "w0.start")
+              : (nativeLanguage === "ko" ? "다음" : "다음 · ") +
+                nativeMessage(nativeLanguage, "w0.next")}
+          </span>
           <Icon name="next" />
         </button>
       </div>
@@ -187,7 +202,8 @@ export default function GuidePage() {
         style={{ margin: "14px 0 24px" }}
         onClick={finish}
       >
-        건너뛰기 · Bỏ qua
+        {(nativeLanguage === "ko" ? "건너뛰기" : "건너뛰기 · ") +
+          nativeMessage(nativeLanguage, "w0.skip")}
       </button>
     </MobileScreen>
   );

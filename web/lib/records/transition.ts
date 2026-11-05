@@ -1,5 +1,5 @@
 // 기록 상태 바꾸기: 보내기(submit)·승인(approve)·되돌리기(return).
-// 근거: 문서/설계/데이터구조-v2.3.1.md '공통 계약'(submit 조건·approve 조건·되돌림), '승인 서버 검사'
+// 근거: 문서/설계/데이터구조-v2.3.4.md '공통 계약'(submit 조건·approve 조건·되돌림), '승인 서버 검사'
 // DB 트리거도 같은 조건을 막지만, API가 먼저 검사해 이유를 돌려준다(supabase/README.md '서버 코드가 알아야 할 것').
 // DB 호출은 TransitionDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
@@ -48,6 +48,9 @@ const fail = (status: number, error: string, extra: Record<string, unknown> = {}
 const DB_ERRORS: Record<string, number> = {
   unresolved_needs_check: 409,
   unconfirmed_items: 409,
+  // 재가 전송 때 DB가 지원 시간 합(검사 5)을 다시 봄. 서버 재검사가 '확인 필요'를 못 붙였을 때의 안전망(이슈 #278)
+  support_minutes_exceed_visit: 409,
+  visit_minutes_missing: 409,
   invalid_transition: 409,
   record_locked: 409,
   return_reason_required: 400,

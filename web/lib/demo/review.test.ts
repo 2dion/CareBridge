@@ -8,6 +8,7 @@ import {
   markOverdueNoCare,
   processHistory,
   removeNoCareDay,
+  removeResident,
   residentEditChanged,
   residentHasRecords,
   resolveItem,
@@ -278,6 +279,27 @@ describe("관리자 규칙 (M1~M5)", () => {
       }),
     );
     expect(listMissed(next, TODAY).filter((row) => row.residentId === added.id).length).toBe(2);
+  });
+
+  // 이슈 #103: 기록이 없는 어르신만 지우고, 기록 없음 처리 줄도 같이 지운다
+  it("어르신 삭제는 기록이 없을 때만 된다", () => {
+    const db = createDemoDb(TODAY);
+    const withRecords = db.residents[0];
+    expect(residentHasRecords(db, withRecords.id)).toBe(true);
+    expect(removeResident(db, withRecords.id)).toEqual({ error: "has_records" });
+    let next = ok(addResident(db, { name: "정가상", careType: "facility", startDate: TODAY }));
+    const added = next.residents.at(-1)!;
+    next = ok(
+      addNoCareDay(
+        next,
+        { residentId: added.id, careDate: TODAY, reason: "hospital", note: "" },
+        TODAY,
+      ),
+    );
+    const removed = ok(removeResident(next, added.id));
+    expect(removed.residents.some((resident) => resident.id === added.id)).toBe(false);
+    expect(removed.noCareDays.some((day) => day.residentId === added.id)).toBe(false);
+    expect(removed.residents).toHaveLength(db.residents.length);
   });
 
   // 이슈 #96: [수정]으로 실명·급여 종류를 고치고, 바뀐 게 없으면 '저장했어요'를 띄우지 않는다
