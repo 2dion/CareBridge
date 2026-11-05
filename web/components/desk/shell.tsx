@@ -112,7 +112,7 @@ export function DeskModal({
   open: boolean;
   onClose: () => void;
   label: string;
-  /** 오른쪽에서 나오는 서랍(담당 연결). */
+  /** 오른쪽에서 나오는 서랍(M0 목록 등). */
   drawer?: boolean;
   children: ReactNode;
 }) {
