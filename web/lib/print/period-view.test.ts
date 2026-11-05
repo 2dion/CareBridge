@@ -139,3 +139,21 @@ describe("기간 인쇄 화면", () => {
     expect(missingAreas(view, { "2026-11-01": "physical" })).toBe(false);
   });
 });
+
+// 이슈 #317: 끝 날짜를 주면 서식 한 장을 넘는 기간도 날마다 한 줄
+describe("기간 인쇄 끝 날짜", () => {
+  it("to가 없으면 서식 한 장 분량, 있으면 from~to", () => {
+    const db = createDemoDb("2026-11-04");
+    const resident = db.residents.find((entry) => entry.careType === "facility")!;
+    expect(mockPeriod(db, resident.id, "2026-11-01").days).toHaveLength(3);
+    const view = mockPeriod(db, resident.id, "2026-11-01", "2026-11-05");
+    expect(view.days.map((day) => day.date)).toEqual([
+      "2026-11-01",
+      "2026-11-02",
+      "2026-11-03",
+      "2026-11-04",
+      "2026-11-05",
+    ]);
+    expect(view.to).toBe("2026-11-05");
+  });
+});

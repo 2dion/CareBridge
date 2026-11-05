@@ -12,9 +12,11 @@ import {
   dayFields,
   form12Checks,
   legalForms,
+  mealTypeOf,
   periodFields,
   type PrintMark,
   printFields,
+  toiletCountOf,
 } from "./fields";
 import { createRecordPdf } from "./pdf";
 
@@ -348,5 +350,73 @@ describe("날짜 열 좌표(기간 인쇄)", () => {
         "2026-10-26",
       ),
     ).toThrow("영역");
+  });
+});
+
+// 이슈 #317: 실제 AI 기록 모양(짧은 체크 이름, 글에만 있는 종류·횟수)도 서식 세부 칸을 채운다
+describe("제16호 세부 항목 채우기", () => {
+  const facility = Object.values(db.records).find(
+    (entry) => entry.formType === "16" && entry.status === "approved",
+  )!;
+  const withItems = (
+    patch: Partial<Record<string, { value_ko?: string; detail?: Record<string, unknown> }>>,
+  ): DemoRecord => ({
+    ...facility,
+    items: facility.items.map((item) =>
+      patch[item.item_key]
+        ? { ...item, status: "observed" as const, resolution: null, ...patch[item.item_key] }
+        : item,
+    ),
+  });
+  const has = (marks: PrintMark[], x: number, top: number) =>
+    marks.some((mark) => Math.abs(mark.x - x) < 0.01 && mark.top === top);
+
+  it("서식 기준의 짧은 체크 이름(세면 등·체위변경·이동·산책/외출)도 그 칸에 체크한다", () => {
+    const record = withItems({
+      support: {
+        value_ko: "세면 보조, 체위변경, 화장실 이동 도움, 산책 동행",
+        detail: { checks: ["세면 등", "체위변경", "화장실", "이동", "산책/외출"] },
+      },
+    });
+    const { marks } = dayFields(record, "physical", 0);
+    expect(has(marks, 214, 281)).toBe(true); // 세면·구강청결…
+    expect(has(marks, 214, 362)).toBe(true); // 체위변경(2시간마다)
+    expect(has(marks, 214, 409)).toBe(true); // 이동도움
+    expect(has(marks, 181, 427)).toBe(true); // 산책
+    expect(has(marks, 224, 427)).toBe(true); // 외출
+    expect(has(marks, 176, 305)).toBe(false); // 목욕은 말하지 않음
+  });
+
+  it("식사 종류: 저장 칸이 있으면 그 값, 없으면 승인한 글에 하나로 적혀 있을 때만", () => {
+    const meal = (value_ko: string, detail: Record<string, unknown> = {}) =>
+      withItems({ meal: { value_ko, detail } });
+    expect(mealTypeOf(meal("점심 드심", { meal_type: "죽" }))).toBe("죽");
+    expect(mealTypeOf(meal("점심: 죽, 조금 드심"))).toBe("죽");
+    expect(mealTypeOf(meal("일반식, 전량 섭취"))).toBe("일반식");
+    expect(mealTypeOf(meal("튜브로 영양 공급함"))).toBe("유동식(튜브영양공급식)");
+    expect(mealTypeOf(meal("죽 대신 일반식 드심"))).toBeNull();
+    expect(mealTypeOf(meal("밥 두 그릇 드심"))).toBeNull();
+    expect(mealTypeOf(meal("점심 드심", { meal_type: "특식" }))).toBeNull();
+    expect(has(dayFields(meal("점심: 죽, 조금 드심"), "physical", 0).marks, 195, 317)).toBe(true);
+  });
+
+  it("화장실이용하기 횟수: 저장 칸이 있으면 그 값, 없으면 글에 횟수가 하나일 때만", () => {
+    const support = (value_ko: string, detail: Record<string, unknown> = {}) =>
+      withItems({ support: { value_ko, detail } });
+    expect(toiletCountOf(support("기저귀 교환", { toilet_count: 4 }))).toBe(4);
+    expect(
+      toiletCountOf(support("세면 보조, 옷 갈아입히기, 체위변경(2시간마다), 기저귀 교환 3회")),
+    ).toBe(3);
+    expect(toiletCountOf(support("화장실 5번 다녀오심"))).toBe(5);
+    expect(toiletCountOf(support("소변 주머니 2~3회 비움"))).toBeUndefined();
+    expect(toiletCountOf(support("기저귀 교환 3회, 화장실 2회"))).toBeUndefined();
+    expect(toiletCountOf(support("체위변경 2회 실시"))).toBeUndefined();
+    const fields = dayFields(support("기저귀 교환 3회"), "physical", 0).fields;
+    expect(fields.find((field) => field.key === "toilet")?.text).toBe("3");
+  });
+
+  it("제12호 화장실이용하기는 '기저귀 교환'도 체크한다", () => {
+    const toilet = form12Checks.find((box) => box.key === "toilet")!;
+    expect(checkMatches("기저귀 교환", [toilet.label, ...toilet.synonyms])).toBe(true);
   });
 });

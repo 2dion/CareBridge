@@ -134,6 +134,41 @@ describe("법정 원문 기록 PDF", () => {
     20000,
   );
 
+  it("제16호 기간이 3일을 넘으면 3일마다 새 서식 장을 만들고, 기록이 없는 장은 건너뛴다(#317)", async () => {
+    const record = Object.values(db.records).find(
+      (entry) => entry.formType === "16" && entry.status === "approved",
+    )!;
+    const from = "2026-10-20";
+    const template = readFileSync(resolve("public" + legalForms["16"].href));
+    const original = await PDFDocument.load(template);
+    const make = (columns: number[]) =>
+      createPeriodPdf({
+        template,
+        fontBytes,
+        formType: "16",
+        days: columns.map((column) => ({
+          column,
+          notesArea: "physical" as const,
+          record: { ...record, careDate: addDays(from, column) },
+        })),
+        residentName: "김○○ 어르신",
+        org: db.worker.org,
+        from,
+        to: addDays(from, Math.max(...columns)),
+      });
+    // 5일(0~4번째 날) → 3일 + 2일 = 서식 2장
+    const five = await make([0, 1, 2, 3, 4]);
+    expect(five.sheets).toBe(2);
+    expect(five.recordPages).toBeGreaterThanOrEqual(2);
+    const saved = await PDFDocument.load(five.bytes);
+    expect(saved.getPageCount()).toBe(five.recordPages + original.getPageCount() - 1);
+    // 1일째와 8일째만 있으면 가운데 장(4~6일째)은 만들지 않는다
+    const gap = await make([0, 7]);
+    expect(gap.sheets).toBe(2);
+    // 3일 안이면 지금처럼 1장
+    expect((await make([0, 2])).sheets).toBe(1);
+  }, 60_000);
+
   it("기간 인쇄에 넣을 날이 없으면 만들지 않는다", async () => {
     await expect(
       createPeriodPdf({

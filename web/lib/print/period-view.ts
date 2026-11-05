@@ -1,7 +1,7 @@
 // M3 · 기간 인쇄의 화면 데이터. 실제 모드는 서버 응답만, Mock은 같은 승인·서식 규칙을 쓴다.
 import type { CareType, DemoDb, DemoRecord } from "@/lib/demo/store";
 import { applyPrintData, type PrintData } from "@/lib/real/map";
-import { addDays } from "@/lib/records/period-print";
+import { addDays, daysBetween } from "@/lib/records/period-print";
 import { legalForms, printableItem, type NoteArea } from "./fields";
 
 export type PeriodView = {
@@ -40,10 +40,12 @@ export function periodHref(record: DemoRecord, careType: CareType) {
   const formType = careType === "home" ? "12" : "16";
   return `/print/period?resident=${encodeURIComponent(record.residentId)}&from=${periodStart(record.careDate, formType, true)}`;
 }
-export function mockPeriod(db: DemoDb, residentId: string, from: string): PeriodView {
+/** to가 없으면 서식 한 장 분량. 있으면 from~to(서식 장 수는 PDF를 만들 때 나눈다, 이슈 #317) */
+export function mockPeriod(db: DemoDb, residentId: string, from: string, to?: string): PeriodView {
   const resident = db.residents.find((entry) => entry.id === residentId)!;
   const formType = resident.careType === "home" ? "12" : "16";
-  const days = Array.from({ length: legalForms[formType].days }, (_, column) => {
+  const length = to ? Math.max(1, daysBetween(from, to)) : legalForms[formType].days;
+  const days = Array.from({ length }, (_, column) => {
     const date = addDays(from, column);
     const records = Object.values(db.records).filter(
       (record) => record.residentId === residentId && record.careDate === date,

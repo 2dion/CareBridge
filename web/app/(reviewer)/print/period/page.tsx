@@ -17,7 +17,7 @@ import {
   type PeriodView,
 } from "@/lib/print/period-view";
 import { callApi } from "@/lib/real/actions";
-import { addDays, isValidDate } from "@/lib/records/period-print";
+import { addDays, daysBetween, isValidDate, MAX_PERIOD_DAYS } from "@/lib/records/period-print";
 
 export default function PeriodPrintPage() {
   return (
@@ -40,6 +40,9 @@ function PeriodPrint() {
       ? requested
       : periodStart(today, formType);
   });
+  // 찍을 날 수. 처음에는 서식 한 장 분량이고, 끝 날짜를 늘리면 날짜 수마다 새 서식 장이 생긴다(이슈 #317)
+  const [span, setSpan] = useState<number>(length);
+  const to = isValidDate(from) ? addDays(from, span - 1) : from;
   const [loaded, setLoaded] = useState<{ key: string; view?: PeriodView; error?: string } | null>(
     null,
   );
@@ -52,7 +55,7 @@ function PeriodPrint() {
     null,
   );
   const valid = Boolean(resident) && isValidDate(from) && from <= today;
-  const key = JSON.stringify([residentId, from, formType, retry]);
+  const key = JSON.stringify([residentId, from, span, formType, retry]);
   const liveKey = useRef(key);
   useEffect(() => {
     liveKey.current = key;
@@ -64,7 +67,7 @@ function PeriodPrint() {
     if (!valid || !demo.real) return;
     let cancelled = false;
     void callApi<PeriodResponse>(
-      `/api/residents/${encodeURIComponent(residentId)}/print?from=${from}`,
+      `/api/residents/${encodeURIComponent(residentId)}/print?from=${from}&to=${to}`,
       { method: "GET" },
     ).then((result) => {
       if (cancelled) return;
@@ -83,7 +86,7 @@ function PeriodPrint() {
     return () => {
       cancelled = true;
     };
-  }, [demo.real, valid, residentId, from, key]);
+  }, [demo.real, valid, residentId, from, to, key]);
   useEffect(
     () => () => {
       if (generated) URL.revokeObjectURL(generated.url);
@@ -95,7 +98,7 @@ function PeriodPrint() {
       ? loaded?.key === key
         ? loaded.view
         : undefined
-      : mockPeriod(demo.db, residentId, from)
+      : mockPeriod(demo.db, residentId, from, to)
     : undefined;
   const error = valid && demo.real && loaded?.key === key ? loaded.error : "";
   const loading = valid && Boolean(demo.real) && loaded?.key !== key;
@@ -177,7 +180,9 @@ function PeriodPrint() {
                 const id = event.target.value;
                 const selected = demo.db.residents.find((entry) => entry.id === id);
                 setResidentId(id);
-                setFrom(periodStart(today, selected?.careType === "home" ? "12" : "16"));
+                const selectedForm = selected?.careType === "home" ? "12" : "16";
+                setFrom(periodStart(today, selectedForm));
+                setSpan(legalForms[selectedForm].days);
                 setAreas({});
                 clearPdf();
               }}
@@ -205,17 +210,35 @@ function PeriodPrint() {
               }}
             />
           </label>
+          <label className="flabel">
+            끝 날짜
+            <input
+              className="field"
+              type="date"
+              min={from}
+              max={isValidDate(from) ? addDays(from, MAX_PERIOD_DAYS - 1) : undefined}
+              value={to}
+              disabled={!resident || busy || !isValidDate(from)}
+              onChange={(event) => {
+                const next = event.target.value;
+                if (!isValidDate(next)) return;
+                setSpan(Math.min(MAX_PERIOD_DAYS, Math.max(1, daysBetween(from, next))));
+                setAreas({});
+                clearPdf();
+              }}
+            />
+          </label>
         </div>
         {!resident ? (
           <p className="info-note">인쇄할 어르신을 골라 주세요.</p>
         ) : (
           <>
             <h2>
-              별지 제{formType}호 · {length}일
+              별지 제{formType}호 · 한 장에 {length}일 · 서식 {Math.ceil(span / length)}장
             </h2>
             {isValidDate(from) && (
               <p>
-                {monthDayWeek(from)} ~ {monthDayWeek(addDays(from, length - 1))}
+                {monthDayWeek(from)} ~ {monthDayWeek(to)} ({span}일)
               </p>
             )}
             <div className="actions">
@@ -223,7 +246,7 @@ function PeriodPrint() {
                 className="dbtn"
                 disabled={!valid || busy}
                 onClick={() => {
-                  setFrom(addDays(from, -length));
+                  setFrom(addDays(from, -span));
                   setAreas({});
                   clearPdf();
                 }}
@@ -232,9 +255,9 @@ function PeriodPrint() {
               </button>
               <button
                 className="dbtn"
-                disabled={!valid || busy || addDays(from, length) > today}
+                disabled={!valid || busy || addDays(from, span) > today}
                 onClick={() => {
-                  setFrom(addDays(from, length));
+                  setFrom(addDays(from, span));
                   setAreas({});
                   clearPdf();
                 }}
@@ -263,7 +286,7 @@ function PeriodPrint() {
               <>
                 <p role="status">
                   {count
-                    ? `${length}일 중 ${count}일을 찍어요`
+                    ? `${view.days.length}일 중 ${count}일을 찍어요`
                     : "이 기간에는 승인한 기록이 없어요"}
                 </p>
                 <ol style={{ paddingLeft: 24 }}>
