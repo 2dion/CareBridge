@@ -87,7 +87,7 @@ export const form12Checks = [
     key: "toilet",
     area: "physical",
     label: "화장실이용하기",
-    synonyms: ["화장실"],
+    synonyms: ["화장실", "기저귀", "배변"],
     x: 278,
     top: 386,
   },
@@ -206,6 +206,86 @@ export type DayFields = {
   notesText: string;
 };
 
+// 제16호 체크 칸. label은 data/forms/form-16.json의 칸 이름이고, synonyms는 서식 기준(web/lib/agent/form-spec.ts)이
+// AI에게 주는 짧은 이름(세면 등, 목욕, 체위변경, 이동, 산책/외출)과 작성자가 쓰는 말이다.
+// 짧은 이름만 적힌 기록도 같은 칸에 체크한다(이슈 #317: 전에는 칸 전체 이름이 있어야 해서 비어 나옴).
+export const form16Checks = [
+  {
+    key: "hygiene",
+    label: "세면·구강청결·머리감기·몸단장·옷 갈아입기 도움 등",
+    synonyms: ["세면", "구강청결", "머리감기", "몸단장", "옷 갈아입"],
+    x: 214,
+    top: 281,
+  },
+  { key: "bath", label: "목욕", synonyms: ["몸 씻기"], x: 176, top: 305 },
+  {
+    key: "reposition",
+    label: "체위변경(2시간마다)",
+    synonyms: ["체위변경", "체위 변경"],
+    x: 214,
+    top: 362,
+  },
+  {
+    key: "mobility",
+    label: "이동도움 및 신체기능유지·증진",
+    synonyms: ["이동", "보행", "신체기능유지"],
+    x: 214,
+    top: 409,
+  },
+  { key: "walk", label: "산책", synonyms: [], x: 181, top: 427 },
+  { key: "outing", label: "외출", synonyms: [], x: 224, top: 427 },
+  { key: "cognition_support", label: "인지관리 지원", synonyms: ["인지관리"], x: 214, top: 466 },
+  {
+    key: "communication",
+    label: "의사소통도움 등 말벗, 격려",
+    synonyms: ["의사소통", "말벗", "격려"],
+    x: 214,
+    top: 486,
+  },
+] as const;
+
+// 제16호 식사 종류 선택지(data/forms/form-16.json physical.meal_type)와 글에서 찾을 낱말
+export const MEAL_TYPES = ["일반식", "죽", "유동식(튜브영양공급식)"] as const;
+export type MealType = (typeof MEAL_TYPES)[number];
+const MEAL_TYPE_WORDS: readonly [MealType, RegExp][] = [
+  ["일반식", /일반식/],
+  ["죽", /죽/],
+  ["유동식(튜브영양공급식)", /유동식|튜브|경관/],
+];
+
+/**
+ * 제16호 식사 종류. meal.detail.meal_type이 서식 선택지면 그 값을 쓰고, 없으면 승인한 글에 종류가 하나만 적혀 있을 때 그 종류를 쓴다.
+ * 종류가 둘 이상이거나 없으면 비운다(짐작하지 않음, 이슈 #317).
+ */
+export function mealTypeOf(record: DemoRecord): MealType | null {
+  const meal = printableItem(record, "meal");
+  if (!meal) return null;
+  const stored = meal.detail?.meal_type;
+  if (typeof stored === "string" && (MEAL_TYPES as readonly string[]).includes(stored))
+    return stored as MealType;
+  const found = MEAL_TYPE_WORDS.filter(([, word]) => word.test(meal.value_ko)).map(
+    ([type]) => type,
+  );
+  return found.length === 1 ? found[0] : null;
+}
+
+/**
+ * 제16호 화장실이용하기 횟수. support.detail.toilet_count가 숫자면 그 값을 쓰고, 없으면 승인한 글에 횟수가 하나만
+ * 적혀 있을 때 그 수를 쓴다(예: '기저귀 교환 3회' → 3). '2~3회' 같은 범위나 횟수가 여러 번 나오면 비운다(이슈 #317).
+ */
+export function toiletCountOf(record: DemoRecord): number | undefined {
+  const support = printableItem(record, "support");
+  if (!support) return undefined;
+  const stored = support.detail?.toilet_count;
+  if (typeof stored === "number" && Number.isFinite(stored) && stored >= 0) return stored;
+  const counts = [
+    ...support.value_ko.matchAll(
+      /(?:기저귀|화장실|배변|소변|대변)[^\d~\-,.;]{0,12}(\d{1,2})\s*(?:회|번)/g,
+    ),
+  ].map((match) => Number(match[1]));
+  return counts.length === 1 ? counts[0] : undefined;
+}
+
 /**
  * 기록 1건의 날짜 열 값: 월/일, 체크, 분, 변화상태, 제16호 특이사항 영역. column(0부터)번째 열 좌표로 옮긴다.
  * 제12호 특이사항은 열 밖 가로 칸이라 글만 돌려주고(notesText), 넣는 쪽이 날짜를 붙여 잇는다.
@@ -244,33 +324,17 @@ export function dayFields(record: DemoRecord, notesArea: NoteArea | "", column =
 
   if (formType === "16") {
     add("date", `${Number(month)}/${Number(day)}`, 208, 251, 40);
-    check(
-      [
-        "세면·구강청결·머리감기·몸단장·옷 갈아입기 도움 등",
-        "세면, 구강청결, 머리감기, 몸단장, 옷 갈아입기 도움 등",
-      ],
-      214,
-      281,
-    );
-    check(["목욕", "몸 씻기 도움"], 176, 305);
-    check(["체위변경(2시간마다)"], 214, 362);
-    check(["이동도움 및 신체기능유지·증진"], 214, 409);
-    check(["산책"], 181, 427);
-    check(["외출"], 224, 427);
-    check(["인지관리 지원"], 214, 466);
-    check(["의사소통도움 등 말벗, 격려"], 214, 486);
-    add("toilet", support?.detail?.toilet_count, 195, 383, 23);
+    for (const box of form16Checks) check([box.label, ...box.synonyms], box.x, box.top);
+    add("toilet", toiletCountOf(record), 195, 383, 23);
     const meal = printableItem(record, "meal");
-    const mealTypes: Record<string, PrintMark> = {
+    const mealTypes: Record<MealType, PrintMark> = {
       일반식: { x: 156, top: 317 },
       죽: { x: 195, top: 317 },
       "유동식(튜브영양공급식)": { x: 156, top: 331 },
     };
     const intake: Record<string, number> = { full: 162, half_or_more: 184, under_half: 231 };
-    if (typeof meal?.detail?.meal_type === "string" && mealTypes[meal.detail.meal_type]) {
-      const type = mealTypes[meal.detail.meal_type];
-      mark(type.x, type.top);
-    }
+    const mealType = mealTypeOf(record);
+    if (mealType) mark(mealTypes[mealType].x, mealTypes[mealType].top);
     if (typeof meal?.detail?.intake === "string" && intake[meal.detail.intake])
       mark(intake[meal.detail.intake], 344);
     const areaValues: Record<NoteArea, string[]> = {

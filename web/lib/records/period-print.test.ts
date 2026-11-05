@@ -208,3 +208,60 @@ describe("printPeriod", () => {
     });
   });
 });
+
+// 이슈 #317: 끝 날짜(to)를 주면 서식 한 장을 넘는 기간도 날마다 한 칸씩 준다
+describe("printPeriod 끝 날짜", () => {
+  const day = (care_date: string) => row({ care_date, form_type: "16", form_fields: {} });
+  type Body = {
+    to: string;
+    days_per_sheet: number;
+    days: { care_date: string; record: unknown; skipped: string }[];
+  };
+
+  it("to가 없으면 서식 한 장 분량(제16호 3칸)이고 days_per_sheet를 함께 준다", async () => {
+    const result = await printPeriod(
+      "res-2",
+      "2026-10-27",
+      fakeDeps(facility, [day("2026-10-27")]),
+    );
+    const body = result.body as Body;
+    expect(body).toMatchObject({ to: "2026-10-29", days_per_sheet: 3 });
+    expect(body.days).toHaveLength(3);
+  });
+
+  it("to를 주면 from~to 날마다 한 칸: 제16호 5일이면 5칸(서식 2장 분량)", async () => {
+    const deps = fakeDeps(facility, [day("2026-10-27"), day("2026-10-31")]);
+    const result = await printPeriod("res-2", "2026-10-27", deps, "2026-10-31");
+    expect(result.status).toBe(200);
+    const body = result.body as Body;
+    expect(body.to).toBe("2026-10-31");
+    expect(body.days.map((entry) => entry.care_date)).toEqual([
+      "2026-10-27",
+      "2026-10-28",
+      "2026-10-29",
+      "2026-10-30",
+      "2026-10-31",
+    ]);
+    expect(body.days[4].record).not.toBeNull();
+    expect(body.days[1]).toMatchObject({ record: null, skipped: "no_record" });
+    expect(deps.listRecords).toHaveBeenCalledWith("res-2", "2026-10-27", "2026-10-31");
+  });
+
+  it.each([
+    ["없는 날짜", "2026-13-01"],
+    ["시작 날짜보다 앞", "2026-10-26"],
+    ["31일을 넘음", "2026-11-27"],
+  ])("to가 %s이면 400 invalid_input", async (_, to) => {
+    const deps = fakeDeps(facility, [day("2026-10-27")]);
+    const result = await printPeriod("res-2", "2026-10-27", deps, to);
+    expect(result).toEqual({ status: 400, body: { error: "invalid_input" } });
+    expect(deps.listRecords).not.toHaveBeenCalled();
+  });
+
+  it("시작 날짜부터 31일째까지는 된다", async () => {
+    const deps = fakeDeps(facility, [day("2026-10-01")]);
+    const result = await printPeriod("res-2", "2026-10-01", deps, "2026-10-31");
+    expect(result.status).toBe(200);
+    expect((result.body as Body).days).toHaveLength(31);
+  });
+});

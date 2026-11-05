@@ -1,5 +1,5 @@
 // ① get_form_spec(서식 기준 조회)이 돌려주는 서식 기준. 표 없이 서버 코드 안 JSON으로 둔다(결정 2026-10-21-용어표).
-// 근거: 문서/설계/데이터구조-v2.3.4.md '서식 칸 대응'(verified 표, 항목별 칸, form_fields, support detail)
+// 근거: 문서/설계/데이터구조-v2.3.5.md '서식 칸 대응'(verified 표, 항목별 칸, form_fields, support detail)
 
 import type { CareType } from "./validate-draft";
 
@@ -18,8 +18,8 @@ const FACILITY: FormSpec = {
   items: {
     visit_time: "월/일, 맺음의 입·퇴소·외박·외출 시간",
     support:
-      "신체활동지원 체크(세면 등, 목욕, 체위변경, 화장실, 이동, 산책/외출), 인지관리 및 의사소통 체크. detail.checks에 목록. 분(minutes)은 쓰지 않음",
-    meal: "신체활동지원 > 식사 종류·섭취량(1 / 1/2이상 / 1/2미만). detail.intake에 choices.intake의 저장 값(full / half_or_more / under_half) 중 하나. '절반·반 정도·약 절반'(khoảng một nửa)은 half_or_more이고 관찰. '조금'처럼 양을 정하지 못하면 intake를 넣지 않고 status=needs_check",
+      "신체활동지원 체크(세면 등, 목욕, 체위변경, 화장실, 이동, 산책/외출), 인지관리 및 의사소통 체크. detail.checks에 목록. 분(minutes)은 쓰지 않음. 화장실이용하기 횟수가 원문에 있으면('기저귀 교환 3회') detail.toilet_count에 정수로 넣고, 말하지 않았으면 빼기",
+    meal: "신체활동지원 > 식사 종류·섭취량(1 / 1/2이상 / 1/2미만). 식사 종류가 원문에 있으면('죽', '일반식') detail.meal_type에 choices.meal_type 중 하나를 넣고, 말하지 않았으면 빼기. detail.intake에 choices.intake의 저장 값(full / half_or_more / under_half) 중 하나. '절반·반 정도·약 절반'(khoảng một nửa)은 half_or_more이고 관찰. '조금'처럼 양을 정하지 못하면 intake를 넣지 않고 status=needs_check",
     sleep: "신체활동지원 특이사항",
     discomfort: "신체활동지원 특이사항",
     medication:
@@ -32,7 +32,11 @@ const FACILITY: FormSpec = {
   },
   form_fields: {},
   // 저장 값과 뜻을 함께 준다. 저장 값은 validate-draft의 INTAKE_VALUES, 인쇄 체크 위치(print/fields.ts)와 같다.
-  choices: { intake: ["full (1, 전량)", "half_or_more (1/2 이상)", "under_half (1/2 미만)"] },
+  choices: {
+    intake: ["full (1, 전량)", "half_or_more (1/2 이상)", "under_half (1/2 미만)"],
+    // 인쇄 체크 위치(print/fields.ts MEAL_TYPES), data/forms/form-16.json physical.meal_type과 같다(이슈 #317)
+    meal_type: ["일반식", "죽", "유동식(튜브영양공급식)"],
+  },
   rules: [
     "form_fields는 빈 객체로 둔다",
     "meal.detail.intake에는 full / half_or_more / under_half만 쓴다(괄호 안 뜻은 쓰지 않음). 다른 값은 서버 검사가 빼고 식사를 needs_check로 둔다",
