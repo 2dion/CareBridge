@@ -1,5 +1,8 @@
 "use client";
 
+import { nativeMessage } from "@/lib/i18n/messages";
+import { useNativeLanguage } from "@/components/mobile/native";
+
 // W2 · 글로 쓰기: 쓴 글로 초안을 만든다. 쓰는 화면이라 안내는 한국어만(병기 원칙 ①).
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,6 +18,7 @@ import { getResident, markProcessing } from "@/lib/demo/store";
 const MIN_LENGTH = 5;
 
 export default function WritePage() {
+  const nativeLanguage = useNativeLanguage();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const demo = useDemo();
@@ -46,7 +50,11 @@ export default function WritePage() {
 
   return (
     <MobileScreen tab="today">
-      <AppBar title="글로 쓰기" vi="Viết trực tiếp" back={true} />
+      <AppBar
+        title="글로 쓰기"
+        native={nativeMessage(nativeLanguage, "w2.write.title")}
+        back={true}
+      />
       <ResidentPill resident={resident} date={record.careDate} />
       <div
         style={{
@@ -90,7 +98,10 @@ export default function WritePage() {
       </section>
       <div className="pad" style={{ marginTop: 12 }}>
         <button type="button" className="btn btn-primary" onClick={make} disabled={!ready}>
-          <BtnLabel ko="초안 만들기" vi="Tạo bản nháp" />
+          <BtnLabel
+            ko="초안 만들기"
+            native={nativeMessage(nativeLanguage, "w2.write.createDraft")}
+          />
         </button>
       </div>
       <div style={{ height: 18 }} />

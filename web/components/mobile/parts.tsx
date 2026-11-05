@@ -3,17 +3,32 @@
 // 작성자 화면에서 여러 번 쓰는 작은 조각: 버튼 글자, 듣기 버튼, 확인 창.
 import { type ReactNode, useEffect } from "react";
 
-import { SHOW_FRAME_VI } from "@/lib/bilingual";
+import { SHOW_FRAME_NATIVE } from "@/lib/bilingual";
+import { nativeMessage, type MessageId } from "@/lib/i18n/messages";
+import { speakKorean } from "@/lib/speech";
+import { useNativeLanguage } from "./native";
 
 import { Icon } from "./icon";
 
 /** 버튼 글자. 버튼은 화면 틀이라 병기 원칙이면 한국어만, 예외 화면은 always. */
-export function BtnLabel({ ko, vi, always }: { ko: string; vi?: string; always?: boolean }) {
-  if (vi && (always || SHOW_FRAME_VI)) {
+export function BtnLabel({
+  ko,
+  native,
+  always,
+  nativeId,
+}: {
+  ko: string;
+  native?: string;
+  always?: boolean;
+  nativeId?: MessageId;
+}) {
+  const lang = useNativeLanguage();
+  const translation = nativeId ? nativeMessage(always ? "vi" : lang, nativeId) : native;
+  if (translation && (always || (SHOW_FRAME_NATIVE && lang !== "ko"))) {
     return (
       <span className="label two">
         <b>{ko}</b>
-        <small>{vi}</small>
+        <small lang={always ? "vi" : lang}>{translation}</small>
       </span>
     );
   }
@@ -22,14 +37,14 @@ export function BtnLabel({ ko, vi, always }: { ko: string; vi?: string; always?:
 
 /** 한국어 문장 옆 🔊 듣기(브라우저 음성, 화면 v1.3 공통 규칙). */
 export function Listen({ text }: { text: string }) {
+  useEffect(() => {
+    // 일부 브라우저는 처음 요청한 뒤 목소리 목록을 비동기로 준비한다.
+    if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
+  }, []);
   if (!text.trim()) return null;
   const speak = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ko-KR";
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
+    speakKorean(text, window.speechSynthesis);
   };
   return (
     <button type="button" className="listen" onClick={speak} aria-label="듣기">

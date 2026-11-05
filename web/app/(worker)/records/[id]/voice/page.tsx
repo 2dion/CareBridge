@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W2 · 녹음: 준비 → 녹음 → 정지하면 바로 올림 → W3 ‘정리 중’.
 // 녹음은 탭 메모리에만 두고, 올리지 못하면 [다시 올리기](2026-10-27-녹음임시보관 결정).
 // 말하기·글쓰기는 기록 시작 화면에서 하나만 고른다(10/27 팀장). 여기서 글쓰기로 넘어가는 길은 마이크를 못 쓸 때만.
@@ -19,6 +23,7 @@ import { getResident, markProcessing } from "@/lib/demo/store";
 type SendState = "idle" | "sending" | "offline";
 
 export default function VoicePage() {
+  const nativeLanguage = useNativeLanguage();
   const { id } = useParams<{ id: string }>();
   const search = useSearchParams();
   const router = useRouter();
@@ -26,7 +31,7 @@ export default function VoicePage() {
   const recorder = useRecorder();
   const [send, setSend] = useState<SendState>("idle");
   const [leaving, setLeaving] = useState(false);
-  const [sendError, setSendError] = useState<{ ko: string; vi: string } | null>(null);
+  const [sendError, setSendError] = useState<{ ko: string; native: string } | null>(null);
 
   const record = demo?.db.records[id];
   const locked = record && record.status !== "draft" && record.status !== "returned";
@@ -51,7 +56,7 @@ export default function VoicePage() {
       }
       const result = await demo.real.actions.sendVoice(id, blob);
       if (!result.ok) {
-        setSendError(result.error === "network" ? null : { ko: result.ko, vi: result.vi });
+        setSendError(result.error === "network" ? null : { ko: result.ko, native: result.native });
         // 녹음은 메모리에 남아 있어 [다시 올리기]로 같은 녹음을 올린다(녹음임시보관 결정 2번)
         setSend("offline");
         return;
@@ -100,7 +105,7 @@ export default function VoicePage() {
       <MobileScreen tab="today">
         <AppBar
           title="기록 시작"
-          vi="Bắt đầu ghi chép"
+          native={nativeMessage(nativeLanguage, "w2.voice.title")}
           back={`/start/${resident.id}?date=${record.careDate}`}
         />
         <ResidentPill resident={resident} date={record.careDate} />
@@ -111,27 +116,41 @@ export default function VoicePage() {
           {recorder.state === "denied" ? (
             <>
               <h2>마이크 권한이 필요해요</h2>
-              <span className="s-vi vi">Cần cấp quyền truy cập micrô</span>
+              <Native className="s-native native">
+                {nativeMessage(nativeLanguage, "w2.voice.permissionTitle")}
+              </Native>
               <p>
                 녹음하려면 휴대폰 설정에서
                 <br />
                 마이크 사용을 허용해 주세요.
               </p>
-              <span className="p-vi vi">Hãy cho phép dùng micrô trong phần cài đặt.</span>
+              <Native className="p-native native">
+                {nativeMessage(nativeLanguage, "w2.voice.permissionDescription")}
+              </Native>
             </>
           ) : (
             <>
               <h2>이 브라우저는 녹음을 못 해요</h2>
-              <span className="s-vi vi">Trình duyệt này không ghi âm được.</span>
+              <Native className="s-native native">
+                {nativeMessage(nativeLanguage, "w2.voice.unsupportedTitle")}
+              </Native>
               <p>다른 브라우저로 열거나 글로 써 주세요.</p>
-              <span className="p-vi vi">Hãy mở bằng trình duyệt khác hoặc viết trực tiếp.</span>
+              <Native className="p-native native">
+                {nativeMessage(nativeLanguage, "w2.voice.unsupportedDescription")}
+              </Native>
             </>
           )}
           <button type="button" className="btn btn-primary" onClick={() => recorder.start()}>
-            <span className="label">다시 시도 · Thử lại</span>
+            <span className="label">
+              {(nativeLanguage === "ko" ? "다시 시도" : "다시 시도 · ") +
+                nativeMessage(nativeLanguage, "w2.voice.retry")}
+            </span>
           </button>
           <Link className="btn btn-outline" href={writeHref}>
-            <span className="label">글로 쓰기 · Viết trực tiếp</span>
+            <span className="label">
+              {(nativeLanguage === "ko" ? "글로 쓰기" : "글로 쓰기 · ") +
+                nativeMessage(nativeLanguage, "w2.voice.writeInstead")}
+            </span>
           </Link>
         </section>
       </MobileScreen>
@@ -144,11 +163,15 @@ export default function VoicePage() {
       <MobileScreen>
         <AppBar
           title={stopped ? "올리는 중" : "녹음 중"}
-          vi={stopped ? "Đang tải lên" : "Đang ghi âm"}
+          native={
+            stopped
+              ? nativeMessage(nativeLanguage, "w2.voice.uploading")
+              : nativeMessage(nativeLanguage, "w2.voice.recording")
+          }
           right={
             send !== "sending" && (
               <button type="button" className="text-link" onClick={() => setLeaving(true)}>
-                <BtnLabel ko="나가기" vi="Thoát" />
+                <BtnLabel ko="나가기" native={nativeMessage(nativeLanguage, "w2.voice.exit")} />
               </button>
             )
           }
@@ -177,18 +200,20 @@ export default function VoicePage() {
         {send === "offline" && (
           <div className="reason-box" role="alert" style={{ margin: "12px 16px 0" }}>
             <b>{sendError?.ko ?? "인터넷 연결을 확인하세요."}</b>
-            <span className="vi">{sendError?.vi ?? "Hãy kiểm tra kết nối Internet."}</span>
+            <Native className="native">
+              {sendError?.native ?? nativeMessage(nativeLanguage, "w2.voice.networkHint")}
+            </Native>
             <p style={{ marginTop: 4, fontSize: 13 }}>
               녹음은 이 화면에 남아 있어요. 다시 녹음하지 않아도 돼요.
             </p>
-            <span className="vi">Bản ghi âm vẫn còn, không cần ghi lại.</span>
+            <Native className="native">{nativeMessage(nativeLanguage, "w2.voice.keptHint")}</Native>
           </div>
         )}
         <div className="stack pad" style={{ gap: 10, marginTop: 16 }}>
           {!stopped ? (
             <button type="button" className="btn btn-primary btn-center" onClick={recorder.stop}>
               <Icon name="stop" />
-              <BtnLabel ko="정지" vi="Dừng" />
+              <BtnLabel ko="정지" native={nativeMessage(nativeLanguage, "w2.voice.stop")} />
             </button>
           ) : (
             <button
@@ -200,7 +225,11 @@ export default function VoicePage() {
               <Icon name="send" />
               <BtnLabel
                 ko={send === "sending" ? "올리는 중" : "다시 올리기"}
-                vi={send === "sending" ? "Đang tải lên" : "Tải lên lại"}
+                native={
+                  send === "sending"
+                    ? nativeMessage(nativeLanguage, "w2.voice.uploadingButton")
+                    : nativeMessage(nativeLanguage, "w2.voice.uploadAgain")
+                }
               />
             </button>
           )}
@@ -216,22 +245,25 @@ export default function VoicePage() {
             disabled={send === "sending"}
           >
             <Icon name="refresh" />
-            <BtnLabel ko="다시 녹음하기" vi="Ghi âm lại" />
+            <BtnLabel
+              ko="다시 녹음하기"
+              native={nativeMessage(nativeLanguage, "w2.voice.recordAgain")}
+            />
           </button>
         </div>
         <div style={{ height: 22 }} />
         <Modal open={leaving} onClose={() => setLeaving(false)} label="녹음을 버리고 나갈까요?">
           <h2 style={{ fontSize: 22, fontWeight: 700 }}>녹음을 버리고 나갈까요?</h2>
-          <span className="vi" style={{ fontSize: 13 }}>
-            Bỏ bản ghi âm và thoát?
-          </span>
+          <Native className="native" style={{ fontSize: 13 }}>
+            {nativeMessage(nativeLanguage, "w2.voice.exitQuestion")}
+          </Native>
           <p style={{ fontSize: 16 }}>지금까지 말한 내용은 저장되지 않아요.</p>
-          <span className="vi" style={{ fontSize: 13, marginTop: -6 }}>
-            Nội dung đã nói sẽ không được lưu.
-          </span>
+          <Native className="native" style={{ fontSize: 13, marginTop: -6 }}>
+            {nativeMessage(nativeLanguage, "w2.voice.exitDescription")}
+          </Native>
           <div className="btn-row" style={{ width: "100%", marginTop: 6 }}>
             <button type="button" className="btn btn-outline" onClick={() => setLeaving(false)}>
-              <BtnLabel ko="계속하기" vi="Tiếp tục" />
+              <BtnLabel ko="계속하기" native={nativeMessage(nativeLanguage, "w2.voice.continue")} />
             </button>
             <button
               type="button"
@@ -241,7 +273,10 @@ export default function VoicePage() {
                 router.replace(`/start/${resident.id}?date=${record.careDate}`);
               }}
             >
-              <BtnLabel ko="나가기" vi="Thoát" />
+              <BtnLabel
+                ko="나가기"
+                native={nativeMessage(nativeLanguage, "w2.voice.confirmExit")}
+              />
             </button>
           </div>
         </Modal>
@@ -253,7 +288,7 @@ export default function VoicePage() {
     <MobileScreen tab="today">
       <AppBar
         title="기록 시작"
-        vi="Bắt đầu ghi chép"
+        native={nativeMessage(nativeLanguage, "w2.voice.startTitle")}
         back={`/start/${resident.id}?date=${record.careDate}`}
       />
       <ResidentPill resident={resident} date={record.careDate} />
@@ -263,9 +298,9 @@ export default function VoicePage() {
       </div>
       <section className="sheet card" style={{ marginBottom: 14 }}>
         <h2 style={{ fontSize: 20 }}>준비되면 녹음을 시작해 주세요.</h2>
-        <span className="vi" style={{ display: "block" }}>
-          Khi sẵn sàng, hãy bắt đầu ghi âm.
-        </span>
+        <Native className="native" style={{ display: "block" }}>
+          {nativeMessage(nativeLanguage, "w2.voice.readyHint")}
+        </Native>
         <div className="hint-list">
           <div className="hint">
             <span className="icon-bubble sm">
@@ -277,9 +312,9 @@ export default function VoicePage() {
                 <br />
                 편하게 말해 주세요.
               </b>
-              <span className="vi" style={{ display: "block" }}>
-                Hãy kể thoải mái về việc đã hỗ trợ, bữa ăn, giấc ngủ và những thay đổi hôm nay.
-              </span>
+              <Native className="native" style={{ display: "block" }}>
+                {nativeMessage(nativeLanguage, "w2.voice.contentHint")}
+              </Native>
             </div>
           </div>
           <div className="hint">
@@ -292,9 +327,9 @@ export default function VoicePage() {
                 <br />
                 확인할 곳을 알려 드려요.
               </b>
-              <span className="vi" style={{ display: "block" }}>
-                AI tạo bản nháp theo từng mục và chỉ ra chỗ cần kiểm tra.
-              </span>
+              <Native className="native" style={{ display: "block" }}>
+                {nativeMessage(nativeLanguage, "w2.voice.aiHint")}
+              </Native>
             </div>
           </div>
           {/* 한 녹음에 두 언어를 섞으면 받아쓰기가 한쪽 말을 빼거나 잘못 옮긴다(결정 2026-10-30-녹음한언어, 이슈 #187) */}
@@ -304,9 +339,9 @@ export default function VoicePage() {
             </span>
             <div>
               <b>한국어나 모국어 중 하나로 말해 주세요.</b>
-              <span className="vi" style={{ display: "block" }}>
-                Hãy nói bằng một thứ tiếng: tiếng Hàn hoặc tiếng mẹ đẻ.
-              </span>
+              <Native className="native" style={{ display: "block" }}>
+                {nativeMessage(nativeLanguage, "w2.voice.languageHint")}
+              </Native>
             </div>
           </div>
         </div>
@@ -319,7 +354,7 @@ export default function VoicePage() {
           <Icon name="mic" />
           <BtnLabel
             ko={recorder.state === "asking" ? "마이크 확인 중" : "녹음 시작"}
-            vi="Bắt đầu ghi âm"
+            native={nativeMessage(nativeLanguage, "w2.voice.start")}
           />
         </button>
       </section>

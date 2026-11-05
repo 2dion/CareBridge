@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
+import { Native } from "@/components/mobile/native";
+import { nativeMessage } from "@/lib/i18n/messages";
 import { useDemo } from "@/components/demo/demo-provider";
 import { CapsLockNote, useCapsLock } from "@/components/mobile/caps-lock";
 import { Icon } from "@/components/mobile/icon";
@@ -26,13 +28,13 @@ const MOCK_CODES: Record<string, "worker" | "reviewer"> = {
 
 type Field = "code" | "name" | "email" | "password" | "password2";
 
-function FieldError({ ko, vi }: { ko: string; vi: string }) {
+function FieldError({ ko, native }: { ko: string; native: string }) {
   return (
     <p className="form-error" role="alert">
       <Icon name="alert" />
       <span>
         <b>{ko}</b>
-        <span className="vi">{vi}</span>
+        <Native language="vi">{native}</Native>
       </span>
     </p>
   );
@@ -143,11 +145,11 @@ export default function SignupPage() {
 
   return (
     <MobileScreen className="auth">
-      <AppBar title="회원가입" vi="Đăng ký" viAlways back="/login" />
+      <AppBar title="회원가입" nativeId="a2.signUp" nativeAlways back="/login" />
       <form className="stack pad auth-form" onSubmit={submit} noValidate style={{ gap: 14 }}>
         <div className="field">
           <label htmlFor="code">
-            가입 코드 <span className="vi">Mã đăng ký</span>
+            가입 코드 <Native id="a2.code" language="vi" />
           </label>
           <TextInput
             id="code"
@@ -163,19 +165,25 @@ export default function SignupPage() {
           {codeError ? (
             <FieldError
               ko={`가입 코드가 맞지 않습니다. ${ROLE_NAMES_BOTH.reviewer}에게 다시 확인하세요.`}
-              vi={`Mã không đúng. Hãy hỏi lại ${ROLE_NAMES_BOTH.reviewerVi}.`}
+              native={nativeMessage("vi", "a2.error.code", {
+                reviewer: ROLE_NAMES_BOTH.reviewerNative,
+              })}
             />
           ) : (
             <small className="hint-line">
               {/* 로그인 전이라 어느 기관인지 몰라 '관리자(강사)'로 함께 쓴다(용어집 v1.0) */}
               {ROLE_NAMES_BOTH.reviewer}에게 받은 코드 ·{" "}
-              <span className="vi">Mã do {ROLE_NAMES_BOTH.reviewerVi} cấp</span>
+              <Native
+                id="a2.codeHint"
+                language="vi"
+                params={{ reviewer: ROLE_NAMES_BOTH.reviewerNative }}
+              />
             </small>
           )}
         </div>
         <div className="field">
           <label htmlFor="name">
-            이름 <span className="vi">Tên</span>
+            이름 <Native id="a2.name" language="vi" />
           </label>
           <TextInput
             id="name"
@@ -185,12 +193,12 @@ export default function SignupPage() {
             autoComplete="nickname"
           />
           <small className="hint-line">
-            화면에 보일 이름 (별명도 돼요) · <span className="vi">Tên hiển thị</span>
+            화면에 보일 이름 (별명도 돼요) · <Native id="a2.displayName" language="vi" />
           </small>
         </div>
         <div className="field">
           <label htmlFor="email">
-            이메일 <span className="vi">Email</span>
+            이메일 <Native id="a2.email" language="vi" />
           </label>
           <TextInput
             id="email"
@@ -206,20 +214,26 @@ export default function SignupPage() {
             autoComplete="email"
           />
           {(badEmail || serverError === "invalid_email") && (
-            <FieldError ko="이메일 형식이 맞지 않습니다." vi="Email không đúng định dạng." />
+            <FieldError
+              ko="이메일 형식이 맞지 않습니다."
+              native={nativeMessage("vi", "a2.error.email")}
+            />
           )}
           {serverError === "email_taken" && (
             <>
-              <FieldError ko="이미 가입한 이메일입니다." vi="Email này đã được đăng ký." />
+              <FieldError
+                ko="이미 가입한 이메일입니다."
+                native={nativeMessage("vi", "a2.error.emailTaken")}
+              />
               <Link className="text-link" href="/login" style={{ textAlign: "left" }}>
-                로그인하러 가기 · Đi đến đăng nhập
+                로그인하러 가기 · <Native id="a2.goToLogin" language="vi" />
               </Link>
             </>
           )}
         </div>
         <div className="field">
           <label htmlFor="password">
-            비밀번호 <span className="vi">Mật khẩu</span>
+            비밀번호 <Native id="a2.password" language="vi" />
           </label>
           <div className="pw-wrap">
             <TextInput
@@ -242,16 +256,19 @@ export default function SignupPage() {
           </div>
           <CapsLockNote on={caps.on} />
           {shortPw || serverError === "weak_password" ? (
-            <FieldError ko="비밀번호는 8자 이상이어야 합니다." vi="Mật khẩu cần ít nhất 8 ký tự." />
+            <FieldError
+              ko="비밀번호는 8자 이상이어야 합니다."
+              native={nativeMessage("vi", "a2.error.password")}
+            />
           ) : (
             <small className="hint-line">
-              8자 이상 · <span className="vi">Ít nhất 8 ký tự</span>
+              8자 이상 · <Native id="a2.passwordHint" language="vi" />
             </small>
           )}
         </div>
         <div className="field">
           <label htmlFor="password2">
-            비밀번호 다시 쓰기 <span className="vi">Nhập lại</span>
+            비밀번호 다시 쓰기 <Native id="a2.repeatPassword" language="vi" />
           </label>
           <div className="pw-wrap">
             <TextInput
@@ -265,7 +282,12 @@ export default function SignupPage() {
             />
           </div>
           <CapsLockNote on={caps2.on} />
-          {mismatch && <FieldError ko="두 비밀번호가 다릅니다." vi="Hai mật khẩu không khớp." />}
+          {mismatch && (
+            <FieldError
+              ko="두 비밀번호가 다릅니다."
+              native={nativeMessage("vi", "a2.error.mismatch")}
+            />
+          )}
         </div>
         <div className="card consent">
           <label className="consent-row">
@@ -276,21 +298,18 @@ export default function SignupPage() {
             />
             <span>
               <b>[필수] AI 사용 원칙에 동의합니다.</b>
-              <span className="vi">Tôi đồng ý với nguyên tắc sử dụng AI.</span>
+              <Native id="a2.agreeAi" language="vi" />
             </span>
           </label>
           {moreAi && (
             <div id="ai-consent-details" className="consent-details">
               <p>
                 AI 기록은 초안이며, 관리자(강사)의 승인을 거쳐 공식 기록이 됩니다.
-                <span className="vi">
-                  Bản ghi AI là bản nháp, chỉ trở thành chính thức sau khi người quản lý (giảng
-                  viên) duyệt.
-                </span>
+                <Native id="a2.aiDraft" language="vi" />
               </p>
               <p>
                 어르신과 가족의 실명은 기록하지 않습니다.
-                <span className="vi">Không ghi tên thật của người cao tuổi và gia đình.</span>
+                <Native id="a2.noRealNames" language="vi" />
               </p>
             </div>
           )}
@@ -313,24 +332,24 @@ export default function SignupPage() {
             />
             <span>
               <b>[필수] 개인정보 수집·이용에 동의합니다.</b>
-              <span className="vi">Tôi đồng ý thu thập và sử dụng thông tin cá nhân.</span>
+              <Native id="a2.agreePrivacy" language="vi" />
             </span>
           </label>
           {morePrivacy && (
             <table id="privacy-consent-details" className="consent-table">
               <caption className="sr-only">
-                개인정보 수집·이용 안내 · Thông tin thu thập và sử dụng thông tin cá nhân
+                개인정보 수집·이용 안내 · <Native id="a2.privacyCaption" language="vi" />
               </caption>
               <tbody>
                 {PRIVACY_SECTIONS.map((section) => (
                   <tr key={section.ko}>
                     <th scope="row">
                       {section.ko}
-                      <span className="vi">{section.vi}</span>
+                      <Native language="vi">{section.native}</Native>
                     </th>
                     <td>
                       {section.body}
-                      <span className="vi">{section.bodyVi}</span>
+                      <Native language="vi">{section.bodyNative}</Native>
                     </td>
                   </tr>
                 ))}
@@ -358,16 +377,15 @@ export default function SignupPage() {
                   ? "인터넷 연결을 확인하세요."
                   : "가입 중 문제가 생겼어요. 다시 시도해 주세요."}
               </b>
-              <span className="vi">
-                {serverError === "network"
-                  ? "Hãy kiểm tra kết nối Internet."
-                  : "Có lỗi khi đăng ký. Hãy thử lại."}
-              </span>
+              <Native
+                language="vi"
+                id={serverError === "network" ? "a1.error.network" : "a2.error.signup"}
+              />
             </div>
           </div>
         )}
         <button type="submit" className="btn btn-primary" disabled={!ready || busy}>
-          <BtnLabel ko={busy ? "가입하는 중" : "가입하기"} vi="Đăng ký" always />
+          <BtnLabel ko={busy ? "가입하는 중" : "가입하기"} nativeId="a2.signUp" always />
         </button>
         {!supabaseConfigured() && (
           <p className="foot-note" style={{ margin: "0 0 20px" }}>

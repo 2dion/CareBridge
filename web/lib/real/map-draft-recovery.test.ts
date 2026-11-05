@@ -92,6 +92,33 @@ describe("textRunStateOf", () => {
     expect(textRunStateOf(items({ status: "observed" }), RUN, START)).toBeNull();
     expect(textRunStateOf(items({ status: "observed" }), RUN, START + 3_600_000)).toBeNull();
   });
+
+  it("같은 항목이어도 재시도 전 실패 작업이 done으로 바뀌면 끝난다(#296)", () => {
+    const before = items({ status: "observed" });
+    const run = { startedAt: START, snapshot: itemsSnapshot(before), pendingJobs: [created_at] };
+    expect(textRunStateOf(before, run, START, [job("failed")])).toBe("processing");
+    expect(textRunStateOf(before, run, START + 60_000, [job("done")])).toBeNull();
+    // 새로고침해 세션에 남긴 실행을 읽어도 같은 결과다.
+    expect(
+      textRunStateOf(before, JSON.parse(JSON.stringify(run)), START + 400_000, [job("done")]),
+    ).toBeNull();
+  });
+
+  it("예전 done·항목 작업은 이번 실행의 완료로 보지 않는다", () => {
+    const run = { ...RUN, pendingJobs: [created_at] };
+    expect(textRunStateOf(items(), run, START, [job("done", "2026-10-30T00:00:00Z")])).toBe(
+      "processing",
+    );
+    expect(textRunStateOf(items(), run, START, [job("done", created_at, "item")])).toBe(
+      "processing",
+    );
+    expect(textRunStateOf(items(), RUN, START, [job("done")])).toBe("processing");
+  });
+
+  it("처음엔 빈 음성 기록도 같은 빈 결과가 저장되면 작업 완료로 풀린다", () => {
+    const run = { ...RUN, pendingJobs: [created_at] };
+    expect(textRunStateOf(items(), run, START, [job("done")])).toBeNull();
+  });
 });
 
 describe("inputModeOf (#135 유지)", () => {

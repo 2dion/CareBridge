@@ -30,7 +30,7 @@ function pair(id: number, text: string, at = "2026-11-04T01:00:00Z"): StoredMess
       id: id + 1,
       from: "bot",
       state: "done",
-      answer: { ko: "합성 답", vi: "Trả lời", source: "교재", found: true },
+      answer: { ko: "합성 답", native: "Trả lời", source: "교재", found: true },
     },
   ];
 }

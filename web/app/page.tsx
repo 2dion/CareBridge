@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { Native } from "@/components/mobile/native";
 import { useDemo } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { MobileScreen } from "@/components/mobile/shell";
@@ -55,8 +56,8 @@ export default function Home() {
           <p style={{ marginTop: 10, fontSize: 16, color: "var(--color-sub)" }}>
             말로 남기고, 확인만 하면 되는 돌봄 기록
           </p>
-          <p className="vi" style={{ fontSize: 13 }}>
-            Ghi chép chăm sóc bằng giọng nói
+          <p style={{ fontSize: 13 }}>
+            <Native id="a0.tagline" language="vi" />
           </p>
         </div>
         {MOCK ? (
@@ -98,7 +99,7 @@ export default function Home() {
             {/* 자동으로 넘어가지만, 키보드로도 건너뛸 수 있게 글자 버튼을 둔다. 누르면 바깥 onClick(skip)으로 올라간다 */}
             <button type="button" className="text-link splash-skip">
               눌러서 바로 가기
-              <span className="vi">Chạm để tiếp tục</span>
+              <Native id="a0.continue" language="vi" />
             </button>
             <p className="sr-only" role="status">
               불러오는 중

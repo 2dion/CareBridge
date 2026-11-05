@@ -28,9 +28,9 @@ import {
   type DemoRecord,
   kstToday,
 } from "@/lib/demo/store";
-import { createRealActions, type RealActions } from "@/lib/real/actions";
+import { actionError, createRealActions, type RealActions } from "@/lib/real/actions";
 import { loadRealDb, NotSignedInError } from "@/lib/real/load";
-import { itemsSnapshot, type JoinCode, textRunStateOf } from "@/lib/real/map";
+import { type AudioJobRow, itemsSnapshot, type JoinCode, textRunStateOf } from "@/lib/real/map";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export type RealContext = {
@@ -86,7 +86,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 // [글로 쓰기]·[다시 시도]는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다.
 // 이 탭에 시작 시각을 남기고, 실패는 시작 시각 0으로 남겨 새로고침해도 실패로 보인다(이슈 #237)
 const DRAFT_RUNS_KEY = "carebridge.draft-runs";
-type DraftRun = { startedAt: number; snapshot: string; inputMode?: DemoRecord["inputMode"] };
+type DraftRun = {
+  startedAt: number;
+  snapshot: string;
+  inputMode?: DemoRecord["inputMode"];
+  pendingJobs?: string[];
+};
 
 function readDraftRuns(): Record<string, DraftRun> {
   try {
@@ -114,6 +119,7 @@ function RealProvider({ children }: { children: ReactNode }) {
     isTraining: boolean;
     nativeLang: NativeLang;
     joinCodes: JoinCode[];
+    jobs: AudioJobRow[];
   } | null>(null);
   const [draftRuns, setDraftRuns] = useState<Record<string, DraftRun>>(() =>
     typeof window === "undefined" ? {} : readDraftRuns(),
@@ -137,7 +143,15 @@ function RealProvider({ children }: { children: ReactNode }) {
           const kept = Object.fromEntries(
             Object.entries(prev).filter(([id, run]) => {
               const record = next.db.records[id];
-              return record && textRunStateOf(record.items, run, loadedAt) !== null;
+              return (
+                record &&
+                textRunStateOf(
+                  record.items,
+                  run,
+                  loadedAt,
+                  next.jobs.filter((job) => job.record_id === id),
+                ) !== null
+              );
             }),
           );
           saveDraftRuns(kept);
@@ -179,8 +193,6 @@ function RealProvider({ children }: { children: ReactNode }) {
 
   // [글로 쓰기]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다.
   // [글로 쓰기]는 서버가 다시 읽히기 전에도 입력 방법을 '글'로 보여, '정리 중'에 음성 단계가 나오지 않게 한다(이슈 #135)
-  type Running = { draftState: "processing" | "failed"; inputMode?: DemoRecord["inputMode"] };
-  const [running, setRunning] = useState<Record<string, Running>>({});
   const reflectConfirmation = useCallback((recordId: string, key: ItemKey) => {
     setState((prev) => {
       const record = prev?.db.records[recordId];
@@ -221,17 +233,14 @@ function RealProvider({ children }: { children: ReactNode }) {
       run: () => ReturnType<RealActions["retryDraft"]>,
       inputMode?: DemoRecord["inputMode"],
     ) => {
-      setRunning((prev) => ({ ...prev, [id]: { draftState: "processing", inputMode } }));
       const snapshot = itemsSnapshot(loaded.current?.db.records[id]?.items ?? []);
-      remember(id, { startedAt: Date.now(), snapshot, inputMode });
-      const result = await run();
-      remember(id, result.ok ? null : { startedAt: 0, snapshot, inputMode });
-      setRunning((prev) => {
-        const next = { ...prev };
-        if (result.ok) delete next[id];
-        else next[id] = { draftState: "failed", inputMode };
-        return next;
-      });
+      const pendingJobs = (loaded.current?.jobs ?? [])
+        .filter((job) => job.record_id === id && job.target === "record" && job.status !== "done")
+        .map((job) => job.created_at);
+      remember(id, { startedAt: Date.now(), snapshot, inputMode, pendingJobs });
+      // 재조회가 예외로 끝나도 처리 중 상태를 남기지 않는다.
+      const result = await run().catch(() => actionError("network"));
+      remember(id, result.ok ? null : { startedAt: 0, snapshot, inputMode, pendingJobs });
       return result;
     };
     return {
@@ -241,11 +250,6 @@ function RealProvider({ children }: { children: ReactNode }) {
         const result = await base.sendVoice(id, blob);
         if (result.ok) {
           remember(id, null);
-          setRunning((prev) => {
-            const next = { ...prev };
-            delete next[id];
-            return next;
-          });
         }
         return result;
       },
@@ -276,7 +280,14 @@ function RealProvider({ children }: { children: ReactNode }) {
     if (!state) return null;
     const records = { ...state.db.records };
     for (const [id, run] of Object.entries(draftRuns)) {
-      const draftState = records[id] && textRunStateOf(records[id].items, run, state.loadedAt);
+      const draftState =
+        records[id] &&
+        textRunStateOf(
+          records[id].items,
+          run,
+          Math.max(state.loadedAt, run.startedAt),
+          state.jobs.filter((job) => job.record_id === id),
+        );
       if (draftState) {
         records[id] = {
           ...records[id],
@@ -285,12 +296,8 @@ function RealProvider({ children }: { children: ReactNode }) {
         };
       }
     }
-    for (const [id, { draftState, inputMode }] of Object.entries(running)) {
-      if (!records[id]) continue;
-      records[id] = { ...records[id], draftState, ...(inputMode ? { inputMode } : {}) };
-    }
     return { ...state.db, records };
-  }, [state, running, draftRuns]);
+  }, [state, draftRuns]);
 
   // 정리 중(받아쓰기·Agent)인 기록이 있으면 끝날 때까지 3초마다 다시 읽는다
   const processing = db

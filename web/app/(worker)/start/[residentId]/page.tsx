@@ -1,5 +1,9 @@
 "use client";
 
+import { Native, useNativeLanguage } from "@/components/mobile/native";
+
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // W2(기록 시작): 음성으로 기록 / 글로 쓰기. 임시 저장이 있으면 그 방법 카드에 표시.
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -11,23 +15,23 @@ import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile
 import type { RoleNames } from "@/lib/demo/roles";
 import { type CreateError, ensureRecord, findRecord, getResident } from "@/lib/demo/store";
 
-// 교육용 기관이면 알릴 상대가 '강사'(이슈 #146)
-const createErrors = (names: RoleNames): Record<CreateError, { ko: string; vi: string }> => ({
-  future: {
-    ko: "앞으로 올 날의 기록은 쓸 수 없어요.",
-    vi: "Không thể ghi cho ngày trong tương lai.",
-  },
-  too_old: {
-    ko: `7일이 지나 이 날 기록은 쓸 수 없어요. ${names.reviewer}에게 알려 주세요.`,
-    vi: `Đã quá 7 ngày nên không thể ghi. Hãy báo ${names.reviewerVi}.`,
-  },
-  no_care_day: {
-    ko: "기록 없음으로 처리한 날이에요.",
-    vi: "Ngày này đã được đánh dấu không có chăm sóc.",
-  },
-});
-
 export default function StartPage() {
+  const nativeLanguage = useNativeLanguage();
+  const createErrors = (names: RoleNames): Record<CreateError, { ko: string; native: string }> => ({
+    future: {
+      ko: "앞으로 올 날의 기록은 쓸 수 없어요.",
+      native: nativeMessage(nativeLanguage, "w2.start.future"),
+    },
+    too_old: {
+      ko: `7일이 지나 이 날 기록은 쓸 수 없어요. ${names.reviewer}에게 알려 주세요.`,
+      native: nativeMessage(nativeLanguage, "w2.start.expired", { reviewer: names.reviewerNative }),
+    },
+    no_care_day: {
+      ko: "기록 없음으로 처리한 날이에요.",
+      native: nativeMessage(nativeLanguage, "w2.start.noCare"),
+    },
+  });
+
   const { residentId } = useParams<{ residentId: string }>();
   const search = useSearchParams();
   const router = useRouter();
@@ -77,7 +81,7 @@ export default function StartPage() {
       // records에 바로 넣는다(작성자, 내 담당 어르신, draft). 날짜·기록 없음 처리는 DB도 다시 막는다
       void demo.real.actions.createRecord(resident.id, date).then((created) => {
         if (!created.ok) {
-          setRealError(`${created.ko} ${created.vi}`);
+          setRealError(`${created.ko} ${nativeLanguage === "ko" ? "" : created.native}`);
           return;
         }
         router.push(`/records/${created.data.id}/${next}`);
@@ -97,7 +101,11 @@ export default function StartPage() {
 
   return (
     <MobileScreen tab="today">
-      <AppBar title="기록 시작" vi="Bắt đầu ghi chép" back={true} />
+      <AppBar
+        title="기록 시작"
+        native={nativeMessage(nativeLanguage, "w2.start.title")}
+        back={true}
+      />
       <ResidentPill resident={resident} date={date} />
       {date !== today && (
         <p className="center" style={{ marginTop: 10, fontSize: 20, fontWeight: 700 }}>
@@ -110,7 +118,7 @@ export default function StartPage() {
       {error && (
         <div className="reason-box" role="alert" style={{ margin: "0 16px 12px" }}>
           <b>{errorTexts[error].ko}</b>
-          <span className="vi">{errorTexts[error].vi}</span>
+          <Native className="native">{errorTexts[error].native}</Native>
         </div>
       )}
       {realError && (
@@ -125,13 +133,17 @@ export default function StartPage() {
           </div>
           <div className="body">
             <strong>음성으로 기록</strong>
-            <span className="m-vi vi">Ghi bằng giọng nói</span>
+            <Native className="m-native native">
+              {nativeMessage(nativeLanguage, "w2.start.voice")}
+            </Native>
             <p>
               말하면서 빠르게
               <br />
               기록 초안을 만들어요.
             </p>
-            <span className="p-vi vi">Tạo bản nháp nhanh bằng lời nói.</span>
+            <Native className="p-native native">
+              {nativeMessage(nativeLanguage, "w2.start.voiceDescription")}
+            </Native>
             {draftReady && existing.inputMode === "voice" && draftBadge}
           </div>
           <Icon name="next" />
@@ -142,13 +154,17 @@ export default function StartPage() {
           </div>
           <div className="body">
             <strong>글로 쓰기</strong>
-            <span className="m-vi vi">Viết trực tiếp</span>
+            <Native className="m-native native">
+              {nativeMessage(nativeLanguage, "w2.start.write")}
+            </Native>
             <p>
               직접 입력해서
               <br />
               기록할 수 있어요.
             </p>
-            <span className="p-vi vi">Nhập trực tiếp để ghi chép.</span>
+            <Native className="p-native native">
+              {nativeMessage(nativeLanguage, "w2.start.writeDescription")}
+            </Native>
             {draftReady && existing.inputMode === "text" && draftBadge}
           </div>
           <Icon name="next" />

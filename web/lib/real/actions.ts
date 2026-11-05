@@ -1,3 +1,5 @@
+import { nativeMessage } from "@/lib/i18n/messages";
+
 // 실제 모드의 화면 동작: 서버 API(공통 계약 10개)와 Supabase(RLS) 직접 쓰기. 끝나면 화면이 다시 읽는다(reload).
 // AI 결과는 서버가 만들고, 화면은 가짜 결과를 만들지 않는다.
 // 근거: 문서/설계/데이터구조-v2.3.4.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
@@ -31,104 +33,113 @@ export type ActionError = {
   ok: false;
   error: string;
   ko: string;
-  vi: string;
+  native: string;
   /** unconfirmed_items·unresolved_needs_check일 때 남은 항목 */
   items?: ItemKey[];
 };
 
-const MESSAGES: Record<string, { ko: string; vi: string }> = {
+const MESSAGES: Record<string, { ko: string; native: string }> = {
   // 여기서는 기관을 몰라 reviewer_only처럼 '관리자(강사)'로 함께 쓴다(이슈 #146)
   ai_not_configured: {
     ko: "AI 기능이 아직 켜지지 않았어요. 관리자(강사)에게 알려 주세요.",
-    vi: "Tính năng AI chưa được bật. Hãy báo người quản lý (giảng viên).",
+    native: nativeMessage("vi", "actions.aiNotConfigured"),
   },
   unconfirmed_items: {
     ko: "확인 전 항목이 있어요.",
-    vi: "Vẫn còn mục chưa kiểm tra.",
+    native: nativeMessage("vi", "actions.unconfirmed"),
   },
   unresolved_needs_check: {
     ko: "정하지 않은 ‘확인 필요’ 항목이 남아 있어요.",
-    vi: "Vẫn còn mục cần kiểm tra chưa được quyết định.",
+    native: nativeMessage("vi", "actions.unresolved"),
   },
-  return_reason_required: { ko: "되돌리는 이유를 써 주세요.", vi: "Hãy viết lý do trả lại." },
-  note_required: { ko: "사유를 써 주세요.", vi: "Hãy viết lý do." },
+  return_reason_required: {
+    ko: "되돌리는 이유를 써 주세요.",
+    native: nativeMessage("vi", "actions.returnReason"),
+  },
+  note_required: { ko: "사유를 써 주세요.", native: nativeMessage("vi", "actions.noteRequired") },
   invalid_transition: {
     ko: "지금 상태에서는 할 수 없어요. 화면을 새로 고쳐 주세요.",
-    vi: "Không thể thực hiện ở trạng thái này. Hãy tải lại trang.",
+    native: nativeMessage("vi", "actions.invalidTransition"),
   },
   has_records: {
     ko: "기록이 있는 어르신은 지울 수 없어요.",
-    vi: "Không thể xóa người cao tuổi đã có bản ghi.",
+    native: nativeMessage("vi", "actions.hasRecords"),
   },
-  record_locked: { ko: "승인된 기록은 고칠 수 없어요.", vi: "Không thể sửa bản ghi đã duyệt." },
+  record_locked: {
+    ko: "승인된 기록은 고칠 수 없어요.",
+    native: nativeMessage("vi", "actions.recordLocked"),
+  },
   // 권한·날짜 거절(이슈 #114). DB 트리거·API 오류 키와 같은 글자(supabase/README.md, 공통 계약 '응답 코드와 오류 키')
   reviewer_only: {
     ko: "관리자(강사)만 할 수 있어요.",
-    vi: "Chỉ người quản lý (giảng viên) mới làm được.",
+    native: nativeMessage("vi", "actions.reviewerOnly"),
   },
   not_record_worker: {
     ko: "이 기록을 쓴 사람만 할 수 있어요.",
-    vi: "Chỉ người viết bản ghi này mới làm được.",
+    native: nativeMessage("vi", "actions.notRecordWorker"),
   },
   org_mismatch: {
     ko: "다른 기관의 어르신이에요. 화면을 새로 고쳐 주세요.",
-    vi: "Người cao tuổi thuộc cơ sở khác. Hãy tải lại trang.",
+    native: nativeMessage("vi", "actions.orgMismatch"),
   },
   care_date_out_of_range: {
     ko: "처리할 수 있는 기간이 아닌 날짜예요. 화면을 새로 고쳐 주세요.",
-    vi: "Ngày này nằm ngoài khoảng thời gian có thể xử lý. Hãy tải lại trang.",
+    native: nativeMessage("vi", "actions.dateOutOfRange"),
   },
   record_exists: {
     ko: "이 날은 이미 기록이 있어요. 화면을 새로 고쳐 주세요.",
-    vi: "Ngày này đã có bản ghi. Hãy tải lại trang.",
+    native: nativeMessage("vi", "actions.recordExists"),
   },
   no_care_day_exists: {
     ko: "이 날은 ‘기록 없음’으로 정리된 날이에요.",
-    vi: "Ngày này đã được ghi là ‘không có bản ghi’.",
+    native: nativeMessage("vi", "actions.noCareDayExists"),
   },
   duplicate_entry: {
     ko: "이미 처리된 내용이에요. 화면을 새로 고쳐 주세요.",
-    vi: "Nội dung này đã được xử lý. Hãy tải lại trang.",
+    native: nativeMessage("vi", "actions.duplicate"),
   },
-  not_signed_in: { ko: "다시 로그인해 주세요.", vi: "Hãy đăng nhập lại." },
+  not_signed_in: {
+    ko: "다시 로그인해 주세요.",
+    native: nativeMessage("vi", "actions.notSignedIn"),
+  },
   rate_limited: {
     ko: "요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.",
-    vi: "Có quá nhiều yêu cầu. Hãy thử lại sau ít phút.",
+    native: nativeMessage("vi", "actions.rateLimited"),
   },
   stt_failed: {
     ko: "음성을 글자로 바꾸지 못했어요. 다시 올리거나 글로 써 주세요.",
-    vi: "Không chuyển được giọng nói thành văn bản. Hãy gửi lại hoặc viết trực tiếp.",
+    native: nativeMessage("vi", "actions.sttFailed"),
   },
   empty_transcript: {
     ko: "녹음에서 말을 찾지 못했어요. 다시 녹음해 주세요.",
-    vi: "Không nghe thấy lời nói trong bản ghi âm. Hãy ghi âm lại.",
+    native: nativeMessage("vi", "actions.emptyTranscript"),
   },
   value_ko_not_korean: {
     ko: "공식 기록 칸에는 한국어로 써 주세요.",
-    vi: "Hãy viết ô bản ghi chính thức bằng tiếng Hàn.",
+    native: nativeMessage("vi", "actions.koreanRequired"),
   },
   fill_failed: {
     ko: "고칠 내용을 정리하지 못했어요. 다시 시도해 주세요.",
-    vi: "Không sắp xếp được nội dung sửa. Hãy thử lại.",
+    native: nativeMessage("vi", "actions.fillFailed"),
   },
   stale_item: {
     ko: "그사이 내용이 바뀌었어요. 화면을 새로 고친 뒤 다시 해 주세요.",
-    vi: "Nội dung vừa thay đổi. Hãy tải lại trang rồi thử lại.",
+    native: nativeMessage("vi", "actions.staleItem"),
   },
   agent_failed: {
     ko: "초안을 만들지 못했어요. 다시 시도하거나 글로 써 주세요.",
-    vi: "Không tạo được bản nháp. Hãy thử lại hoặc viết trực tiếp.",
+    native: nativeMessage("vi", "actions.agentFailed"),
   },
 };
 const NETWORK = {
   ko: "인터넷 연결을 확인하고 다시 시도해 주세요.",
-  vi: "Hãy kiểm tra kết nối mạng rồi thử lại.",
+  native: nativeMessage("vi", "actions.network"),
 };
 
 export function actionError(error: string, items?: ItemKey[]): ActionError {
   const message = MESSAGES[error] ?? {
     ko: "처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
-    vi: "Không xử lý được. Hãy thử lại sau.",
+    native: nativeMessage("vi", "actions.failed"),
   };
   return { ok: false, error, ...message, ...(items ? { items } : {}) };
 }
@@ -463,7 +474,27 @@ export function createRealActions(
       if (before) params.set("before", before);
       if (conversationId) params.set("conversation_id", conversationId);
       const query = params.size > 0 ? `?${params.toString()}` : "";
-      return callApi<HelperMessagesPage>(`/api/helper/messages${query}`, { method: "GET" });
+      // 서버의 전환 기간 응답(vi)은 화면 경계에서 native로 읽는다. API 계약은 바꾸지 않는다.
+      const result = await callApi<HelperMessagesPage>(`/api/helper/messages${query}`, {
+        method: "GET",
+      });
+      if (!result.ok) return result;
+      return {
+        ...result,
+        data: {
+          ...result.data,
+          messages: result.data.messages.map((message) => ({
+            ...message,
+            answer: {
+              ...message.answer,
+              native:
+                message.answer.native ??
+                (message.answer as HelperAnswer & { vi?: string }).vi ??
+                "",
+            },
+          })),
+        },
+      };
     },
     /** W6 · 이전 대화. 내 대화 목록을 최근 질문 순으로 20개씩 읽는다(이슈 #251). */
     async helperConversations(before?: string) {
