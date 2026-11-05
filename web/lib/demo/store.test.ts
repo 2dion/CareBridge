@@ -67,6 +67,64 @@ describe("Mock 데이터 규칙 (데이터구조 v1.6.2)", () => {
     expect(todayCards(sundayDb, sunday).map((card) => card.resident.id)).not.toContain("lee");
   });
 
+  it("오늘 카드: 할 일이 남은 카드가 먼저이고 같은 묶음은 등록 순서를 유지한다 (#328)", () => {
+    const db = createDemoDb(TODAY);
+    const template = Object.values(db.records)[0];
+    const statuses = [
+      "submitted",
+      "draft",
+      undefined,
+      "approved",
+      "returned",
+      "draft",
+      "submitted",
+    ] as const;
+    db.residents = statuses.map((_, index) => ({
+      ...db.residents[0],
+      id: `resident-${index}`,
+      visitDays: null,
+    }));
+    db.records = {};
+    statuses.forEach((status, index) => {
+      if (!status) return;
+      const id = `record-${index}`;
+      db.records[id] = {
+        ...template,
+        id,
+        residentId: db.residents[index].id,
+        careDate: TODAY,
+        status,
+        draftState: "ready",
+      };
+    });
+    const registered = db.residents.map((resident) => resident.id);
+    const records = structuredClone(db.records);
+    expect(todayCards(db, TODAY).map(({ resident }) => resident.id)).toEqual(
+      [1, 2, 4, 5, 0, 3, 6].map((index) => `resident-${index}`),
+    );
+    expect(db.residents.map((resident) => resident.id)).toEqual(registered);
+    expect(db.records).toEqual(records);
+  });
+
+  it("오늘 카드: 전송한 카드는 내려가고 수정 필요가 되면 다시 위로 온다 (#328)", () => {
+    const db = createDemoDb(TODAY);
+    const template = Object.values(db.records)[0];
+    db.residents = ["first", "second"].map((id) => ({
+      ...db.residents[0],
+      id,
+      visitDays: null,
+    }));
+    db.records = {
+      first: { ...template, id: "first", residentId: "first", careDate: TODAY, status: "draft" },
+    };
+    const order = () => todayCards(db, TODAY).map(({ resident }) => resident.id);
+    expect(order()).toEqual(["first", "second"]);
+    db.records.first.status = "submitted";
+    expect(order()).toEqual(["second", "first"]);
+    db.records.first.status = "returned";
+    expect(order()).toEqual(["first", "second"]);
+  });
+
   it("W4 '작성 전' 탭: 오래된 날짜가 위, 같은 날은 순서 그대로 (이슈 #150)", () => {
     const db = createDemoDb(TODAY);
     const missed = listMissed(db, TODAY);

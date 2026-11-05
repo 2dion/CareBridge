@@ -689,10 +689,14 @@ export function listOverdue(db: DemoDb, today: string): OverdueDay[] {
 
 export type TodayCard = { resident: Resident; record?: DemoRecord };
 
+/** W1: 할 일이 남은 카드를 먼저, 전송 완료·승인 완료는 뒤로. 묶음 안은 등록 순서(이슈 #328). */
 export function todayCards(db: DemoDb, today: string): TodayCard[] {
+  const finished = ({ record }: TodayCard) =>
+    record?.status === "submitted" || record?.status === "approved";
   return db.residents
     .filter((resident) => isCareDay(db, resident, today))
-    .map((resident) => ({ resident, record: findRecord(db, resident.id, today) }));
+    .map((resident) => ({ resident, record: findRecord(db, resident.id, today) }))
+    .sort((a, b) => Number(finished(a)) - Number(finished(b)));
 }
 
 export function returnedRecords(db: DemoDb): DemoRecord[] {
