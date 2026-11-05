@@ -48,3 +48,12 @@ describe("W4 상세 항목 배지 (이슈 #98)", () => {
     );
   });
 });
+
+describe("itemBadge의 모국어 줄(이슈 #312)", () => {
+  it("번역 파일이 없는 언어는 한국어만 보이도록 빈칸", () => {
+    const item = { status: "needs_check" as const, resolution: "confirmed_by_reviewer" as const };
+    const badge = itemBadge(item, roleNames(false), "zh");
+    expect(badge?.ko).toBe("관리자 확인함");
+    expect(badge?.native).toBe("");
+  });
+});

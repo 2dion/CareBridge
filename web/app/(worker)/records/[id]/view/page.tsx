@@ -72,7 +72,7 @@ export default function RecordViewPage() {
   const renderItem = (item: RecordItem) => {
     const label = itemLabel(item.item_key);
     // '확인 필요'에 관리자가 고른 결과([확인함]/[기록 안 함])가 있으면 그 배지를 보인다(이슈 #98)
-    const badge = itemBadge(item, names);
+    const badge = itemBadge(item, names, nativeLanguage);
     const omitted = badge?.kind === "omitted";
     const empty = !item.value_ko && (item.status === "not_mentioned" || omitted);
     return (

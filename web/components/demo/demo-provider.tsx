@@ -214,9 +214,14 @@ function RealProvider({ children }: { children: ReactNode }) {
       };
     });
   }, []);
+  const actionLang = state?.nativeLang;
   const base = useMemo(
-    () => createRealActions(supabase, reload, { onConfirmed: reflectConfirmation }),
-    [supabase, reload, reflectConfirmation],
+    () =>
+      createRealActions(supabase, reload, {
+        onConfirmed: reflectConfirmation,
+        nativeLang: actionLang,
+      }),
+    [supabase, reload, reflectConfirmation, actionLang],
   );
   const actions = useMemo<RealActions>(() => {
     const remember = (id: string, run: DraftRun | null) => {
@@ -239,7 +244,7 @@ function RealProvider({ children }: { children: ReactNode }) {
         .map((job) => job.created_at);
       remember(id, { startedAt: Date.now(), snapshot, inputMode, pendingJobs });
       // 재조회가 예외로 끝나도 처리 중 상태를 남기지 않는다.
-      const result = await run().catch(() => actionError("network"));
+      const result = await run().catch(() => actionError("network", undefined, actionLang));
       remember(id, result.ok ? null : { startedAt: 0, snapshot, inputMode, pendingJobs });
       return result;
     };
@@ -256,7 +261,7 @@ function RealProvider({ children }: { children: ReactNode }) {
       writeText: (id, text) => track(id, () => base.writeText(id, text), "text"),
       retryDraft: (id) => track(id, () => base.retryDraft(id)),
     };
-  }, [base]);
+  }, [base, actionLang]);
   // 수정 필요인 내 기록에 모국어 번역이 비어 있으면 서버에 한 번 번역을 부탁하고 다시 읽는다(결정 2026-10-28-되돌림사유번역).
   // 관리자는 한국어만 저장하고, 번역은 작성자 쪽에서 채운다. 기록마다 한 번만 부른다(Mock이면 빈칸이라 반복하지 않게).
   const translated = useRef(new Set<string>());
