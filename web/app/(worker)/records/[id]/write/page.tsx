@@ -3,7 +3,7 @@
 import { nativeMessage } from "@/lib/i18n/messages";
 import { useNativeLanguage } from "@/components/mobile/native";
 
-// W2 · 글로 쓰기: 쓴 글로 초안을 만든다. 쓰는 화면이라 안내는 한국어만(병기 원칙 ①).
+// W2 · 글로 기록: 쓴 글로 초안을 만든다. 쓰는 화면이라 안내는 한국어만(병기 원칙 ①).
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -51,7 +51,7 @@ export default function WritePage() {
   return (
     <MobileScreen tab="today">
       <AppBar
-        title="글로 쓰기"
+        title="글로 기록"
         native={nativeMessage(nativeLanguage, "w2.write.title")}
         back={true}
       />

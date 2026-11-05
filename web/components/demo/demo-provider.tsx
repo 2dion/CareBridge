@@ -83,7 +83,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// [글로 쓰기]·[다시 시도]는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다.
+// [글로 기록]·[다시 시도]는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다.
 // 이 탭에 시작 시각을 남기고, 실패는 시작 시각 0으로 남겨 새로고침해도 실패로 보인다(이슈 #237)
 const DRAFT_RUNS_KEY = "carebridge.draft-runs";
 type DraftRun = {
@@ -191,8 +191,8 @@ function RealProvider({ children }: { children: ReactNode }) {
     };
   }, [reload, supabase]);
 
-  // [글로 쓰기]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다.
-  // [글로 쓰기]는 서버가 다시 읽히기 전에도 입력 방법을 '글'로 보여, '정리 중'에 음성 단계가 나오지 않게 한다(이슈 #135)
+  // [글로 기록]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다.
+  // [글로 기록]는 서버가 다시 읽히기 전에도 입력 방법을 '글'로 보여, '정리 중'에 음성 단계가 나오지 않게 한다(이슈 #135)
   const reflectConfirmation = useCallback((recordId: string, key: ItemKey) => {
     setState((prev) => {
       const record = prev?.db.records[recordId];

@@ -119,8 +119,8 @@ const response = await client.messages.create({
 | 오류 | 뜻 | 서버가 할 일 |
 | --- | --- | --- |
 | 401 invalid_api_key / invalid x-api-key | 키 오타·폐기, 또는 키를 `x-api-key`로 보냄(Bearer로 보내야 함) | 다시 하지 않음. 로그에 남기고 화면에 "AI 연결 설정 오류" |
-| 403 Provider credentials unavailable, 409, 503 | 기관 쪽 키 문제 | 한 번 다시. 또 실패하면 audio_jobs.status = failed, [다시 시도]·[글로 쓰기] |
-| 한도 초과 | 월 차감 토큰 소진 | 다시 하지 않음. 화면에 [글로 쓰기]만, 팀에 알림 |
+| 403 Provider credentials unavailable, 409, 503 | 기관 쪽 키 문제 | 한 번 다시. 또 실패하면 audio_jobs.status = failed, [다시 시도]·[글로 기록] |
+| 한도 초과 | 월 차감 토큰 소진 | 다시 하지 않음. 화면에 [글로 기록]만, 팀에 알림 |
 | 400 (max_tokens 등) | 요청 형식 오류 | 다시 하지 않음. 코드 버그로 기록 |
 | 시간 초과·연결 오류 | 네트워크 | v1.1대로 한 번 다시 |
 
