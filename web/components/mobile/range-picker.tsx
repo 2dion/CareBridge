@@ -148,7 +148,7 @@ export function RangePicker({
         onClick={() => range && onApply(range)}
       >
         <BtnLabel
-          ko={range ? `${rangeLabel(range)} 기록 보기` : "날짜를 골라 주세요"}
+          ko={range ? `${rangeLabel(range)} 기록 보기` : "날짜 선택하기"}
           native={
             range
               ? nativeMessage(nativeLanguage, "range.title")

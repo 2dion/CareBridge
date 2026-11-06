@@ -29,7 +29,7 @@ const errorsFor = (nativeLanguage: ReturnType<typeof useNativeLanguage>) => {
       native: nativeMessage(nativeLanguage, "a1.error.wrong"),
     },
     no_profile: {
-      ko: `계정 준비가 끝나지 않았습니다. ${namesBoth.reviewer}에게 문의하세요.`,
+      ko: `계정 준비가 끝나지 않았어요. ${namesBoth.reviewer}에게 문의하세요.`,
       native: nativeMessage(nativeLanguage, "a1.error.noProfile", {
         reviewer: namesBoth.reviewerNative,
       }),
