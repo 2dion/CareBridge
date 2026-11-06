@@ -15,7 +15,7 @@ import { AppBar, Loading, MobileScreen, ResidentPill } from "@/components/mobile
 import type { ItemKey } from "@/lib/demo/state";
 import { type RecordItem, getResident, itemLabel, kstTime, lateDays } from "@/lib/demo/store";
 import { recordViewItems } from "@/lib/records/view-order";
-import { capitalizeNative, itemBadge, withNote } from "@/lib/records/item-badge";
+import { itemBadge, withNote } from "@/lib/records/item-badge";
 
 const badgeClass = { orange: "badge-orange", green: "badge-green", gray: "badge-gray" } as const;
 
@@ -138,7 +138,7 @@ export default function RecordViewPage() {
           <Native className="native">
             {approved
               ? nativeMessage(nativeLanguage, "w4.view.approved", {
-                  reviewer: capitalizeNative(names.reviewerNative),
+                  reviewer: names.reviewerNative,
                 })
               : nativeMessage(nativeLanguage, "w4.view.waiting", {
                   reviewer: names.reviewerNative,

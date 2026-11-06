@@ -36,12 +36,11 @@ describe("도우미 이전 답의 화면 모국어 이름(#258)", () => {
 });
 
 describe("안내문의 모국어 줄(이슈 #312)", () => {
-  it("번역 파일이 없는 언어는 한국어만 보이도록 모국어 줄이 빈칸", () => {
-    for (const lang of ["zh", "mn", "en"] as const) {
-      const error = actionError("note_required", undefined, lang);
-      expect(error.ko).toBe("사유를 써 주세요.");
-      expect(error.native).toBe("");
-    }
+  it("작성자 언어의 오류 문구를 쓰고, 한국어 작성자는 모국어 줄이 빈칸", () => {
+    expect(actionError("note_required", undefined, "zh").native).toBe("请填写理由。");
+    expect(actionError("note_required", undefined, "mn").native).toBe("Шалтгаанаа бичнэ үү.");
+    expect(actionError("note_required", undefined, "en").native).toBe("Write the reason.");
+    expect(actionError("note_required", undefined, "ko").native).toBe("");
   });
 
   it("언어를 안 주면 베트남어, 작성자 언어를 주면 그 언어를 따른다", () => {
@@ -60,6 +59,6 @@ describe("안내문의 모국어 줄(이슈 #312)", () => {
     const actions = createRealActions({} as SupabaseClient, async () => {}, { nativeLang: "zh" });
     const result = await actions.helperMessages();
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.native).toBe("");
+    if (!result.ok) expect(result.native).toBe("请检查网络连接后重试。");
   });
 });

@@ -44,14 +44,10 @@ export default function SentPage() {
         <p style={{ marginTop: 8, fontSize: 15, color: "var(--color-sub)" }}>
           확인한 기록을 {names.reviewer}에게 전송했어요. {names.reviewer}가 승인하면 끝나요.
         </p>
-        <Native
-          className="native"
-          style={{ fontSize: 14 }}
-          requiredIds={["w3.sent.descriptionPrefix", "w3.sent.descriptionSuffix"]}
-        >
-          {nativeMessage(nativeLanguage, "w3.sent.descriptionPrefix")}
-          {names.reviewerNative}
-          {nativeMessage(nativeLanguage, "w3.sent.descriptionSuffix")}
+        <Native className="native" style={{ fontSize: 14 }} requiredIds={["w3.sent.description"]}>
+          {nativeMessage(nativeLanguage, "w3.sent.description", {
+            reviewer: names.reviewerNative,
+          })}
         </Native>
         {late !== null && late > 0 && (
           <p style={{ marginTop: 8, fontSize: 13, color: "var(--color-warn-text)" }}>

@@ -287,8 +287,7 @@ function HelperChat({
       <div className="reason-box big helper-notice" role="note">
         <b>건강·안전 문제는 {names.reviewer}에게 먼저 보고하세요.</b>
         <Native className="native" requiredIds={["w6.safetyHint"]}>
-          {nativeMessage(nativeLanguage, "w6.safetyHint")}
-          {names.reviewerNative}.
+          {nativeMessage(nativeLanguage, "w6.safetyHint", { reviewer: names.reviewerNative })}
         </Native>
         <span>
           질문과 답은 서버에 저장돼 나중에 다시 볼 수 있어요. 어르신·가족 실명은 쓰지 마세요.

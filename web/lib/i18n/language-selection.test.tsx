@@ -41,19 +41,24 @@ describe("A2·W5 모국어 선택(#313)", () => {
   });
 
   it("번역 초안에 없는 키는 다른 언어를 대신 쓰지 않고 숨긴다", () => {
-    expect(nativeMessage("vi", "w3.remainingHint", { count: 9 })).not.toBe("");
+    // zh·mn·en도 vi와 같은 키를 갖는다(#351). 없는 키·빈 매개변수는 다른 언어로 대신하지 않고 빈칸
     for (const language of ["zh", "mn", "en"] as const) {
-      expect(nativeMessage(language, "w3.remainingHint", { count: 9 })).toBe("");
+      const hint = nativeMessage(language, "w3.remainingHint", { count: 9 });
+      expect(hint).toContain("9");
+      expect(hint).not.toBe(nativeMessage("vi", "w3.remainingHint", { count: 9 }));
+      expect(nativeMessage(language, "없는.키")).toBe("");
       expect(roleNames(false, language).reviewerNative).not.toBe(
         roleNames(false, "vi").reviewerNative,
       );
-      expect(mockHelperAnswer("식사를 안 드셔요", language).native).toBe("");
+      const helper = mockHelperAnswer("식사를 안 드셔요", language).native;
+      expect(helper).not.toBe("");
+      expect(helper).not.toBe(mockHelperAnswer("식사를 안 드셔요", "vi").native);
     }
     expect(nativeMessage("vi", "a2.codeHint", { reviewer: "" })).toBe("");
     expect(
       renderToStaticMarkup(
         <NativeLanguageProvider language="en">
-          <Native requiredIds={["w6.savedHint"]}>saved</Native>
+          <Native requiredIds={["없는.키" as never]}>saved</Native>
         </NativeLanguageProvider>,
       ),
     ).toBe("");
