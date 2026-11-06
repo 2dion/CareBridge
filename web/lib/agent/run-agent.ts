@@ -1,5 +1,5 @@
 // ② 기록 검토 준비 Agent: Claude가 도구 4개를 골라 부르고, 서버가 도구를 실행한다.
-// 근거: 문서/설계/ai규칙-v2.0.5.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
+// 근거: 문서/설계/ai규칙-v2.0.6.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
 //       문서/설계/데이터구조-v2.3.6.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
@@ -147,7 +147,7 @@ export const AGENT_TOOLS = [
   {
     name: "search_glossary",
     description:
-      "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 작성자 모국어 고정 번역(term_native)으로 찾는다. 결과가 비어도 뜻이 분명한 일상 표현은 교재 용어 없이 기록체로 정리한다(observed). 뜻을 짐작해야 하는 말만 needs_check로 두고, 짐작한 내용을 reason에 쓴다.",
+      "사투리, 일상 표현, 애매한 말을 교재 공식 용어와 작성자 모국어 고정 번역(term_native)으로 찾는다. 받아쓴 글이 모국어면 그 낱말(예: 'cháo', 'зутан', '粥')을 그대로 넣는다. 한국어 표현과 작성자 모국어 고정 번역 양쪽에서 찾는다. 결과가 비어도 뜻이 분명한 일상 표현은 교재 용어 없이 기록체로 정리한다(observed). 뜻을 짐작해야 하는 말만 needs_check로 두고, 짐작한 내용을 reason에 쓴다.",
     input_schema: {
       type: "object",
       properties: {
@@ -217,6 +217,7 @@ export function agentSystemPrompt(careType: CareType, nativeLang: NativeLang) {
    search_glossary 결과의 chapter가 "우리말샘"으로 시작하면 사전의 방언 풀이다. 어르신이 쓴 뜻과 다를 수 있으니
    짐작한 것으로 보고 needs_check로 두며, reason에 "'징허게'를 우리말샘(전라 방언) 뜻 '몹시'로 짐작"처럼 쓴다.
    받아쓴 글이 베트남어 등 모국어여도 같다. 수면·식사처럼 뜻이 분명하면 observed로 정리한다.
+   모국어 낱말을 search_glossary가 교재 용어로 돌려주면(예: "зутан" → 죽) 그 용어로 정리한다. 이것은 짐작이 아니다.
 4. 진단하지 말고 본 것만 쓴다. 호전/유지/악화는 원문에 비교가 있을 때만.
    비교가 없으면 form_fields의 body_trend·meal_trend·cognition_trend와 cognition.detail.trend를 비우고,
    재가 cognition은 needs_check로 둔다. 발적·상처·멍·부기처럼 피부·몸에 보이는 변화는 discomfort를 needs_check로 둔다.
@@ -235,6 +236,8 @@ export function agentSystemPrompt(careType: CareType, nativeLang: NativeLang) {
    "~인지 확인해 주세요" 같은 확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다
    (서버가 걸러 내고 그 항목을 needs_check로 둔다).
    reason을 쓰면 reason_native에 그 번역을 쓴다.
+   reason_native는 작성자 모국어로만 쓰고 한국어 낱말을 괄호로 덧붙이지 않는다.
+   reason·reason_native 끝에 "작성자 확인 필요", "관리자 확인 필요"처럼 누가 확인하라는 말을 붙이지 않는다.
    value_native·reason_native는 어르신의 성별을 정하지 않는다. ${genderNeutralRule(nativeLang)}
    value_native는 기록 문장을 옮긴 것이라 평서문으로 쓰고, 명령문·권유문(예: "Hãy …", "Please …")으로 바꾸지 않는다.
    용어 목록에 있는 말은 search_glossary가 준 고정 번역만 쓴다.

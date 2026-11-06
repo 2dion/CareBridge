@@ -1,4 +1,4 @@
--- 이슈 #259·#280: glossary_translations·search_glossary(lang)·records.native_lang 검사. term_vi 칸은 없다.
+-- 이슈 #259·#280·#362: glossary_translations·search_glossary(lang, 모국어 번역으로 찾기)·records.native_lang 검사. term_vi 칸은 없다.
 -- 적용된 DB에서 실행하고, 합성 픽스처는 마지막 ROLLBACK으로 지운다.
 begin;
 create function pg_temp.check_true(ok boolean, label text) returns void
@@ -55,6 +55,44 @@ select pg_temp.expect_error($q$insert into public.glossary_translations(glossary
 delete from public.glossary_translations where glossary_id = 'e1000000-0000-0000-0000-000000000001';
 select pg_temp.check_true((select term_native = '' from public.search_glossary('합성 검증 표현', 5, 'vi')), 'no translation → empty');
 select pg_temp.check_true((select count(*) = 1 from public.search_glossary('합성 검증', 5, 'vi')), 'alias search still works');
+
+-- 이슈 #362: 모국어로 받아쓴 글의 낱말로도 찾는다(lang의 고정 번역, 교재 용어만)
+insert into public.glossary (id, expression, aliases, term_ko, plain_ko, chapter, page) values
+ ('e1000000-0000-0000-0000-000000000002', '합성 모국어 검증 표현', '{}', '합성모국어용어', '검증용', '10장 합성', ''),
+ ('e1000000-0000-0000-0000-000000000003', '합성 방언 검증 표현', '{}', '합성방언뜻', '검증용', '우리말샘(합성 방언)', ''),
+ ('e1000000-0000-0000-0000-000000000004', '합성 짧은 번역 표현', '{}', '합성짧은용어', '검증용', '10장 합성', '');
+insert into public.glossary_translations (glossary_id, lang, term) values
+ ('e1000000-0000-0000-0000-000000000002', 'mn', 'Туршилтүг (тайлбар үг)'),
+ ('e1000000-0000-0000-0000-000000000002', 'zh', '验证词（说明）'),
+ ('e1000000-0000-0000-0000-000000000002', 'en', 'Zzverify term'),
+ ('e1000000-0000-0000-0000-000000000003', 'en', 'Zzdialect (dialect)'),
+ ('e1000000-0000-0000-0000-000000000004', 'en', 'zq');
+-- 낱말 그대로, 대소문자 무시, 괄호 설명 앞부분으로 찾고, term_native는 번역 전체
+select pg_temp.check_true((select term_ko = '합성모국어용어' and term_native = 'Туршилтүг (тайлбар үг)'
+  from public.search_glossary('туршилтүг', 5, 'mn')), 'native word → term');
+-- 어미가 붙은 낱말·문장 안의 낱말(표현이 번역을 품음)
+select pg_temp.check_true((select count(*) = 1 from public.search_glossary('өдөр туршилтүгийн талыг идсэн', 5, 'mn')
+  where id = 'e1000000-0000-0000-0000-000000000002'), 'native word inside a sentence');
+-- 전각 괄호 앞부분(중국어), 한자도 문장 안에서 찾음
+select pg_temp.check_true((select count(*) = 1 from public.search_glossary('吃了验证词', 5, 'zh')
+  where id = 'e1000000-0000-0000-0000-000000000002'), 'full-width paren head');
+-- 3글자 이상 표현을 번역이 품어도 찾음
+select pg_temp.check_true((select count(*) = 1 from public.search_glossary('zzverify', 5, 'en')
+  where id = 'e1000000-0000-0000-0000-000000000002'), 'query inside native term');
+-- 다른 언어의 번역으로는 찾지 않음. ko는 번역이 없어 한국어로만 찾음
+select pg_temp.check_true((select count(*) = 0 from public.search_glossary('туршилтүг', 5, 'vi')), 'other lang not matched');
+select pg_temp.check_true((select count(*) = 0 from public.search_glossary('туршилтүг', 5, 'ko')), 'ko has no native match');
+-- 사전 방언 풀이(우리말샘)는 모국어로 찾지 않고, 한국어 표현으로는 그대로 찾음
+select pg_temp.check_true((select count(*) = 0 from public.search_glossary('zzdialect', 5, 'en')), 'dialect row not matched by native');
+select pg_temp.check_true((select count(*) = 1 from public.search_glossary('합성 방언 검증 표현', 5, 'en')), 'dialect row still found in Korean');
+-- 짧은 번역(3바이트 미만)과 짧은 표현(3글자 미만)은 모국어로 맞추지 않음
+select pg_temp.check_true((select count(*) = 0 from public.search_glossary('the zq word', 5, 'en')
+  where id = 'e1000000-0000-0000-0000-000000000004'), 'short native term ignored');
+select pg_temp.check_true((select count(*) = 0 from public.search_glossary('zz', 5, 'en')
+  where id = 'e1000000-0000-0000-0000-000000000002'), 'short query not matched inside term');
+-- 한국어로 찾아도 그 언어 번역이 term_native로 나옴(전과 같음)
+select pg_temp.check_true((select term_native = 'Zzverify term'
+  from public.search_glossary('합성 모국어 검증 표현', 5, 'en')), 'korean search keeps term_native');
 
 -- 로그인한 사람 권한으로도 검색된다
 insert into public.organizations(id, name) values ('e1000000-0000-0000-0000-0000000000a1', '검증 기관 번역');
