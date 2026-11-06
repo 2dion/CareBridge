@@ -72,6 +72,7 @@ describe("askHelper", () => {
         vi: "Đừng ép ăn.",
         source: "10장 120쪽",
         found: true,
+        native_lang: "vi",
         ...SAVED_IN_NEW,
       },
     });
@@ -130,7 +131,7 @@ describe("askHelper", () => {
     const deps = fakeDeps({ searchManual: vi.fn(async () => []) });
     expect(await askHelper({ question: "주식 시세" }, deps)).toEqual({
       status: 200,
-      body: { ...NOT_FOUND, vi: NOT_FOUND.native, ...SAVED_IN_NEW },
+      body: { ...NOT_FOUND, vi: NOT_FOUND.native, native_lang: "vi", ...SAVED_IN_NEW },
     });
     expect(deps.askClaude).not.toHaveBeenCalled();
   });
@@ -144,7 +145,7 @@ describe("askHelper", () => {
     });
     expect(await askHelper({ question: "밥" }, deps)).toEqual({
       status: 200,
-      body: { ...NOT_FOUND, vi: NOT_FOUND.native, ...SAVED_IN_NEW },
+      body: { ...NOT_FOUND, vi: NOT_FOUND.native, native_lang: "vi", ...SAVED_IN_NEW },
     });
   });
 
@@ -164,6 +165,7 @@ describe("askHelper", () => {
       vi: "Hãy báo ngay cho người quản lý. Đừng vội đỡ dậy.",
       source: "12장 300쪽",
       found: true,
+      native_lang: "vi",
       ...SAVED_IN_NEW,
     });
   });
@@ -253,6 +255,20 @@ describe("askHelper", () => {
   });
 });
 
+describe("답의 언어 저장(이슈 #354)", () => {
+  it.each(["vi", "zh", "mn", "en", "ko"] as const)(
+    "%s 작성자의 답은 native_lang %s로 저장하고 응답에도 같은 값을 줌",
+    async (nativeLang) => {
+      const deps = fakeDeps({
+        currentUser: vi.fn(async () => ({ id: "w1", role: "worker" as const, nativeLang })),
+      });
+      const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
+      expect(vi.mocked(deps.saveMessage).mock.calls[0][0].native_lang).toBe(nativeLang);
+      expect(r.body.native_lang).toBe(nativeLang);
+    },
+  );
+});
+
 describe("답 저장(이슈 #218)", () => {
   it("답한 질문을 작성자·질문·답·출처와 함께 남김", async () => {
     const deps = fakeDeps();
@@ -264,6 +280,7 @@ describe("답 저장(이슈 #218)", () => {
       question_ko: "",
       answer_ko: "억지로 권하지 마세요.",
       answer_native: "Đừng ép ăn.",
+      native_lang: "vi",
       source: "10장 120쪽",
       found: true,
       safety: false,
@@ -436,6 +453,7 @@ describe("교육용 기관 고정 안내(이슈 #180)", () => {
       ...notFoundAnswer(roleNames(true)),
       native: "",
       vi: "",
+      native_lang: "ko",
       ...SAVED_IN_NEW,
     });
   });

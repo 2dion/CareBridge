@@ -1,5 +1,5 @@
 // ⑤ 도우미 답(W6): 교재 매뉴얼(manual_sections)과 용어 목록(glossary)에서 찾은 내용만으로 답한다. 답한 질문은 helper_messages에 남긴다(이슈 #218).
-// 근거: 문서/설계/ai규칙-v2.0.6.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.6.md '공통 계약' helper/ask
+// 근거: 문서/설계/ai규칙-v2.0.6.md '도우미·번역 규칙' W6 1~7, 문서/설계/데이터구조-v2.3.7.md '공통 계약' helper/ask
 // DB·Claude 호출은 HelperDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 // 이슈 #122: 교재 검색과 search_glossary는 한국어만 맞으므로, 한글이 없는 질문(베트남어 등)은 먼저 한국어로 옮겨 검색한다.
 // 건강·안전 안내 문구는 모델에 맡기지 않고 서버가 낱말 검사로 붙인다(질문 언어와 상관없이).
@@ -37,6 +37,8 @@ export type HelperMessageRow = {
   question_ko: string;
   answer_ko: string;
   answer_native: string;
+  /** 답을 만든 때 작성자 언어(이슈 #354). 나중에 모국어를 바꿔도 이 값은 그대로 */
+  native_lang: NativeLang;
   source: string;
   found: boolean;
   safety: boolean;
@@ -268,7 +270,7 @@ export function parseHelperAnswer(raw: string): HelperAnswer | null {
 }
 
 // POST /api/helper/ask — 작성자. 입력 question, conversation_id(없으면 새 대화).
-// 출력 ko·native(옛 이름 vi도 같은 값)·source·found + id·created_at(저장한 행, 저장이 실패하면 null) + conversation_id(새 대화를 만들다 실패하면 null)
+// 출력 ko·native(옛 이름 vi도 같은 값)·native_lang(답의 언어)·source·found + id·created_at(저장한 행, 저장이 실패하면 null) + conversation_id(새 대화를 만들다 실패하면 null)
 export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiResult> {
   const user = await deps.currentUser();
   if (!user) return { status: 401, body: { error: "not_signed_in" } };
@@ -316,6 +318,7 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
           question_ko: questionKo !== question ? questionKo : "",
           answer_ko: shown.ko,
           answer_native: shown.native,
+          native_lang: user.nativeLang,
           source: shown.source ?? "",
           found: shown.found,
           safety,
@@ -327,6 +330,7 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
       body: {
         ...shown,
         vi: shown.native,
+        native_lang: user.nativeLang,
         id: saved?.id ?? null,
         created_at: saved?.created_at ?? null,
         conversation_id: conversation?.id ?? null,

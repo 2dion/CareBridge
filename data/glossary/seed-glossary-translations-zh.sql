@@ -2,7 +2,7 @@
 -- term_id는 CSV의 사람용 번호라 DB에 없으므로, 용어는 (expression, term_ko)로 찾아 잇는다(glossary unique 키).
 -- 다시 돌려도 안전: 같은 (용어, 언어)면 번역 글만 맞춘다. 검수 전 중국어(간체자)는 Claude 초안이다(reviewed = false).
 -- 이 파일은 data/glossary/build_translation_seeds.py가 만든다. 고칠 때는 CSV를 고치고 다시 만든다.
--- 근거: 문서/결정/2026-11-03-용어번역표.md, 문서/설계/데이터구조-v2.3.6.md 'glossary_translations'
+-- 근거: 문서/결정/2026-11-03-용어번역표.md, 문서/설계/데이터구조-v2.3.7.md 'glossary_translations'
 insert into public.glossary_translations (glossary_id, lang, term, reviewed)
 select g.id, 'zh', v.term, v.reviewed
 from (values
