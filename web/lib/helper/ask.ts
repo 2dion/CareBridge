@@ -155,10 +155,12 @@ export function withSafetyNotice(
   notice: { ko: string; native: string } = SAFETY_NOTICE,
 ): HelperAnswer {
   const ko = answer.ko.includes(notice.ko) ? answer.ko : `${notice.ko} ${answer.ko}`.trim();
+  // 중국어처럼 문장부호(。)로 끝나는 안내는 띄어 쓰지 않는다(#315 확인)
+  const gap = /[。！？]$/.test(notice.native) ? "" : " ";
   const native =
     answer.native === "" || answer.native.includes(notice.native)
       ? answer.native
-      : `${notice.native} ${answer.native}`.trim();
+      : `${notice.native}${gap}${answer.native}`.trim();
   return { ...answer, ko, native };
 }
 

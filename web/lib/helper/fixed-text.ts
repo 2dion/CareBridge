@@ -20,6 +20,8 @@ const MN_CASE: Record<string, { from: string; to: string }> = {
   багш: { from: "багшаас", to: "багшид" },
 };
 
+const capitalize = (text: string) => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+
 export const HELPER_FIXED: Partial<Record<NativeLang, FixedText>> = {
   vi: {
     reviewer: "người quản lý",
@@ -80,9 +82,10 @@ export const HELPER_FIXED: Partial<Record<NativeLang, FixedText>> = {
     // 몽골어는 '~에게 묻다/보고하다'가 격 어미를 쓰므로 이름이 문장 안에서 바뀐다: notFound=탈격(-аас), safety=여격(-т)
     reviewer: "менежер",
     trainer: "багш",
+    // 두 문구 모두 이름이 문장 첫머리라 격 어미를 붙인 뒤 첫 글자를 대문자로 쓴다(#315 확인: "менежерт…"로 시작하던 문제)
     notFound: (who) =>
-      `Сурах бичгээс энэ агуулгыг олсонгүй. ${MN_CASE[who]?.from ?? who} асууна уу.`,
-    safety: (who) => `${MN_CASE[who]?.to ?? who} нэн даруй мэдэгдээрэй.`,
+      `Сурах бичгээс энэ агуулгыг олсонгүй. ${capitalize(MN_CASE[who]?.from ?? who)} асууна уу.`,
+    safety: (who) => `${capitalize(MN_CASE[who]?.to ?? who)} нэн даруй мэдэгдээрэй.`,
     keywords: [
       "унаж",
       "унасан",
