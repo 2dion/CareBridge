@@ -142,6 +142,24 @@ describe("runAgent", () => {
 });
 
 describe("agentSystemPrompt", () => {
+  // 이슈 #362: 모국어로 받아쓴 낱말도 용어 목록에서 찾고, 찾은 용어는 짐작으로 보지 않는다
+  it("모국어 낱말을 그대로 검색하고, 교재 용어로 돌아오면 짐작이 아니라고 함", () => {
+    const prompt = agentSystemPrompt("facility", "mn");
+    expect(prompt).toContain("모국어 낱말을 search_glossary가 교재 용어로 돌려주면");
+    expect(prompt).toContain("이것은 짐작이 아니다");
+    const tool = AGENT_TOOLS.find((t) => t.name === "search_glossary");
+    expect(tool?.description).toContain("받아쓴 글이 모국어면 그 낱말");
+    expect(tool?.description).toContain("한국어 표현과 작성자 모국어 고정 번역 양쪽에서 찾는다");
+  });
+
+  it("이유 번역에 한국어를 섞지 않고, 누가 확인하라는 말을 붙이지 않게 함 (이슈 #362)", () => {
+    const prompt = agentSystemPrompt("facility", "mn");
+    expect(prompt).toContain(
+      "reason_native는 작성자 모국어로만 쓰고 한국어 낱말을 괄호로 덧붙이지 않는다",
+    );
+    expect(prompt).toContain("누가 확인하라는 말을 붙이지 않는다");
+  });
+
   it("확인 요청 문장은 value_ko가 아니라 reason에만 쓰라고 함 (이슈 #117)", () => {
     const prompt = agentSystemPrompt("home", "vi");
     expect(prompt).toContain("확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다");
