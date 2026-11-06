@@ -30,9 +30,7 @@ export function itemBadge(
     return {
       kind: "confirmed",
       ko: `${names.reviewer} 확인함`,
-      native: nativeMessage(lang, "w4.badge.confirmed", {
-        reviewer: capitalizeNative(names.reviewerNative),
-      }),
+      native: nativeMessage(lang, "w4.badge.confirmed", { reviewer: names.reviewerNative }),
       tone: "green",
     };
   }
@@ -40,9 +38,7 @@ export function itemBadge(
     return {
       kind: "omitted",
       ko: `${names.reviewer} 기록 안 함`,
-      native: nativeMessage(lang, "w4.badge.omitted", {
-        reviewer: capitalizeNative(names.reviewerNative),
-      }),
+      native: nativeMessage(lang, "w4.badge.omitted", { reviewer: names.reviewerNative }),
       tone: "gray",
     };
   }

@@ -11,9 +11,6 @@ import { Icon } from "@/components/mobile/icon";
 import { AppBar, MobileScreen } from "@/components/mobile/shell";
 import type { RoleNames } from "@/lib/demo/roles";
 
-/** 베트남어 문장 첫 글자를 대문자로 */
-const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
 export default function AiPrinciplesPage() {
   const nativeLanguage = useNativeLanguage();
   const buildSteps = (names: RoleNames) => [
@@ -26,7 +23,7 @@ export default function AiPrinciplesPage() {
     {
       ko: `${names.workerSubject} 확인해요`,
       native: nativeMessage(nativeLanguage, "w5.ai.worker.title", {
-        worker: capital(names.workerNative),
+        worker: names.workerNative,
       }),
       body: "틀린 것은 고치고 빠진 것은 채워요.",
       bodyNative: nativeMessage(nativeLanguage, "w5.ai.worker.description"),
@@ -34,7 +31,7 @@ export default function AiPrinciplesPage() {
     {
       ko: `${names.reviewer}가 승인해요`,
       native: nativeMessage(nativeLanguage, "w5.ai.reviewer.title", {
-        reviewer: capital(names.reviewerNative),
+        reviewer: names.reviewerNative,
       }),
       body: `${names.reviewer}가 확인하고 승인해야 기록이 끝나요.`,
       bodyNative: nativeMessage(nativeLanguage, "w5.ai.reviewer.description", {
@@ -93,10 +90,11 @@ export default function AiPrinciplesPage() {
             <Native
               className="native"
               style={{ display: "block" }}
-              requiredIds={["w5.ai.safetyPrefix", "w5.ai.safetySuffix"]}
+              requiredIds={["w5.ai.safetyHint"]}
             >
-              {nativeMessage(nativeLanguage, "w5.ai.safetyPrefix")}
-              {names.reviewerNative} {nativeMessage(nativeLanguage, "w5.ai.safetySuffix")}
+              {nativeMessage(nativeLanguage, "w5.ai.safetyHint", {
+                reviewer: names.reviewerNative,
+              })}
             </Native>
           </div>
         </div>

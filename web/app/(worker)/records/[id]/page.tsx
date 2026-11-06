@@ -42,7 +42,6 @@ import {
   timeRangeLabel,
   visitMinutes,
 } from "@/lib/demo/store";
-import { capitalizeNative } from "@/lib/records/item-badge";
 
 const NOTES_LIMIT = 200;
 /** 재가 서식 칸 숫자: 입력이 이만큼 멈추면 저장한다 */
@@ -413,10 +412,10 @@ export default function DraftPage() {
         {needsLeft > 0 && (
           <p className="foot-note">
             ‘확인 필요’가 남아 있어도 보낼 수 있어요. {names.reviewer}가 정해요.
-            <Native className="native" requiredIds={["w3.needsCheckPrefix", "w3.needsCheckSuffix"]}>
-              {nativeMessage(nativeLanguage, "w3.needsCheckPrefix")}
-              {capitalizeNative(names.reviewerNative)}{" "}
-              {nativeMessage(nativeLanguage, "w3.needsCheckSuffix")}
+            <Native className="native" requiredIds={["w3.needsCheckHint"]}>
+              {nativeMessage(nativeLanguage, "w3.needsCheckHint", {
+                reviewer: names.reviewerNative,
+              })}
             </Native>
           </p>
         )}
@@ -631,10 +630,11 @@ function ItemCard({
           <Native
             className="native"
             style={{ display: "block" }}
-            requiredIds={["w3.reviewerChangedSuffix"]}
+            requiredIds={["w3.reviewerChanged"]}
           >
-            {capitalizeNative(names.reviewerNative)}{" "}
-            {nativeMessage(nativeLanguage, "w3.reviewerChangedSuffix")}
+            {nativeMessage(nativeLanguage, "w3.reviewerChanged", {
+              reviewer: names.reviewerNative,
+            })}
           </Native>
         </span>
       )}

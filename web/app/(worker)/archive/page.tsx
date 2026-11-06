@@ -216,15 +216,17 @@ export default function ArchivePage() {
               <p className="foot-note" style={{ margin: "4px 6px 0" }}>
                 기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 {names.reviewer}에게 알려 주세요.
                 <Native className="native" requiredIds={["w4.archive.expiryHint"]}>
-                  {nativeMessage(nativeLanguage, "w4.archive.expiryHint")}
-                  {names.reviewerNative}.
+                  {nativeMessage(nativeLanguage, "w4.archive.expiryHint", {
+                    reviewer: names.reviewerNative,
+                  })}
                 </Native>
               </p>
               <p className="foot-note" style={{ margin: "0 6px 16px" }}>
                 돌봄 날짜보다 늦게 전송한 기록은 {names.reviewer} 화면에 ‘지연전송’으로 보여요.
                 <Native className="native" requiredIds={["w4.archive.lateHint"]}>
-                  {nativeMessage(nativeLanguage, "w4.archive.lateHint")}
-                  {names.reviewerNative}.
+                  {nativeMessage(nativeLanguage, "w4.archive.lateHint", {
+                    reviewer: names.reviewerNative,
+                  })}
                 </Native>
               </p>
             </div>
