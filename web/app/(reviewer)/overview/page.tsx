@@ -383,7 +383,7 @@ function Overview() {
 
 const REASONS: NoCareReason[] = ["hospital", "overnight", "visit_cancelled", "other"];
 
-/** [기록 없음으로 정리] 창: 작성자 [이 날 기록 없음]과 같은 사유 4가지, 기타는 메모 필수. */
+/** [기록 없음으로 정리] 창: 작성자 [기록 건너뛰기]와 같은 사유 4가지, 기타는 메모 필수. */
 function OverdueModal({
   label,
   onClose,

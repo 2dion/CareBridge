@@ -186,7 +186,7 @@ function SignupForm({
           />
           {codeError ? (
             <FieldError
-              ko={`가입 코드가 맞지 않습니다. ${namesBoth.reviewer}에게 다시 확인하세요.`}
+              ko={`가입 코드가 맞지 않아요. ${namesBoth.reviewer}에게 다시 확인하세요.`}
               native={nativeMessage(nativeLanguage, "a2.error.code", {
                 reviewer: namesBoth.reviewerNative,
               })}
