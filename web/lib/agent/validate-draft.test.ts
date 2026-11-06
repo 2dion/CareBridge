@@ -267,7 +267,7 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
       "Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)",
     );
     expect(reasonTranslation("모르는 이유")).toBe("");
-    expect(reasonTranslation(REASONS.realName, "ko")).toBe(REASONS.realName);
+    expect(reasonTranslation(REASONS.realName, "ko")).toBe("");
   });
 
   it("재가인데 방문 시간을 모르면 분이 적힌 제공 지원을 확인 필요로", () => {

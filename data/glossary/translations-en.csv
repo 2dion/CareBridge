@@ -1,0 +1,52 @@
+term_id,term,reviewed
+T01,Help with face washing,false
+T02,Oral hygiene,false
+T03,Help with dressing,false
+T04,Help with hair washing,false
+T05,"Grooming (shaving, nail trimming)",false
+T06,Help with bathing,false
+T07,Help with eating,false
+T08,Ate the whole meal,false
+T09,Ate more than half,false
+T10,Ate less than half,false
+T11,Ate a little (check the amount again),false
+T12,Porridge,false
+T13,Tube feeding,false
+T14,Repositioning,false
+T15,Bedridden,false
+T16,Help with moving,false
+T17,Help with toileting,false
+T18,Diaper change,false
+T19,Urinary incontinence,false
+T20,Choking / difficulty swallowing,false
+T21,Says they did not sleep well,false
+T22,Complains of pain,false
+T23,Skin redness,false
+T24,Swelling / edema,false
+T25,Saw them take their medicine,false
+T26,Conversation and encouragement,false
+T27,Help with cognitive activities,false
+T28,Accompany on a walk,false
+T29,Fall,false
+T30,Constipation / loose stools,false
+T31,Partly bedridden (can sit up with help),false
+T32,Pressure ulcer (bedsore),false
+T33,Hemiplegia,false
+T34,Nasogastric tube,false
+T35,Indwelling urinary catheter (Foley),false
+T36,Ostomy (colostomy),false
+T37,Urostomy,false
+T38,Diaper dermatitis,false
+T39,Intertrigo (sore skin in skin folds),false
+T40,Texture-modified diet for swallowing difficulties,false
+T41,Cyanosis,false
+T42,Dizziness,false
+T43,Delirium,false
+T44,Wandering,false
+T45,Hallucination,false
+T46,Impaired consciousness,false
+T47,Fracture,false
+T48,Senile purpura (easy bruising),false
+T49,Urinary tract infection (UTI),false
+T50,Hearing aid,false
+T51,Please have your meal (polite form),false

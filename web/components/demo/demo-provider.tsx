@@ -4,6 +4,7 @@
 // - 실제 모드(Supabase 설정이 있음): 로그인한 사람 권한(RLS)으로 읽고, 바꾸는 일은 서버 API·Supabase로 한다(real).
 // - Mock 모드(Supabase 설정이 없는 로컬 개발): 브라우저(localStorage)에 두고 같은 브라우저의 다른 탭과 맞춘다.
 // 로그인과 같은 기준(supabaseConfigured)으로 가른다.
+import { DEFAULT_NATIVE_LANG } from "@/lib/i18n/languages";
 import type { NativeLang } from "@/lib/auth/signup";
 import type { ItemKey } from "@/lib/demo/state";
 import {
@@ -67,7 +68,17 @@ function load(today: string): DemoDb {
       const parsed = JSON.parse(saved) as DemoDb;
       // 날짜가 바뀌면 ‘오늘’ 기준 시드가 어긋나므로 새로 만든다(시연용).
       // version 5(10/30): 어르신 이름·사진 구조로 바뀌어 옛 시연 데이터는 새로 만든다
-      if (parsed?.version === 5 && parsed.seededOn === today && parsed.records) return parsed;
+      if (parsed?.version === 5 && parsed.seededOn === today && parsed.records)
+        return {
+          ...parsed,
+          worker: { ...parsed.worker, nativeLang: parsed.worker.nativeLang ?? DEFAULT_NATIVE_LANG },
+          records: Object.fromEntries(
+            Object.entries(parsed.records).map(([id, record]) => [
+              id,
+              { ...record, nativeLang: record.nativeLang ?? DEFAULT_NATIVE_LANG },
+            ]),
+          ),
+        };
     }
   } catch {
     /* 손상된 시연 데이터는 새로 만든다 */
@@ -83,7 +94,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// [글로 쓰기]·[다시 시도]는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다.
+// [글로 기록]·[다시 시도]는 요청 하나로 돌아 새로고침하면 화면이 '정리 중'을 잊는다.
 // 이 탭에 시작 시각을 남기고, 실패는 시작 시각 0으로 남겨 새로고침해도 실패로 보인다(이슈 #237)
 const DRAFT_RUNS_KEY = "carebridge.draft-runs";
 type DraftRun = {
@@ -191,8 +202,8 @@ function RealProvider({ children }: { children: ReactNode }) {
     };
   }, [reload, supabase]);
 
-  // [글로 쓰기]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다.
-  // [글로 쓰기]는 서버가 다시 읽히기 전에도 입력 방법을 '글'로 보여, '정리 중'에 음성 단계가 나오지 않게 한다(이슈 #135)
+  // [글로 기록]·[다시 시도]의 Agent는 요청 하나로 돈다. 도는 동안은 '정리 중', 실패하면 '초안 실패'로 보인다.
+  // [글로 기록]는 서버가 다시 읽히기 전에도 입력 방법을 '글'로 보여, '정리 중'에 음성 단계가 나오지 않게 한다(이슈 #135)
   const reflectConfirmation = useCallback((recordId: string, key: ItemKey) => {
     setState((prev) => {
       const record = prev?.db.records[recordId];
@@ -270,6 +281,7 @@ function RealProvider({ children }: { children: ReactNode }) {
     const ids = Object.values(state.db.records)
       .filter(
         (record) =>
+          record.nativeLang === state.nativeLang &&
           record.status === "returned" &&
           record.returnReason &&
           !record.returnReasonNative &&
@@ -409,7 +421,10 @@ export function useDemo(): DemoContext | null {
 /** 화면에 보일 역할 이름. 교육용 기관(실제 모드 is_training)이면 교육생·강사, 그 밖(Mock 포함)은 작성자·관리자(이슈 #125) */
 export function useRoleNames(): RoleNames {
   const demo = useDemo();
-  return roleNames(Boolean(demo?.real?.isTraining));
+  return roleNames(
+    Boolean(demo?.real?.isTraining),
+    demo?.real?.nativeLang ?? demo?.db.worker.nativeLang ?? DEFAULT_NATIVE_LANG,
+  );
 }
 
 export function nowIso() {

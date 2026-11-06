@@ -1,5 +1,3 @@
-import { nativeMessage } from "@/lib/i18n/messages";
-
 import fixture from "./s-f01.json";
 
 export type Screen =
@@ -57,16 +55,16 @@ export type DemoState = {
 };
 
 export const caseData = fixture;
-export const itemOrder: { key: ItemKey; ko: string; native: string }[] = [
-  { key: "visit_time", ko: "방문 시점", native: nativeMessage("vi", "items.visitTime") },
-  { key: "support", ko: "제공 지원", native: nativeMessage("vi", "items.support") },
-  { key: "meal", ko: "식사", native: nativeMessage("vi", "items.meal") },
-  { key: "sleep", ko: "수면", native: nativeMessage("vi", "items.sleep") },
-  { key: "discomfort", ko: "불편감 표현", native: nativeMessage("vi", "items.discomfort") },
-  { key: "medication", ko: "복약 관찰", native: nativeMessage("vi", "items.medication") },
-  { key: "cognition", ko: "인지 변화", native: nativeMessage("vi", "items.cognition") },
-  { key: "notes", ko: "특이사항", native: nativeMessage("vi", "items.notes") },
-  { key: "next_check", ko: "다음 확인사항", native: nativeMessage("vi", "items.nextCheck") },
+export const itemOrder: { key: ItemKey; ko: string }[] = [
+  { key: "visit_time", ko: "방문 시점" },
+  { key: "support", ko: "제공 지원" },
+  { key: "meal", ko: "식사" },
+  { key: "sleep", ko: "수면" },
+  { key: "discomfort", ko: "불편감 표현" },
+  { key: "medication", ko: "복약 관찰" },
+  { key: "cognition", ko: "인지 변화" },
+  { key: "notes", ko: "특이사항" },
+  { key: "next_check", ko: "다음 확인사항" },
 ];
 export const statusLabel: Record<RecordStatus, string> = {
   draft: "임시 저장",
@@ -78,12 +76,6 @@ export const itemStatusLabel: Record<ItemStatus, string> = {
   observed: "관찰",
   not_mentioned: "언급 없음",
   needs_check: "확인 필요",
-};
-export const statusNative: Record<RecordStatus, string> = {
-  draft: nativeMessage("vi", "status.draft"),
-  submitted: nativeMessage("vi", "status.submitted"),
-  returned: nativeMessage("vi", "status.returned"),
-  approved: nativeMessage("vi", "status.approved"),
 };
 export const STORAGE_KEY = "carebridge-sf01-mock-v1";
 
@@ -127,8 +119,8 @@ export function countUnresolved(items: Item[]): number {
   return items.filter((item) => item.status === "needs_check" && !item.resolution).length;
 }
 export function canSubmit(items: Item[]): boolean {
-  // 기획안: 확인 필요는 미해결로 제출할 수 있다. 그 밖의 항목은 작성자가 확인해야 한다.
-  return items.every((item) => item.status === "needs_check" || item.confirmed_by_worker);
+  // 확인 필요도 작성자 확인은 받아야 한다. 미해결 확인 필요의 승인은 관리자가 맡는다(#236·#283).
+  return items.length === itemOrder.length && items.every((item) => item.confirmed_by_worker);
 }
 export function canApprove(state: DemoState): boolean {
   return state.status === "submitted" && countUnresolved(state.items) === 0;

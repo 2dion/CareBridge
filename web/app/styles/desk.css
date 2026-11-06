@@ -923,6 +923,29 @@
   color: var(--color-muted);
 }
 
+/* 안내·입력·동작 사이 간격. M4 수정과 M3 인쇄 두 화면의 지정한 영역에만 쓴다(이슈 #324). */
+.d-app .desk-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.d-app .desk-stack > :where(h1, h2, p, ol) {
+  margin-block: 0;
+}
+
+.d-app .desk-stack > .dbtn {
+  align-self: flex-start;
+}
+
+.d-app .desk-stack > .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
 .d-app .training-band,
 .m-app .training-band {
   padding: 6px 16px;

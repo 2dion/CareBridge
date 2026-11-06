@@ -246,7 +246,7 @@ function Residents() {
       )}
 
       {editing && (
-        <AssignDrawer
+        <ResidentEditModal
           key={editing.id}
           resident={editing}
           today={today}
@@ -416,8 +416,8 @@ function WorkerPicker({
   );
 }
 
-/** M4 [수정] 서랍: 어르신 정보(실명·급여 종류, 이슈 #96)와 담당 연결(작성자·시작일·방문 요일·표시용 방문 시간) */
-function AssignDrawer({
+/** M4 [수정] 창: [어르신 추가] 창과 같은 가운데 팝업(이슈 #329). 어르신 정보(실명·사진·급여 종류, 이슈 #96)와 담당 연결(작성자·시작일·방문 요일·표시용 방문 시간) */
+function ResidentEditModal({
   resident,
   today,
   workers,
@@ -512,21 +512,13 @@ function AssignDrawer({
         if (!busy) onClose();
       }}
       label="어르신 수정"
-      drawer
     >
       <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 22 }}>어르신 수정</h2>
-            <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>
-              {resident.name} ·{" "}
-              {resident.careType === "home" ? "재가 (별지 제12호)" : "시설 (별지 제16호)"}
-            </p>
-          </div>
-          <button type="button" className="text-link" onClick={onClose}>
-            닫기
-          </button>
-        </div>
+        <h2 style={{ margin: "0 0 6px", fontSize: 20 }}>어르신 수정</h2>
+        <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
+          어르신 이름과 사진으로 대상을 확인해요. 같은 이름이면 사진과 담당 연결을 함께 확인해
+          주세요.
+        </p>
         <label className="flabel" htmlFor="edit-name">
           이름 (실명)
         </label>
@@ -540,11 +532,10 @@ function AssignDrawer({
             setError(null);
           }}
         />
-        <p className="fhint">
-          같은 이름도 등록할 수 있어요. 사진과 담당 연결을 함께 확인해 주세요.
-        </p>
         <PhotoPicker resident={resident} value={photo} onChange={setPhoto} disabled={busy} />
-        <p className="flabel">급여 종류</p>
+        <p className="flabel" style={{ marginTop: 14 }}>
+          급여 종류
+        </p>
         <div className="seg" role="group" aria-label="급여 종류">
           <button
             type="button"
@@ -568,7 +559,9 @@ function AssignDrawer({
             ? "기록이 있는 어르신은 급여 종류(서식)를 바꿀 수 없어요."
             : "급여 종류가 서식(별지 제16호 / 제12호)을 정해요."}
         </p>
-        <p className="flabel">담당 {workerLabel}</p>
+        <p className="flabel" style={{ marginTop: 14 }}>
+          담당 {workerLabel}
+        </p>
         <WorkerPicker
           workers={workers}
           selected={workerIds}
@@ -578,86 +571,95 @@ function AssignDrawer({
         <p className="fhint">
           가입한 {workerLabel}만 고를 수 있어요. 고른 {workerLabel}마다 담당 연결 한 줄이 생겨요.
         </p>
-        <label className="flabel" htmlFor="assign-start">
-          담당 시작일
-        </label>
-        <input
-          id="assign-start"
-          className="field"
-          type="date"
-          max={today}
-          value={startDate}
-          onChange={(event) => setStartDate(event.target.value)}
-        />
-        <p className="fhint">이 날부터 작성 전 기록을 셉니다.</p>
-        {home ? (
-          <>
-            <p className="flabel">방문 요일</p>
-            <div className="days big" role="group" aria-label="방문 요일">
-              {dayNames.map((name, index) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={days.includes(index + 1) ? "on" : ""}
-                  aria-pressed={days.includes(index + 1)}
-                  onClick={() => toggle(index + 1)}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-            <p className="fhint">
-              급여제공계획서의 횟수대로 고르세요.
-              {days.length > 0 &&
-                ` ${days.map((d) => dayNames[d - 1]).join("·")} = 주 ${days.length}회`}
-            </p>
-            <p className="flabel">방문 시간 (표시용)</p>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                className="field"
-                type="time"
-                aria-label="방문 시작"
-                value={from}
-                onChange={(event) => setFrom(event.target.value)}
-              />
-              –
-              <input
-                className="field"
-                type="time"
-                aria-label="방문 끝"
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-              />
-            </div>
-          </>
-        ) : (
-          <p className="info-note">시설 어르신은 매일 기록해요. 방문 요일이 없어요.</p>
-        )}
-        {error && (
-          <p className="warn-text" role="alert">
-            {error}
-          </p>
-        )}
-        <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
-          <button type="button" className="dbtn" style={{ flex: 1 }} onClick={onClose}>
-            취소
-          </button>
-          <button type="button" className="dbtn primary" style={{ flex: 1 }} onClick={save}>
-            <Icon name="check" />
-            {busy ? "저장 중…" : "저장"}
-          </button>
-        </div>
-        {/* 잘못 더한 어르신을 지우는 용도. 기록은 공식 기록이라 기록이 있으면 지우지 않는다(이슈 #103) */}
-        <div style={{ marginTop: 16 }}>
-          <button type="button" className="dbtn danger sm" disabled={lockCareType} onClick={remove}>
-            어르신 삭제
-          </button>
-          {lockCareType && (
-            <p className="muted" style={{ margin: "6px 0 0", fontSize: 13 }}>
-              기록이 있는 어르신은 지울 수 없어요. 기록은 공식 기록이라 남겨요.
+        <div>
+          <div>
+            <label className="flabel" htmlFor="assign-start" style={{ marginTop: 14 }}>
+              담당 시작일
+            </label>
+            <input
+              id="assign-start"
+              className="field"
+              type="date"
+              max={today}
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+            />
+            <p className="fhint">이 날부터 작성 전 기록을 셉니다.</p>
+          </div>
+          {home ? (
+            <>
+              <p className="flabel" style={{ marginTop: 14 }}>
+                방문 요일
+              </p>
+              <div className="days big" role="group" aria-label="방문 요일">
+                {dayNames.map((name, index) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={days.includes(index + 1) ? "on" : ""}
+                    aria-pressed={days.includes(index + 1)}
+                    onClick={() => toggle(index + 1)}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+              <p className="fhint">
+                급여제공계획서의 횟수대로 고르세요.
+                {days.length > 0 &&
+                  ` ${days.map((d) => dayNames[d - 1]).join("·")} = 주 ${days.length}회`}
+              </p>
+              <p className="flabel" style={{ marginTop: 14 }}>
+                방문 시간 (표시용)
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  className="field"
+                  type="time"
+                  aria-label="방문 시작"
+                  value={from}
+                  onChange={(event) => setFrom(event.target.value)}
+                />
+                –
+                <input
+                  className="field"
+                  type="time"
+                  aria-label="방문 끝"
+                  value={to}
+                  onChange={(event) => setTo(event.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="info-note" style={{ marginTop: 14 }}>
+              시설 어르신은 매일 기록해요. 방문 요일이 없어요.
             </p>
           )}
         </div>
+        {error && (
+          <p className="warn-text" role="alert" style={{ marginTop: 10 }}>
+            {error}
+          </p>
+        )}
+        {/* 버튼 줄은 [어르신 추가] 창과 같게 오른쪽에 [취소][저장]. 삭제는 같은 줄 왼쪽(이슈 #329) */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 18 }}>
+          {/* 잘못 더한 어르신을 지우는 용도. 기록은 공식 기록이라 기록이 있으면 지우지 않는다(이슈 #103) */}
+          <button type="button" className="dbtn danger sm" disabled={lockCareType} onClick={remove}>
+            어르신 삭제
+          </button>
+          <span style={{ flex: 1 }} />
+          <button type="button" className="dbtn" onClick={onClose}>
+            취소
+          </button>
+          <button type="button" className="dbtn primary" onClick={save}>
+            {busy ? "저장 중…" : "저장"}
+          </button>
+        </div>
+        {lockCareType && (
+          <p className="muted" style={{ margin: "6px 0 0", fontSize: 13 }}>
+            기록이 있는 어르신은 지울 수 없어요. 기록은 공식 기록이라 남겨요.
+          </p>
+        )}
       </fieldset>
     </DeskModal>
   );
@@ -725,7 +727,7 @@ function AddResidentModal({
         <p className="flabel" style={{ marginTop: 14 }}>
           급여 종류
         </p>
-        <div className="seg">
+        <div className="seg" role="group" aria-label="급여 종류">
           <button
             type="button"
             className={careType === "facility" ? "on" : ""}

@@ -26,12 +26,14 @@ describe("S-F01 Mock FE 상태", () => {
     expect(state.items.find((item) => item.item_key === "discomfort")?.status).toBe("needs_check");
   });
 
-  it("확인 필요는 제출을 허용하지만 미해결 상태로 승인할 수 없다", () => {
+  it("확인 필요도 작성자 확인 뒤 전송하고 미해결 상태로 승인할 수 없다", () => {
     const state = applyMealAddition(createDemoState());
     state.items = state.items.map((item) => ({
       ...item,
       confirmed_by_worker: item.status !== "needs_check",
     }));
+    expect(canSubmit(state.items)).toBe(false);
+    state.items = state.items.map((item) => ({ ...item, confirmed_by_worker: true }));
     expect(canSubmit(state.items)).toBe(true);
     state.status = "submitted";
     expect(canApprove(state)).toBe(false);

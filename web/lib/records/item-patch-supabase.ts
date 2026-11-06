@@ -1,7 +1,6 @@
 import "server-only";
 
 import { saveItemTranslation, readRecordItems } from "@/lib/agent/draft-repository";
-import type { NativeLang } from "@/lib/auth/signup";
 import { translateShort } from "@/lib/ai/translate";
 import { enforceQuota } from "@/lib/security/rate-limit-supabase";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -10,6 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ItemPatchDeps } from "./item-patch";
 import { recheckSupportMinutes } from "./support-check";
 import { createSupportCheckDeps } from "./support-check-supabase";
+import { readRecordNativeLang } from "./record-lang";
 import type { RecordRow } from "./transition";
 import { readCurrentUser } from "./transition-supabase";
 
@@ -51,17 +51,9 @@ export async function createItemPatchDeps(): Promise<ItemPatchDeps> {
       if (!data || data.length === 0) return { ok: false, error: "no_rows" };
       return { ok: true };
     },
-    // 번역은 작성자 모국어로 한다. 작성자는 자기 profiles를 읽고,
-    // 관리자는 작성자 profiles를 읽지 못하므로(기록계약보강) 서버가 그 한 칸만 읽는다.
-    async translationLang(record, user) {
-      const client = record.worker_id === user.id ? supabase : server;
-      const { data } = await client
-        .from("profiles")
-        .select("native_lang")
-        .eq("id", record.worker_id)
-        .maybeSingle();
-      return (data?.native_lang as NativeLang | undefined) ?? null;
-    },
+    // 번역은 기록을 만든 때 언어(records.native_lang)로 한다. 작성자가 나중에 모국어를 바꿔도 따라가지 않는다(이슈 #336).
+    // findRecord와 같은 로그인한 사람 권한(RLS)으로 읽으므로 관리자도 읽는다.
+    translationLang: (record) => readRecordNativeLang(supabase, record.id),
     translate: translateShort,
     async saveTranslation(recordId, key, actorId, expectedValueKo, valueNative) {
       try {

@@ -17,23 +17,20 @@ export async function createReturnTranslationDeps(): Promise<ReturnTranslationDe
       if (!auth.user) return null;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role, native_lang")
+        .select("role")
         .eq("id", auth.user.id)
         .maybeSingle();
       if (!profile) return null;
-      return {
-        id: auth.user.id,
-        role: profile.role as Role,
-        nativeLang: parseNativeLang(profile.native_lang),
-      };
+      return { id: auth.user.id, role: profile.role as Role };
     },
     async findRecord(recordId) {
       const { data } = await supabase
         .from("records")
-        .select("id, status, worker_id, return_reason, return_reason_native")
+        .select("id, status, worker_id, return_reason, return_reason_native, native_lang")
         .eq("id", recordId)
         .maybeSingle();
-      return (data as ReturnedRecord | null) ?? null;
+      if (!data) return null;
+      return { ...(data as ReturnedRecord), native_lang: parseNativeLang(data.native_lang) };
     },
     translate: translateShort,
     async save(recordId, workerId, expectedReason, native) {

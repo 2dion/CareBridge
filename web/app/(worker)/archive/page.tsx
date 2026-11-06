@@ -14,6 +14,8 @@ import { Icon } from "@/components/mobile/icon";
 import { BottomSheet, BtnLabel } from "@/components/mobile/parts";
 import { type DateRange, RangePicker, rangeLabel } from "@/components/mobile/range-picker";
 import { AppBar, Loading, MobileScreen, StatusBadge } from "@/components/mobile/shell";
+import { ResidentPhoto } from "@/components/resident-photo";
+import { archiveHref, forResident, pickedResident } from "@/lib/demo/archive-filter";
 import type { RecordStatus } from "@/lib/demo/state";
 import {
   addNoCareDay,
@@ -128,8 +130,13 @@ export default function ArchivePage() {
 
   if (!demo) return <Loading tab="archive" />;
   const { db, today } = demo;
-  const missed = listMissed(db, today);
-  const records = workerRecords(db).filter((record) => record.draftState !== "empty");
+  // 어르신 고르기(이슈 #326 A안): 상태 탭·기간 거르기·탭 숫자 모두 고른 어르신 기준. 기본은 전체
+  const residentId = pickedResident(db.residents, search.get("resident"));
+  const missed = forResident(listMissed(db, today), residentId);
+  const records = forResident(
+    workerRecords(db).filter((record) => record.draftState !== "empty"),
+    residentId,
+  );
   const byStatus = (status: RecordStatus) => records.filter((record) => record.status === status);
   const counts: Record<Tab, number> = {
     missed: missed.length,
@@ -138,7 +145,9 @@ export default function ArchivePage() {
     returned: byStatus("returned").length,
     approved: byStatus("approved").length,
   };
-  const setTab = (next: Tab) => router.replace(`/archive?tab=${next}`, { scroll: false });
+  const setTab = (next: Tab) => router.replace(archiveHref(next, residentId), { scroll: false });
+  const setResident = (next: string | null) =>
+    router.replace(archiveHref(tab, next), { scroll: false });
 
   return (
     <MobileScreen tab="archive">
@@ -156,11 +165,13 @@ export default function ArchivePage() {
           </button>
         }
       />
+      <ResidentPicks residents={db.residents} selected={residentId} onSelect={setResident} />
       {range ? (
         <RangeList
           db={db}
           today={today}
           range={range}
+          records={records}
           missed={missed}
           onClear={() => setRange(null)}
         />
@@ -204,14 +215,14 @@ export default function ArchivePage() {
               ))}
               <p className="foot-note" style={{ margin: "4px 6px 0" }}>
                 기록 없는 날은 7일이 지나면 쓸 수 없어요. 그때는 {names.reviewer}에게 알려 주세요.
-                <Native className="native">
+                <Native className="native" requiredIds={["w4.archive.expiryHint"]}>
                   {nativeMessage(nativeLanguage, "w4.archive.expiryHint")}
                   {names.reviewerNative}.
                 </Native>
               </p>
               <p className="foot-note" style={{ margin: "0 6px 16px" }}>
                 돌봄 날짜보다 늦게 전송한 기록은 {names.reviewer} 화면에 ‘지연전송’으로 보여요.
-                <Native className="native">
+                <Native className="native" requiredIds={["w4.archive.lateHint"]}>
                   {nativeMessage(nativeLanguage, "w4.archive.lateHint")}
                   {names.reviewerNative}.
                 </Native>
@@ -347,23 +358,75 @@ function RecordRow({ db, record }: { db: DemoDb; record: DemoRecord }) {
   );
 }
 
+/** 어르신 사진 줄(이슈 #326 A안). 맨 앞 '전체', 그 뒤 작성자가 읽을 수 있는 어르신. 누르면 바로 거른다 */
+function ResidentPicks({
+  residents,
+  selected,
+  onSelect,
+}: {
+  residents: DemoDb["residents"];
+  selected: string | null;
+  onSelect: (residentId: string | null) => void;
+}) {
+  const nativeLanguage = useNativeLanguage();
+  // 어르신이 한 명이면 고를 것이 없다
+  if (residents.length < 2) return null;
+  return (
+    <ChipRow className="filters scroll-x resident-picks" role="radiogroup" aria-label="어르신">
+      <button
+        type="button"
+        role="radio"
+        aria-checked={selected === null}
+        className={`resident-pick ${selected === null ? "on" : ""}`}
+        onClick={() => onSelect(null)}
+      >
+        <span className="pick-ring">
+          <span className="all">
+            <Icon name="list" />
+          </span>
+        </span>
+        <span className="name">전체</span>
+        <Native className="native" requiredIds={["w4.archive.allResidents"]}>
+          {nativeMessage(nativeLanguage, "w4.archive.allResidents")}
+        </Native>
+      </button>
+      {residents.map((resident) => (
+        <button
+          key={resident.id}
+          type="button"
+          role="radio"
+          aria-checked={selected === resident.id}
+          className={`resident-pick ${selected === resident.id ? "on" : ""}`}
+          onClick={() => onSelect(resident.id)}
+        >
+          <span className="pick-ring">
+            <ResidentPhoto resident={resident} size={44} />
+          </span>
+          <span className="name">{resident.name}</span>
+        </button>
+      ))}
+    </ChipRow>
+  );
+}
+
 function RangeList({
   db,
   today,
   range,
+  records: allRecords,
   missed,
   onClear,
 }: {
   db: DemoDb;
   today: string;
   range: DateRange;
+  /** 이미 고른 어르신으로 거른 기록(빈 기록 제외) */
+  records: DemoRecord[];
   missed: MissedRecord[];
   onClear: () => void;
 }) {
   const inRange = (date: string) => date >= range.start && date <= range.end;
-  const records = workerRecords(db).filter(
-    (record) => record.draftState !== "empty" && inRange(record.careDate),
-  );
+  const records = allRecords.filter((record) => inRange(record.careDate));
   const missing = missed.filter((row) => row.kind === "missing" && inRange(row.careDate));
   const dates = [...new Set([...records.map((r) => r.careDate), ...missing.map((r) => r.careDate)])]
     .sort()
@@ -513,7 +576,19 @@ function NoCareSheet({
                 <span className="radio" />
                 <span>
                   <b>{noCareReasonLabel[key].ko}</b>
-                  <Native className="native">{noCareReasonLabel[key].native}</Native>
+                  <Native className="native">
+                    {nativeMessage(
+                      nativeLanguage,
+                      (
+                        {
+                          hospital: "noCare.hospital",
+                          overnight: "noCare.overnight",
+                          visit_cancelled: "noCare.visitCancelled",
+                          other: "noCare.other",
+                        } as const
+                      )[key],
+                    )}
+                  </Native>
                 </span>
               </button>
             ))}

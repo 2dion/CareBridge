@@ -17,6 +17,7 @@ import { Icon } from "@/components/mobile/icon";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen } from "@/components/mobile/shell";
 import { TextInput } from "@/components/mobile/text-field";
+import { DEFAULT_NATIVE_LANG } from "@/lib/i18n/languages";
 import { helperSuggestions, mockHelperAnswer } from "@/lib/demo/helper";
 import { kstDateOf, kstTime, monthDayWeek } from "@/lib/demo/store";
 import {
@@ -183,7 +184,12 @@ function HelperChat({
         if (result.ok && result.data.conversation_id) id = result.data.conversation_id;
         saved = result.ok && Boolean(result.data.id && result.data.conversation_id);
         reply = result.ok
-          ? { id: botId, from: "bot", state: "done", answer: result.data }
+          ? {
+              id: botId,
+              from: "bot",
+              state: "done",
+              answer: { ...result.data, nativeLang: nativeLanguage },
+            }
           : { id: botId, from: "bot", state: "error", question: q };
       } else {
         await new Promise((resolve) => window.setTimeout(resolve, 900));
@@ -191,7 +197,7 @@ function HelperChat({
         const failed = !navigator.onLine || search.get("demo") === "error";
         reply = failed
           ? { id: botId, from: "bot", state: "error", question: q }
-          : { id: botId, from: "bot", state: "done", answer: mockHelperAnswer(q) };
+          : { id: botId, from: "bot", state: "done", answer: mockHelperAnswer(q, nativeLanguage) };
         if (!failed) id ??= crypto.randomUUID();
       }
       const completed = pending.map((message) => (message.id === botId ? reply : message));
@@ -280,16 +286,15 @@ function HelperChat({
       </div>
       <div className="reason-box big helper-notice" role="note">
         <b>건강·안전 문제는 {names.reviewer}에게 먼저 보고하세요.</b>
-        <Native className="native">
+        <Native className="native" requiredIds={["w6.safetyHint"]}>
           {nativeMessage(nativeLanguage, "w6.safetyHint")}
           {names.reviewerNative}.
         </Native>
         <span>
-          질문과 답은 저장되고 {names.reviewer}가 볼 수 있어요. 어르신·가족 실명은 쓰지 마세요.
+          질문과 답은 서버에 저장돼 나중에 다시 볼 수 있어요. 어르신·가족 실명은 쓰지 마세요.
         </span>
-        <Native className="native">
-          {nativeMessage(nativeLanguage, "w6.savedHintPrefix")}
-          {names.reviewerNative} {nativeMessage(nativeLanguage, "w6.savedHintSuffix")}
+        <Native className="native" requiredIds={["w6.savedHint"]}>
+          {nativeMessage(nativeLanguage, "w6.savedHint")}
         </Native>
       </div>
       <div className="chat" aria-live="polite">
@@ -379,7 +384,12 @@ function HelperChat({
                   {message.state === "done" && (
                     <>
                       <p>{message.answer.ko}</p>
-                      <Native className="native">{message.answer.native}</Native>
+                      <Native
+                        className="native"
+                        recordLanguage={message.answer.nativeLang ?? DEFAULT_NATIVE_LANG}
+                      >
+                        {message.answer.native}
+                      </Native>
                       <span className="source">
                         {message.answer.source
                           ? `출처 · ${message.answer.source}`

@@ -148,7 +148,7 @@ export default function VoicePage() {
           </button>
           <Link className="btn btn-outline" href={writeHref}>
             <span className="label">
-              {(nativeLanguage === "ko" ? "글로 쓰기" : "글로 쓰기 · ") +
+              {(nativeLanguage === "ko" ? "글로 기록" : "글로 기록 · ") +
                 nativeMessage(nativeLanguage, "w2.voice.writeInstead")}
             </span>
           </Link>

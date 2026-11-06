@@ -4,7 +4,7 @@ import { Native, useNativeLanguage } from "@/components/mobile/native";
 
 import { nativeMessage } from "@/lib/i18n/messages";
 
-// W2(기록 시작): 음성으로 기록 / 글로 쓰기. 임시 저장이 있으면 그 방법 카드에 표시.
+// W2(기록 시작): 음성으로 기록 / 글로 기록. 임시 저장이 있으면 그 방법 카드에 표시.
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -95,7 +95,7 @@ export default function StartPage() {
   const draftBadge = (
     <span className="badge badge-green" style={{ marginTop: 6 }}>
       <Icon name="doc" />
-      임시저장 1개
+      임시 저장 1개
     </span>
   );
 
@@ -153,7 +153,7 @@ export default function StartPage() {
             <Icon name="write" />
           </div>
           <div className="body">
-            <strong>글로 쓰기</strong>
+            <strong>글로 기록</strong>
             <Native className="m-native native">
               {nativeMessage(nativeLanguage, "w2.start.write")}
             </Native>

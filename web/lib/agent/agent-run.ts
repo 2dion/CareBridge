@@ -1,6 +1,6 @@
 import "server-only";
 
-import { parseNativeLang } from "@/lib/auth/signup";
+import { readRecordNativeLang } from "@/lib/records/record-lang";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -14,7 +14,7 @@ import { cachedSystem, totalTokens, withConversationCache } from "./prompt-cache
 import { AGENT_TOOLS, runAgent, type AgentDeps, type ContentBlock } from "./run-agent";
 import { minutesBetween, type ValidateContext } from "./validate-draft";
 
-// 기록 하나에 Agent를 돌린다. 받아쓰기가 끝나면 서버가(/audio), [다시 시도]·[글로 쓰기] 뒤에는 작성자가(/agent-run) 부른다.
+// 기록 하나에 Agent를 돌린다. 받아쓰기가 끝나면 서버가(/audio), [다시 시도]·[글로 기록] 뒤에는 작성자가(/agent-run) 부른다.
 // 읽기·원문 저장은 작성자 권한, 초안 저장(save_record_ai_draft)·작업 기록(agent_steps)은 서버(service_role).
 
 export class AgentRunError extends Error {
@@ -63,15 +63,12 @@ export async function buildValidateContext(
   workerId: string,
   transcript: string,
 ): Promise<ValidateContext> {
-  const { data: profile } = await userClient
-    .from("profiles")
-    .select("native_lang")
-    .eq("id", workerId)
-    .single();
+  // 번역 언어는 기록을 만든 때 언어(records.native_lang). 작성자가 나중에 바꾼 프로필 언어가 아니다(이슈 #336)
+  const recordLang = await readRecordNativeLang(userClient, record.id);
   const context: ValidateContext = {
     transcript,
     careType: careTypeOf(record.form_type),
-    nativeLang: parseNativeLang(profile?.native_lang),
+    nativeLang: recordLang ?? "ko",
     blockedNames: await getBlockedNames(serverClient, record.id, workerId),
   };
   if (record.visit_start && record.visit_end) {
@@ -106,7 +103,7 @@ export async function runAgentForRecord(
     throw new AgentRunError("invalid_transition");
   }
 
-  // [글로 쓰기]: 쓴 글을 원문으로 저장한다(원문은 작성자만 바꿈, 권한정리 결정 6)
+  // [글로 기록]: 쓴 글을 원문으로 저장한다(원문은 작성자만 바꿈, 권한정리 결정 6)
   let transcript: string = record.transcript ?? "";
   if (text !== undefined) {
     transcript = text.trim();

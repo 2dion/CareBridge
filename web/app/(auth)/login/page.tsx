@@ -1,11 +1,11 @@
 "use client";
 
-// A1(로그인): 이메일·비밀번호. 로그인 전이라 한국어 아래 베트남어를 늘 보인다.
+// A1(로그인): 이메일·비밀번호. 로그인 전 기본은 베트남어이며 공통 모국어 설정으로 병기한다.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
-import { Native } from "@/components/mobile/native";
+import { Native, useNativeLanguage } from "@/components/mobile/native";
 import { nativeMessage } from "@/lib/i18n/messages";
 import { useDemo } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
@@ -15,25 +15,37 @@ import { BtnLabel } from "@/components/mobile/parts";
 import { MobileScreen } from "@/components/mobile/shell";
 import { TextInput } from "@/components/mobile/text-field";
 import { type SignInResult, signIn, supabaseConfigured } from "@/lib/auth/session";
-import { ROLE_NAMES_BOTH } from "@/lib/demo/roles";
+import { roleNamesBoth } from "@/lib/demo/roles";
 
 // 로그인 전이라 어느 기관인지 모르므로 '관리자(강사)'로 함께 쓴다(이슈 #146, 용어집 v1.0)
-const errors: Record<
-  Exclude<SignInResult, { ok: true }>["reason"],
-  { ko: string; native: string }
-> = {
-  wrong: {
-    ko: "이메일 또는 비밀번호가 맞지 않습니다.",
-    native: nativeMessage("vi", "a1.error.wrong"),
-  },
-  no_profile: {
-    ko: `계정 준비가 끝나지 않았어요. ${ROLE_NAMES_BOTH.reviewer}에게 문의하세요.`,
-    native: nativeMessage("vi", "a1.error.noProfile", { reviewer: ROLE_NAMES_BOTH.reviewerNative }),
-  },
-  network: { ko: "인터넷 연결을 확인하세요.", native: nativeMessage("vi", "a1.error.network") },
+const errorsFor = (nativeLanguage: ReturnType<typeof useNativeLanguage>) => {
+  const namesBoth = roleNamesBoth(nativeLanguage);
+  const errors: Record<
+    Exclude<SignInResult, { ok: true }>["reason"],
+    { ko: string; native: string }
+  > = {
+    wrong: {
+      ko: "이메일 또는 비밀번호가 맞지 않습니다.",
+      native: nativeMessage(nativeLanguage, "a1.error.wrong"),
+    },
+    no_profile: {
+      ko: `계정 준비가 끝나지 않았어요. ${namesBoth.reviewer}에게 문의하세요.`,
+      native: nativeMessage(nativeLanguage, "a1.error.noProfile", {
+        reviewer: namesBoth.reviewerNative,
+      }),
+    },
+    network: {
+      ko: "인터넷 연결을 확인하세요.",
+      native: nativeMessage(nativeLanguage, "a1.error.network"),
+    },
+  };
+
+  return errors;
 };
 
 export default function LoginPage() {
+  const nativeLanguage = useNativeLanguage();
+  const errors = errorsFor(nativeLanguage);
   const router = useRouter();
   const demo = useDemo();
   const [email, setEmail] = useState("");
@@ -71,7 +83,7 @@ export default function LoginPage() {
       <form className="stack pad auth-form" onSubmit={submit} noValidate>
         <div className="field">
           <label htmlFor="email">
-            이메일 <Native id="a1.email" language="vi" />
+            이메일 <Native id="a1.email" />
           </label>
           <TextInput
             id="email"
@@ -85,7 +97,7 @@ export default function LoginPage() {
         </div>
         <div className="field">
           <label htmlFor="password">
-            비밀번호 <Native id="a1.password" language="vi" />
+            비밀번호 <Native id="a1.password" />
           </label>
           <div className="pw-wrap">
             <TextInput
@@ -114,7 +126,7 @@ export default function LoginPage() {
             <Icon name="alert" />
             <div>
               <b>{errors[error].ko}</b>
-              <Native language="vi">{errors[error].native}</Native>
+              <Native>{errors[error].native}</Native>
             </div>
           </div>
         )}
@@ -133,7 +145,7 @@ export default function LoginPage() {
         <div className="auth-links">
           <Link href="/signup">
             <b>회원가입</b>
-            <Native id="a1.signUp" language="vi" />
+            <Native id="a1.signUp" />
           </Link>
         </div>
         {!supabaseConfigured() && (

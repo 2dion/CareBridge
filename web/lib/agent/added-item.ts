@@ -26,6 +26,7 @@ export function addItemSystemPrompt(itemKey: ItemKey, nativeLang: NativeLang) {
    value_ko에는 정리한 기록 내용만 쓴다. "확인 필요", "용어 확인", "불명확" 같은 확인 요청 문장은
    value_ko에 넣지 않고 reason에만 쓴다(서버가 걸러 낸다).
    value_native는 그 번역, reason을 쓰면 reason_native에 그 번역을 쓴다.
+   작성자 모국어가 ko(한국어)면 value_native·reason_native는 빈 문자열로 둔다.
 5. 작성자가 베트남어 등 모국어로 말했어도 value_ko는 반드시 한국어 기록체로 옮긴다. 모국어 문장을 value_ko에 그대로 넣지 않는다.
    한국어로 말투 그대로 쓴 글("밤 10시에 방에 들어가서 주무시는 모습을 직접 봤어요")도 기록체로 고쳐 쓴다
    ("22시경 취침하시는 모습을 직접 확인함"). 말한 문장을 그대로 옮기지 않는다.

@@ -186,7 +186,7 @@ export default function TodayPage() {
           <div className="empty">
             <strong>오늘 담당 어르신이 없습니다.</strong>
             <p style={{ marginTop: 6 }}>{names.reviewer}에게 문의하세요.</p>
-            <Native className="native">
+            <Native className="native" requiredIds={["w1.noAssignment"]}>
               {nativeMessage(nativeLanguage, "w1.noAssignment")} {names.reviewerNative}.
             </Native>
           </div>

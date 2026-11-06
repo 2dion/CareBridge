@@ -4,7 +4,7 @@ import { Native, useNativeLanguage } from "@/components/mobile/native";
 
 import { nativeMessage } from "@/lib/i18n/messages";
 
-// W3 · 내용 수정·내용 추가(수정, 언급 없음 보충).
+// W3 · 내용 수정·내용 추가(수정, 언급 없음 내용 추가).
 // 한국어·베트남어 어느 쪽으로 써도 되고, 실제로는 서버가 이 항목만 한국어 기록체로 다시 쓰고 번역한다(화면 v1.3 W3).
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
@@ -148,7 +148,7 @@ export default function ItemEditPage() {
           const rest = Object.fromEntries(
             Object.entries(detail ?? {}).filter(([k]) => k !== "start" && k !== "end"),
           );
-          // 글로 쓴 고칠 내용은 음성 보태기와 같이 AI가 그 항목만 다시 정리·번역한다(이슈 #118).
+          // 글로 쓴 수정할 내용은 음성 추가와 같이 AI가 그 항목만 다시 정리·번역한다(이슈 #118).
           // 한국어·베트남어 어느 쪽으로 써도 공식 기록 칸은 한국어 기록체가 된다.
           if (text.trim()) {
             setNotice(
@@ -182,7 +182,20 @@ export default function ItemEditPage() {
           router.push(back);
           return;
         }
-        demo.update((db) => workerEditItem(db, id, key, { value_ko: value, detail }, nowIso()));
+        demo.update((db) =>
+          workerEditItem(
+            db,
+            id,
+            key,
+            {
+              value_ko: value,
+              detail,
+              // 실제 모드의 rewriteItemText 결과처럼 글 입력은 확인 전, 시간·분만 직접 수정하면 확인.
+              confirmed_by_worker: !text.trim(),
+            },
+            nowIso(),
+          ),
+        );
         router.push(back);
       })
       .catch(networkNotice);
@@ -203,7 +216,7 @@ export default function ItemEditPage() {
             (nativeLanguage === "ko" ? "올리는 중이에요." : "올리는 중이에요. · ") +
               nativeMessage(nativeLanguage, "w3.item.uploading"),
           );
-          // 이 항목만 다시 쓴다(③ 항목 보태기, save_ai_item item)
+          // 이 항목만 다시 쓴다(③ 항목 추가, save_ai_item item)
           const result = await demo.real.actions.sendItemVoice(id, key, blob);
           if (!result.ok)
             return setNotice(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
@@ -274,7 +287,7 @@ export default function ItemEditPage() {
                   </Native>
                 </div>
               </div>
-              <p style={{ fontSize: 13 }}>기억나는 내용이 있다면 보충해 주세요.</p>
+              <p style={{ fontSize: 13 }}>기억나는 내용이 있다면 추가해 주세요.</p>
               <Native className="native">{nativeMessage(nativeLanguage, "w3.item.addHint")}</Native>
             </section>
             {examples[key] && (
@@ -299,7 +312,7 @@ export default function ItemEditPage() {
               {item.status === "needs_check" && !item.value_ko.trim() ? (
                 // AI가 '확인 필요'로 두면서 내용을 비워 둔 경우: 빈 문단 대신 그 사실을 알린다(이슈 #141, 서버 검사는 #162)
                 <>
-                  <p>AI가 내용을 정하지 못했어요. 확인 이유를 보고 고칠 내용을 써 주세요.</p>
+                  <p>AI가 내용을 정하지 못했어요. 확인 이유를 보고 수정할 내용을 써 주세요.</p>
                   <Native className="native">
                     {nativeMessage(nativeLanguage, "w3.item.needsCheckHint")}
                   </Native>
@@ -307,7 +320,11 @@ export default function ItemEditPage() {
               ) : (
                 <>
                   <p>{item.value_ko}</p>
-                  {item.value_native && <Native className="native">{item.value_native}</Native>}
+                  {item.value_native && (
+                    <Native className="native" recordLanguage={record.nativeLang ?? "ko"}>
+                      {item.value_native}
+                    </Native>
+                  )}
                 </>
               )}
             </section>
@@ -374,7 +391,7 @@ export default function ItemEditPage() {
         <section className="review card grow">
           <div className="review-head">
             <label htmlFor="item-text" style={{ flex: 1, fontSize: 18, fontWeight: 700 }}>
-              {missing ? "보충할 내용" : "고칠 내용"}
+              {missing ? "추가할 내용" : "수정할 내용"}
             </label>
           </div>
           <TextArea
@@ -383,7 +400,7 @@ export default function ItemEditPage() {
             className="input"
             value={text}
             onValueChange={setText}
-            placeholder={`${missing ? `${label.ko} 상태를 자유롭게` : "고칠 내용을"} 적어 주세요. (한국어 또는 베트남어)`}
+            placeholder={`${missing ? `${label.ko} 상태를 자유롭게` : "수정할 내용을"} 적어 주세요. (한국어 또는 베트남어)`}
           />
           <div className="note-line" style={{ marginTop: 8 }}>
             <Icon name="refresh" />
@@ -426,13 +443,13 @@ export default function ItemEditPage() {
                 : recorder.state === "recording"
                   ? "말하기 끝"
                   : missing
-                    ? "말로 보충"
+                    ? "말로 추가"
                     : "다시 말하기"
             }
             native={
               busy
                 ? nativeMessage(nativeLanguage, "w3.item.processing")
-                : nativeMessage(nativeLanguage, "w3.item.speakAgain")
+                : nativeMessage(nativeLanguage, missing ? "w3.item.speakAdd" : "w3.item.speakAgain")
             }
           />
         </button>

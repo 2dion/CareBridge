@@ -110,9 +110,10 @@ describe("supportMinutesPatch", () => {
     expect(supportMinutesPatch(target({ careType: "facility" }))).toBeNull();
   });
 
-  it("작성자 언어가 한국어면 번역 칸에도 한국어 이유", () => {
+  it("기록 언어가 한국어면 번역 칸은 비움(이슈 #336)", () => {
     const patch = supportMinutesPatch(target({ nativeLang: "ko" }));
-    expect(patch?.reason_native).toBe(`${REASONS.supportMinutesExceed} (200분 > 180분)`);
+    expect(patch?.reason).toBe(`${REASONS.supportMinutesExceed} (200분 > 180분)`);
+    expect(patch?.reason_native).toBe("");
   });
 });
 

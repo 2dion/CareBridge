@@ -16,7 +16,7 @@ export const privacySections = (lang: NativeLang) =>
       icon: "user",
       ko: "수집 항목",
       native: nativeMessage(lang, "privacy.data.title"),
-      body: "이름, 이메일, 사용 언어, 녹음을 바꾼 글, 돌봄 기록 내용, 도우미에 물은 질문과 답(관리자·강사가 볼 수 있음). 어르신 실명·선택 사진은 대상 확인용으로 보관하며 AI 입력에 추가하지 않음. 관찰 본문에는 실명을 쓰지 않음",
+      body: "이름, 이메일, 사용 언어, 녹음을 바꾼 글, 돌봄 기록 내용, 도우미에 물은 질문과 답. 어르신 실명·선택 사진은 대상 확인용으로 보관하며 AI 입력에 추가하지 않음. 관찰 본문에는 실명을 쓰지 않음",
       bodyNative: nativeMessage(lang, "privacy.data.body"),
     },
     {
@@ -34,6 +34,3 @@ export const privacySections = (lang: NativeLang) =>
       bodyNative: nativeMessage(lang, "privacy.refusal.body"),
     },
   ] as const;
-
-// 로그인 전(가입 동의)처럼 언어를 아직 모를 때와 옛 호출은 베트남어
-export const PRIVACY_SECTIONS = privacySections("vi");

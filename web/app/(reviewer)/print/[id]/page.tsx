@@ -51,7 +51,7 @@ export default function PrintPage() {
     );
   const resident = getResident(db, record.residentId);
   const form = legalForms[record.formType];
-  const title = `별지 제${record.formType}호 법정 양식`;
+  const title = `별지 제${record.formType}호 서식`;
   const needsArea =
     record.formType === "16" && Boolean(printableItem(record, "notes")?.value_ko.trim());
   const resultKey = JSON.stringify([
@@ -138,7 +138,7 @@ export default function PrintPage() {
             기록으로 돌아가기
           </button>
           <a className="dbtn" href={form.href} target="_blank" rel="noopener noreferrer">
-            빈 원문 보기
+            빈 서식 보기
           </a>
           {result && (
             <>
@@ -163,10 +163,10 @@ export default function PrintPage() {
       </header>
       <section className="legal-form-layout no-print">
         <div className="legal-form-view">
-          <section className="panel legal-form-record">
-            <h1>법정 양식에 기록 채우기</h1>
+          <section className="panel legal-form-record desk-stack">
+            <h1>서식에 기록 채우기</h1>
             <p>
-              {form.revised} 개정 원문의 {form.days}일 칸 중 첫 날짜 열을 사용합니다. 뒤쪽
+              {form.revised} 개정 서식의 {form.days}일 칸 중 첫 날짜 열을 사용합니다. 뒤쪽
               유의사항과 서명란은 그대로 남깁니다.
             </p>
             {needsArea && (
@@ -198,7 +198,7 @@ export default function PrintPage() {
             )}
             {result && (
               <p role="status">
-                기록 {result.recordPages}쪽과 원문 뒤쪽을 포함해 총 {result.totalPages}쪽입니다.
+                기록 {result.recordPages}쪽과 서식 뒤쪽을 포함해 총 {result.totalPages}쪽입니다.
               </p>
             )}
           </section>
@@ -219,8 +219,8 @@ export default function PrintPage() {
             </>
           )}
         </div>
-        <aside className="panel legal-form-record" aria-label="양식에 넣을 기록">
-          <h2>양식에 넣을 기록</h2>
+        <aside className="panel legal-form-record" aria-label="서식에 넣을 기록">
+          <h2>서식에 넣을 기록</h2>
           <p>
             {resident?.name} · {record.careDate} · {db.worker.org}
           </p>
@@ -258,7 +258,7 @@ export default function PrintPage() {
         </aside>
       </section>
       <p className="legal-print-help">
-        화면의 ‘기록 PDF 열기·인쇄’에서 기록을 채운 법정 양식 PDF를 열어 인쇄해 주세요.
+        화면의 ‘기록 PDF 열기·인쇄’에서 기록을 채운 서식 PDF를 열어 인쇄해 주세요.
       </p>
       {toast.node}
     </main>
