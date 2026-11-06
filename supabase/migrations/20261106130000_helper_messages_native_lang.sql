@@ -17,7 +17,7 @@ alter table public.helper_messages alter column native_lang set not null;
 alter table public.helper_messages add constraint helper_messages_native_lang_check
   check (native_lang in ('ko', 'vi', 'zh', 'mn', 'en'));
 comment on column public.helper_messages.native_lang is
-  '답을 만든 때 작성자 언어. 서버도 고치지 못한다(helper_messages는 넣기만 됨, records.native_lang과 같은 기준). 화면은 지금 언어와 다르면 번역 줄을 숨긴다';
+  '답을 만든 때 작성자 언어. 만든 뒤 바꾸지 않는다(다음 마이그레이션의 트리거가 서버도 막음, records.native_lang과 같은 기준). 화면은 지금 언어와 다르면 번역 줄을 숨긴다';
 
 -- org_id와 같은 방식으로 작성자 프로필에서 채운다: org_id는 항상 덮어쓰고, native_lang은 보내지 않았을 때만 채운다
 create or replace function private.helper_messages_set_org() returns trigger

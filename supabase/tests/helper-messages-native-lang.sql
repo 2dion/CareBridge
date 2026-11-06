@@ -35,8 +35,8 @@ select pg_temp.check_true((select native_lang='vi' from public.helper_messages w
 -- 허용 값 밖은 거절
 select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,conversation_id,question,answer_ko,found,native_lang)
   values ('e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000001','잘못된 언어','답',true,'xx')$q$,'helper_messages_native_lang_check');
--- 서버도 고치지 못한다(넣기만 가능)
-select pg_temp.expect_error($q$update public.helper_messages set native_lang='ko'$q$,'permission denied');
+-- 서버(service_role)도 만든 뒤에는 고치지 못한다
+select pg_temp.expect_error($q$update public.helper_messages set native_lang='ko' where question='보낸 질문'$q$,'invalid_transition');
 reset role;
 
 -- 프로필 언어를 바꿔도 옛 행의 언어는 그대로
