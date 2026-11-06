@@ -11,6 +11,8 @@ type FixedText = {
   notFound(who: string): string;
   /** 건강·안전 질문일 때 바로 보고하라는 안내 */
   safety(who: string): string;
+  /** 사투리 풀이는 사전의 짐작이라는 안내(이슈 #357) */
+  dialectGuess: string;
   /** 질문(원문·번역)에 있으면 건강·안전 질문으로 보는 낱말. 소문자 부분 일치 */
   keywords: readonly string[];
 };
@@ -28,6 +30,7 @@ export const HELPER_FIXED: Partial<Record<NativeLang, FixedText>> = {
     trainer: "giảng viên",
     notFound: (who) => `Mình không tìm thấy nội dung này trong giáo trình. Vui lòng hỏi ${who}.`,
     safety: (who) => `Hãy báo ngay cho ${who}.`,
+    dialectGuess: "Đây chỉ là phỏng đoán nghĩa của từ địa phương.",
     keywords: [
       "ngã",
       "té",
@@ -54,6 +57,7 @@ export const HELPER_FIXED: Partial<Record<NativeLang, FixedText>> = {
     trainer: "讲师",
     notFound: (who) => `教材里没有找到这个内容。请询问${who}。`,
     safety: (who) => `请立即向${who}报告。`,
+    dialectGuess: "这只是对方言意思的推测。",
     keywords: [
       "摔倒",
       "跌倒",
@@ -86,6 +90,7 @@ export const HELPER_FIXED: Partial<Record<NativeLang, FixedText>> = {
     notFound: (who) =>
       `Сурах бичгээс энэ агуулгыг олсонгүй. ${capitalize(MN_CASE[who]?.from ?? who)} асууна уу.`,
     safety: (who) => `${capitalize(MN_CASE[who]?.to ?? who)} нэн даруй мэдэгдээрэй.`,
+    dialectGuess: "Энэ нь аялгуу үгийн утгын зөвхөн таамаг юм.",
     keywords: [
       "унаж",
       "унасан",
@@ -112,6 +117,7 @@ export const HELPER_FIXED: Partial<Record<NativeLang, FixedText>> = {
     trainer: "instructor",
     notFound: (who) => `I couldn't find this in the textbook. Please ask the ${who}.`,
     safety: (who) => `Please report to the ${who} right away.`,
+    dialectGuess: "This is only a guess at the meaning of the dialect word.",
     keywords: [
       // "fell asleep"(잠듦)에 걸리지 않게 넘어짐 표현만 쓴다(이슈 #349)
       "fell down",
