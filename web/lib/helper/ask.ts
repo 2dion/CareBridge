@@ -6,7 +6,7 @@
 
 import type { Role } from "@/lib/auth/signup";
 import { type RoleNames, roleNames } from "@/lib/demo/roles";
-import { languageNameKo, type NativeLang } from "@/lib/i18n/languages";
+import { genderNeutralRule, languageNameKo, type NativeLang } from "@/lib/i18n/languages";
 import { isNotKorean } from "@/lib/records/item-patch";
 import type { ApiResult } from "@/lib/records/transition";
 
@@ -168,7 +168,7 @@ export function helperSystemPrompt(nativeLang: NativeLang) {
   const nativeRule =
     nativeLang === "ko"
       ? 'native는 ""로 둔다.'
-      : `native에는 ko의 ${name} 번역을 쓴다. 교재 용어는 [용어]의 괄호 안 ${name}를 그대로 쓰고 다른 말로 옮기지 않는다.`;
+      : `native에는 ko의 ${name} 번역을 쓴다. 교재 용어는 [용어]의 괄호 안 ${name}를 그대로 쓰고 다른 말로 옮기지 않는다. ${genderNeutralRule(nativeLang)}`;
   return `너는 외국인 요양보호사를 돕는 도우미다. 아래 [교재]와 [용어]에 있는 내용만으로 답한다.
 1. 답은 [교재]·[용어]에 있는 내용만 쓴다. 상식·일반 조언·짐작을 보태지 않는다.
 2. [교재]·[용어]에 답이 없으면 found=false로 두고 ko·native는 ""로 둔다. 대신할 조언을 쓰지 않는다.

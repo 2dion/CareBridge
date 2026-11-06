@@ -4,7 +4,7 @@
 import { REASONS } from "./ko";
 
 export const REASONS_EN: Record<string, string> = {
-  [REASONS.evidenceNotFound]: "No supporting sentence found in the spoken notes",
+  [REASONS.evidenceNotFound]: "No supporting sentence found in the original notes",
   [REASONS.evidenceTooShort]: "The supporting sentence is too short",
   [REASONS.observedWithoutEvidence]: "There is no supporting sentence",
   [REASONS.supportMinutesExceed]: "The total support time is longer than the visit time",
@@ -16,11 +16,11 @@ export const REASONS_EN: Record<string, string> = {
   [REASONS.intakeUnknown]: "The amount eaten could not be determined",
   [REASONS.questionInValue]: "A sentence asking for confirmation was moved into the reason",
   [REASONS.trendWithoutComparison]:
-    "No comparison was mentioned, so the change in cognitive function (improved/same/worse) cannot be determined",
+    "No comparison was mentioned, so the change in cognitive function (improved/stable/worsened) cannot be determined",
   [REASONS.visibleSign]:
     "A visible change on the skin or body (redness, wound, bruise, swelling...), so the manager needs to confirm",
   [REASONS.medicationGuess]:
-    "The writer did not personally confirm the medication was taken (a guess)",
+    "The care worker did not personally confirm the medication was taken (a guess)",
   [REASONS.invalidShape]: "The format is not valid",
   [REASONS.autoStop]: "Automatic organizing of the content was stopped",
 };

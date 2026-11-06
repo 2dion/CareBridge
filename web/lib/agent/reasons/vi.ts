@@ -8,8 +8,9 @@ export const REASONS_VI: Record<string, string> = {
   [REASONS.evidenceNotFound]: "Không tìm thấy căn cứ trong lời ghi chú",
   [REASONS.evidenceTooShort]: "Câu làm căn cứ quá ngắn",
   [REASONS.observedWithoutEvidence]: "Không có câu làm căn cứ",
-  [REASONS.supportMinutesExceed]: "Tổng thời gian hỗ trợ dài hơn thời gian thăm",
-  [REASONS.visitMinutesMissing]: "Không có thời gian thăm để kiểm tra tổng thời gian hỗ trợ",
+  [REASONS.supportMinutesExceed]: "Tổng thời gian hỗ trợ dài hơn thời gian của buổi chăm sóc",
+  [REASONS.visitMinutesMissing]:
+    "Không có thời gian của buổi chăm sóc để kiểm tra tổng thời gian hỗ trợ",
   [REASONS.realName]: "Có tên thật trong nội dung",
   [REASONS.invalidMinutes]: "Định dạng thời gian hỗ trợ không hợp lệ",
   [REASONS.noReason]: "AI không cung cấp lý do",

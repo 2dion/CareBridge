@@ -35,9 +35,24 @@ export function reasonTranslation(reason: string, lang: NativeLang = "vi"): stri
   return prefix ? `${table[prefix]}${reason.slice(prefix.length)}` : "";
 }
 
-/** 주어진 한국어 이유들의 모든 언어 고정문(서버가 붙였던 번역을 걷어 낼 때 쓴다) */
+// 고정문을 고치기 전 문구. DB reason_native에 남은 옛 번역도 서버가 알아보고 걷어 내도록 둔다(이슈 #349)
+const PREVIOUS_NATIVE: Record<string, readonly string[]> = {
+  [REASONS.supportMinutesExceed]: [
+    "Tổng thời gian hỗ trợ dài hơn thời gian thăm",
+    "各项协助时间合计超过访问时间",
+    "Туслалцааны хугацааны нийлбэр айлчлалын хугацаанаас урт байна",
+  ],
+  [REASONS.visitMinutesMissing]: [
+    "Không có thời gian thăm để kiểm tra tổng thời gian hỗ trợ",
+    "没有访问时间，无法核对协助时间合计",
+    "Айлчлалын хугацаа байхгүй тул туслалцааны хугацааны нийлбэрийг шалгах боломжгүй",
+  ],
+};
+
+/** 주어진 한국어 이유들의 모든 언어 고정문과 고치기 전 문구(서버가 붙였던 번역을 걷어 낼 때 쓴다) */
 export function nativeReasonForms(reasons: readonly string[]): string[] {
-  return Object.values(REASONS_NATIVE).flatMap((table) =>
+  const current = Object.values(REASONS_NATIVE).flatMap((table) =>
     reasons.map((reason) => table[reason]).filter((form): form is string => Boolean(form)),
   );
+  return [...current, ...reasons.flatMap((reason) => PREVIOUS_NATIVE[reason] ?? [])];
 }

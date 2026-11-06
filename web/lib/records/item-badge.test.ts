@@ -25,7 +25,7 @@ describe("W4 상세 항목 배지 (이슈 #98)", () => {
     expect(itemBadge(item, org)).toMatchObject({
       kind: "omitted",
       ko: "관리자 기록 안 함",
-      native: "Người quản lý không ghi",
+      native: "Người quản lý chọn không ghi",
     });
   });
 
