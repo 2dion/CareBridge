@@ -164,6 +164,38 @@ export function withSafetyNotice(
   return { ...answer, ko, native };
 }
 
+const DIALECT_SOURCE = "우리말샘";
+const DIALECT_GUESS_KO = "사투리 풀이는 사전의 짐작이에요.";
+
+/** 용어 목록의 사투리 줄(출처 chapter가 '우리말샘'으로 시작, 결정 2026-11-04-사투리사전풀이) */
+export const isDialectTerm = (term: GlossaryTerm) => term.chapter.startsWith(DIALECT_SOURCE);
+
+/**
+ * 사투리 줄로 답했으면 출처와 '짐작' 표시를 모델에 맡기지 않고 서버가 붙인다(이슈 #357, 결정 사투리사전풀이 2·3번).
+ * - source: 모델이 쓴 교재 장·절·쪽은 두고 '[용어]' 꼬리표는 빼며, 사투리 줄의 출처(예: 우리말샘(충청 방언))를 더한다.
+ * - ko·native 끝에 '사전의 짐작'이라는 안내를 한 번만 붙인다. native는 그 언어의 고정 문구가 있을 때만(한국어 작성자는 빈칸).
+ * 사투리 줄이 없거나 found=false면 그대로 둔다(교재 절로 답한 질문의 출처는 지금처럼).
+ */
+export function withDialectNotice(
+  answer: HelperAnswer,
+  terms: readonly GlossaryTerm[],
+  lang: NativeLang,
+): HelperAnswer {
+  const dialect = [...new Set(terms.filter(isDialectTerm).map((term) => term.chapter))];
+  if (!answer.found || dialect.length === 0) return answer;
+  const kept = (answer.source ?? "")
+    .split(/\s*[,;]\s*/)
+    .filter((part) => part && !/^\[?\s*용어\s*\]?/.test(part));
+  const source = [...kept, ...dialect.filter((chapter) => !kept.includes(chapter))].join(", ");
+  const ko = answer.ko.includes("짐작") ? answer.ko : `${answer.ko} ${DIALECT_GUESS_KO}`.trim();
+  const guess = HELPER_FIXED[lang]?.dialectGuess;
+  const native =
+    !guess || answer.native === "" || answer.native.includes(guess)
+      ? answer.native
+      : `${answer.native} ${guess}`.trim();
+  return { ...answer, ko, native, source };
+}
+
 export function helperSystemPrompt(nativeLang: NativeLang) {
   // 언어 이름은 언어 목록(web/lib/i18n/languages.ts)에서 넣는다(이슈 #259)
   const name = languageNameKo(nativeLang);
@@ -174,10 +206,10 @@ export function helperSystemPrompt(nativeLang: NativeLang) {
   return `너는 외국인 요양보호사를 돕는 도우미다. 아래 [교재]와 [용어]에 있는 내용만으로 답한다.
 1. 답은 [교재]·[용어]에 있는 내용만 쓴다. 상식·일반 조언·짐작을 보태지 않는다.
 2. [교재]·[용어]에 답이 없으면 found=false로 두고 ko·native는 ""로 둔다. 대신할 조언을 쓰지 않는다.
-3. 사투리·일상 표현 풀이는 '짐작'이라고 밝히고, 여러 뜻이 가능하면 모두 쓴다.
+3. 사투리·일상 표현 풀이는 ko에 '짐작'이라고 밝히고, 여러 뜻이 가능하면 모두 쓴다.
 4. 기록을 고치거나 대신 쓰지 않는다. 건강·안전 보고 안내는 서버가 붙이므로 쓰지 않는다.
 5. 쉬운 한국어로 3문장 이내로 짧게 쓴다. ${nativeRule}
-6. source에는 답에 쓴 교재의 장·절·쪽을 쓴다.
+6. source에는 답에 쓴 교재의 장·절·쪽을 쓴다. [용어] 줄의 끝 [ ] 안 출처가 '우리말샘'이면 그 출처를 그대로 쓴다. '[용어]'라는 말은 쓰지 않는다.
 다른 말 없이 JSON 한 개로만 답한다: {"ko":"","native":"","source":"","found":true}`;
 }
 
@@ -320,7 +352,7 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
     const raw = await deps.askClaude(system, message);
     if (raw === null) return { status: 503, body: { error: "ai_not_configured" } };
     const answer = parseHelperAnswer(raw);
-    if (answer) return finish(answer);
+    if (answer) return finish(withDialectNotice(answer, terms, user.nativeLang));
   }
   return { status: 502, body: { error: "helper_failed" } };
 }

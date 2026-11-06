@@ -10,6 +10,7 @@ import {
   parseHelperAnswer,
   SAFETY_NOTICE,
   safetyNotice,
+  withDialectNotice,
   withSafetyNotice,
   type HelperDeps,
 } from "./ask";
@@ -668,5 +669,102 @@ describe("안전 안내 고정 문구의 문장 모양(#315 확인)", () => {
     expect(withSafetyNotice({ ...answer, native: "Help them sit." }, en).native).toBe(
       "Please report to the manager right away. Help them sit.",
     );
+  });
+});
+
+// 이슈 #357: 사투리 줄(출처 chapter가 우리말샘으로 시작)로 답하면 출처와 '짐작'을 서버가 붙인다
+const dialect = {
+  matched_expression: "몸이 대근혀",
+  term_ko: "몸이 대근하다",
+  term_native: "",
+  plain_ko: "몸이 고단하고 피곤하다",
+  chapter: "우리말샘(충청 방언)",
+  page: "",
+};
+const modelAnswer = (source: string) =>
+  JSON.stringify({
+    ko: "사투리로 몸이 고단하다는 뜻이에요.",
+    native: "Đây là tiếng địa phương, nghĩa là mệt mỏi.",
+    source,
+    found: true,
+  });
+
+describe("사투리 풀이 답의 출처와 짐작 표시(이슈 #357)", () => {
+  it.each(["[용어] 몸이 대근혀", "[용어]", ""])(
+    "사투리 줄만 쓴 답(모델 출처 '%s')은 출처가 우리말샘(충청 방언)이 된다",
+    async (modelSource) => {
+      const deps = fakeDeps({
+        searchGlossary: vi.fn(async () => [dialect]),
+        askClaude: vi.fn(async () => modelAnswer(modelSource)),
+      });
+      const r = await askHelper({ question: "몸이 대근혀 하시는데 무슨 뜻이에요?" }, deps);
+      expect(r.body.source).toBe("우리말샘(충청 방언)");
+      expect(vi.mocked(deps.saveMessage).mock.calls[0][0].source).toBe("우리말샘(충청 방언)");
+    },
+  );
+
+  it("교재 절과 사투리 줄을 함께 쓴 답은 교재 장·절·쪽 뒤에 우리말샘 출처를 더하고 '[용어]' 꼬리표를 뺀다", async () => {
+    const deps = fakeDeps({
+      searchGlossary: vi.fn(async () => [dialect]),
+      askClaude: vi.fn(async () => modelAnswer("9장 1절 (324–333쪽), [용어]")),
+    });
+    const r = await askHelper({ question: "밥을 쪼매만 드셨는데 어떻게 써요?" }, deps);
+    expect(r.body.source).toBe("9장 1절 (324–333쪽), 우리말샘(충청 방언)");
+  });
+
+  it("모델이 이미 우리말샘 출처를 썼으면 두 번 붙이지 않는다", async () => {
+    const deps = fakeDeps({
+      searchGlossary: vi.fn(async () => [dialect]),
+      askClaude: vi.fn(async () => modelAnswer("우리말샘(충청 방언)")),
+    });
+    const r = await askHelper({ question: "몸이 대근혀" }, deps);
+    expect(r.body.source).toBe("우리말샘(충청 방언)");
+  });
+
+  it.each([
+    ["vi", "Đây chỉ là phỏng đoán nghĩa của từ địa phương."],
+    ["zh", "这只是对方言意思的推测。"],
+    ["mn", "Энэ нь аялгуу үгийн утгын зөвхөн таамаг юм."],
+    ["en", "This is only a guess at the meaning of the dialect word."],
+  ] as const)("%s 작성자: 한국어·모국어 모두 '짐작'이라는 뜻이 들어간다", async (lang, guess) => {
+    const deps = fakeDeps({
+      currentUser: vi.fn(async () => ({ id: "w1", role: "worker" as const, nativeLang: lang })),
+      searchGlossary: vi.fn(async () => [dialect]),
+      askClaude: vi.fn(async () => modelAnswer("[용어]")),
+    });
+    const r = await askHelper({ question: "몸이 대근혀" }, deps);
+    expect(r.body.ko).toContain("짐작");
+    expect(r.body.native).toContain(guess);
+    expect(vi.mocked(deps.saveMessage).mock.calls[0][0].answer_native).toContain(guess);
+  });
+
+  it("모델이 ko에 이미 '짐작'을 썼으면 한국어 안내를 또 붙이지 않는다", () => {
+    const answer = { ko: "짐작으로는 피곤하다는 뜻이에요.", native: "", source: null, found: true };
+    expect(withDialectNotice(answer, [dialect], "ko").ko).toBe(answer.ko);
+  });
+
+  it("한국어 작성자는 모국어 줄이 빈칸 그대로", () => {
+    const answer = { ko: "피곤하다는 뜻이에요.", native: "", source: "[용어]", found: true };
+    const result = withDialectNotice(answer, [dialect], "ko");
+    expect(result.native).toBe("");
+    expect(result.ko).toContain("짐작");
+    expect(result.source).toBe("우리말샘(충청 방언)");
+  });
+
+  it("교재 절로 답한 질문(사투리 줄 없음)은 출처·글이 그대로", async () => {
+    const deps = fakeDeps({ searchGlossary: vi.fn(async () => [term]) });
+    const r = await askHelper({ question: "밥을 안 드셔요" }, deps);
+    expect(r.body.source).toBe("10장 120쪽");
+    expect(r.body.ko).toBe("억지로 권하지 마세요.");
+  });
+
+  it("교재에서 못 찾은 답(found=false)에는 짐작·출처를 붙이지 않는다", () => {
+    expect(withDialectNotice(NOT_FOUND, [dialect], "vi")).toBe(NOT_FOUND);
+  });
+
+  it("프롬프트가 우리말샘 출처 표기와 '[용어]' 금지를 알려 준다", () => {
+    const prompt = helperSystemPrompt("vi");
+    expect(prompt).toContain("우리말샘");
+    expect(prompt).toContain("'[용어]'라는 말은 쓰지 않는다");
   });
 });
