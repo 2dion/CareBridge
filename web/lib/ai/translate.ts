@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getAiMode, getAiModels } from "@/lib/config";
-import { languageNameKo, type NativeLang } from "@/lib/i18n/languages";
+import { genderNeutralRule, languageNameKo, type NativeLang } from "@/lib/i18n/languages";
 
 import { getClaudeClient } from "./claude";
 
@@ -15,6 +15,9 @@ function systemPrompt(lang: Exclude<NativeLang, "ko">) {
   return [
     `너는 요양 돌봄 기록의 짧은 한국어 문장을 ${languageNameKo(lang)}로 번역한다.`,
     "뜻을 더하거나 빼지 않는다.",
+    // 기록 평서문이 명령문으로 옮겨지던 문제('알아보시고 웃으심' → 'Hãy nhận biết…', 이슈 #349)
+    "원문의 문장 종류를 바꾸지 않는다. 기록처럼 사실을 적은 말(~하심, ~함)은 평서문으로, 부탁·지시는 부탁·지시로 옮긴다.",
+    genderNeutralRule(lang),
     '다른 말 없이 JSON 한 줄로만 답한다: {"text": "번역문"}',
   ].join("\n");
 }

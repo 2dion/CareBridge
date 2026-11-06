@@ -58,3 +58,16 @@ export function parseNativeLang(value: unknown): NativeLang {
 export function languageNameKo(lang: NativeLang): string {
   return LANGUAGES.find((language) => language.code === lang)?.nameKo ?? lang;
 }
+
+// 번역문에서 어르신의 성별을 정하지 않게 하는 언어별 지시. 기록·도우미·짧은 번역 프롬프트가 함께 쓴다(이슈 #349)
+const GENDER_NEUTRAL: Partial<Record<NativeLang, string>> = {
+  vi: '어르신은 "ông/bà"로 쓰고 "cô ấy", "ông ấy", "bà ấy", "cụ ông", "cụ bà"처럼 성별이 드러나는 말을 쓰지 않는다.',
+  zh: '어르신은 "老人"으로 쓰고 "他", "她", "爷爷", "奶奶"처럼 성별이 드러나는 말을 쓰지 않는다.',
+  mn: '어르신은 "ахмад настан"으로 쓰고 "өвөө", "эмээ"처럼 성별이 드러나는 말을 쓰지 않는다.',
+  en: '어르신은 "they"로 쓰고 "he", "she", "grandma", "grandpa"처럼 성별이 드러나는 말을 쓰지 않는다.',
+};
+
+/** 번역 프롬프트에 넣을 성별 중립 지시. ko는 번역이 없어 빈칸 */
+export function genderNeutralRule(lang: NativeLang): string {
+  return GENDER_NEUTRAL[lang] ?? "";
+}

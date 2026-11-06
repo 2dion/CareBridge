@@ -264,7 +264,7 @@ describe("검사 5: 재가 제공시간 합 ≤ 방문 시간", () => {
 
   it("서버가 붙인 이유의 번역은 숫자가 붙어도 찾음", () => {
     expect(reasonTranslation(`${REASONS.supportMinutesExceed} (200분 > 180분)`)).toBe(
-      "Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)",
+      "Tổng thời gian hỗ trợ dài hơn thời gian của buổi chăm sóc (200분 > 180분)",
     );
     expect(reasonTranslation("모르는 이유")).toBe("");
     expect(reasonTranslation(REASONS.realName, "ko")).toBe("");

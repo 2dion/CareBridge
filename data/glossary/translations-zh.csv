@@ -7,7 +7,7 @@ T05,仪容整理（刮胡子、剪指甲）,false
 T06,协助洗澡,false
 T07,协助进食,false
 T08,全部吃完,false
-T09,吃了一半以上,false
+T09,吃了一半或以上,false
 T10,吃了不到一半,false
 T11,吃了一点（需再确认食量）,false
 T12,粥,false
@@ -18,7 +18,7 @@ T16,协助移动,false
 T17,协助如厕,false
 T18,更换尿布,false
 T19,尿失禁,false
-T20,呛咳 / 吞咽困难,false
+T20,呛咳 / 吞咽吃力,false
 T21,本人说睡得不好,false
 T22,诉说疼痛,false
 T23,皮肤发红,false
@@ -38,7 +38,7 @@ T36,肠造口,false
 T37,尿路造口,false
 T38,尿布皮炎,false
 T39,皮肤褶皱处糜烂,false
-T40,吞咽辅助食,false
+T40,吞咽障碍调整饮食（糊状、软食）,false
 T41,发绀,false
 T42,头晕,false
 T43,谵妄,false

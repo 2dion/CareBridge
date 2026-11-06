@@ -3,7 +3,7 @@
 //       문서/설계/데이터구조-v2.3.6.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
-import { languageNameKo, type NativeLang } from "@/lib/i18n/languages";
+import { genderNeutralRule, languageNameKo, type NativeLang } from "@/lib/i18n/languages";
 import { getFormSpec } from "./form-spec";
 import { REASONS, reasonTranslation } from "./reasons";
 import {
@@ -235,8 +235,8 @@ export function agentSystemPrompt(careType: CareType, nativeLang: NativeLang) {
    "~인지 확인해 주세요" 같은 확인 요청·질문 문장은 value_ko에 넣지 않고 reason에만 쓴다
    (서버가 걸러 내고 그 항목을 needs_check로 둔다).
    reason을 쓰면 reason_native에 그 번역을 쓴다.
-   value_native·reason_native는 어르신의 성별을 정하지 않는다. "cô ấy", "ông ấy"처럼 성별이 드러나는
-   말 대신 "ông/bà"처럼 중립으로 쓴다.
+   value_native·reason_native는 어르신의 성별을 정하지 않는다. ${genderNeutralRule(nativeLang)}
+   value_native는 기록 문장을 옮긴 것이라 평서문으로 쓰고, 명령문·권유문(예: "Hãy …", "Please …")으로 바꾸지 않는다.
    용어 목록에 있는 말은 search_glossary가 준 고정 번역만 쓴다.
    받아쓴 글은 한국어만, 모국어만, 둘이 섞인 말일 수 있다. 어느 경우든 value_ko는
    한국어로 쓰고, evidence는 원문 언어 그대로 옮긴다. transcript_ko는 원문 전체의 한국어 번역이다.

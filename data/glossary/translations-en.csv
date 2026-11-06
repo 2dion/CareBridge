@@ -7,7 +7,7 @@ T05,"Grooming (shaving, nail trimming)",false
 T06,Help with bathing,false
 T07,Help with eating,false
 T08,Ate the whole meal,false
-T09,Ate more than half,false
+T09,Ate half or more,false
 T10,Ate less than half,false
 T11,Ate a little (check the amount again),false
 T12,Porridge,false

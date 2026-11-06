@@ -35,7 +35,7 @@ describe("supportMinutesPatch", () => {
     expect(patch).toEqual({
       status: "needs_check",
       reason: `${REASONS.supportMinutesExceed} (200분 > 180분)`,
-      reason_native: "Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)",
+      reason_native: "Tổng thời gian hỗ trợ dài hơn thời gian của buổi chăm sóc (200분 > 180분)",
     });
   });
 
@@ -45,7 +45,7 @@ describe("supportMinutesPatch", () => {
     expect(supportMinutesPatch(fits)).toBeNull();
   });
 
-  it("분을 고쳐 합이 맞으면 서버가 붙였던 이유를 걷고 '관찰'로 돌림", () => {
+  it("분을 고쳐 합이 맞으면 서버가 붙였던 이유(고치기 전 번역 문구 포함)를 걷고 '관찰'로 돌림", () => {
     const fixed = target({
       support: {
         value_ko: "목욕, 청소·빨래, 말벗·격려 제공하였음.",
@@ -77,7 +77,7 @@ describe("supportMinutesPatch", () => {
       status: "needs_check",
       reason: `'씻겨 드림'을 목욕으로 짐작; ${REASONS.supportMinutesExceed} (200분 > 180분)`,
       reason_native:
-        "Đoán 'tắm rửa' là tắm; Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)",
+        "Đoán 'tắm rửa' là tắm; Tổng thời gian hỗ trợ dài hơn thời gian của buổi chăm sóc (200분 > 180분)",
     });
     const fits = { ...mixed, support: { ...mixed.support, detail: { minutes: FITS } } };
     expect(supportMinutesPatch(fits)).toEqual({
@@ -93,7 +93,7 @@ describe("supportMinutesPatch", () => {
         value_ko: "목욕 도움.",
         status: "needs_check",
         reason: `${REASONS.supportMinutesExceed} (200분 > 180분)`,
-        reason_native: "Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)",
+        reason_native: "Tổng thời gian hỗ trợ dài hơn thời gian của buổi chăm sóc (200분 > 180분)",
         detail: { minutes: EXCEED },
       },
     });

@@ -14,7 +14,9 @@ describe("코드 이유의 모국어 번역(REASONS_NATIVE)", () => {
 
   it("중국어·영어도 숫자가 붙은 이유를 번역한다", () => {
     const reason = `${REASONS.supportMinutesExceed} (200분 > 180분)`;
-    expect(reasonTranslation(reason, "zh")).toBe("各项协助时间合计超过访问时间 (200분 > 180분)");
+    expect(reasonTranslation(reason, "zh")).toBe(
+      "各项协助时间合计超过上门服务时间 (200분 > 180분)",
+    );
     expect(reasonTranslation(reason, "en")).toBe(
       "The total support time is longer than the visit time (200분 > 180분)",
     );
@@ -22,7 +24,7 @@ describe("코드 이유의 모국어 번역(REASONS_NATIVE)", () => {
 
   it("숫자가 붙은 이유는 앞부분으로 찾고 뒤를 그대로 붙인다", () => {
     expect(reasonTranslation(`${REASONS.supportMinutesExceed} (200분 > 180분)`, "vi")).toBe(
-      "Tổng thời gian hỗ trợ dài hơn thời gian thăm (200분 > 180분)",
+      "Tổng thời gian hỗ trợ dài hơn thời gian của buổi chăm sóc (200분 > 180분)",
     );
   });
 
@@ -38,10 +40,14 @@ describe("코드 이유의 모국어 번역(REASONS_NATIVE)", () => {
     expect(reasonTranslation(`${REASONS.supportMinutesExceed} (200분 > 180분)`, unknown)).toBe("");
   });
 
-  it("nativeReasonForms는 모든 언어의 고정문을 모은다", () => {
+  it("nativeReasonForms는 모든 언어의 고정문과 고치기 전 문구를 모은다", () => {
     const forms = nativeReasonForms([REASONS.supportMinutesExceed, "없는 이유"]);
+    expect(forms).toContain("Tổng thời gian hỗ trợ dài hơn thời gian của buổi chăm sóc");
+    expect(forms).toContain("各项协助时间合计超过上门服务时间");
+    // DB에 남은 옛 번역도 걷어 내도록 고치기 전 문구를 함께 돌려준다(이슈 #349)
     expect(forms).toContain("Tổng thời gian hỗ trợ dài hơn thời gian thăm");
     expect(forms).toContain("各项协助时间合计超过访问时间");
-    expect(forms).toHaveLength(4);
+    expect(forms).toContain("Туслалцааны хугацааны нийлбэр айлчлалын хугацаанаас урт байна");
+    expect(forms).toHaveLength(7);
   });
 });

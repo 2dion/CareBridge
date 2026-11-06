@@ -14,7 +14,7 @@ from (values
   ('씻겨 드렸어요', '목욕도움(몸 씻기 도움)', 'Help with bathing', false),
   ('밥 먹여 드렸어요', '식사도움', 'Help with eating', false),
   ('다 드셨어요', '섭취량 1(전량)', 'Ate the whole meal', false),
-  ('반 넘게 드셨어요', '섭취량 1/2이상', 'Ate more than half', false),
+  ('반 넘게 드셨어요', '섭취량 1/2이상', 'Ate half or more', false),
   ('반도 못 드셨어요', '섭취량 1/2미만', 'Ate less than half', false),
   ('조금 드셨어요', '(섭취량 확인 필요)', 'Ate a little (check the amount again)', false),
   ('죽 드셨어요', '죽', 'Porridge', false),

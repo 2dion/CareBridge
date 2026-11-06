@@ -7,7 +7,7 @@ T05,"Chăm sóc ngoại hình (cạo râu, cắt móng)",false
 T06,Hỗ trợ tắm,false
 T07,Hỗ trợ ăn uống,false
 T08,Ăn hết khẩu phần,false
-T09,Ăn được hơn một nửa,false
+T09,Ăn được một nửa trở lên,false
 T10,Ăn chưa được một nửa,false
 T11,Ăn một ít (cần hỏi lại lượng),false
 T12,Cháo,false
@@ -19,7 +19,7 @@ T17,Hỗ trợ đi vệ sinh,false
 T18,Thay tã,false
 T19,Tiểu không tự chủ,false
 T20,Bị sặc / khó nuốt,false
-T21,Bà nói ngủ không ngon,false
+T21,Ông/bà nói ngủ không ngon,false
 T22,Kêu đau,false
 T23,Da bị đỏ,false
 T24,Bị sưng / phù,false
