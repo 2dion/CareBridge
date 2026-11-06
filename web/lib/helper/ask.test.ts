@@ -786,3 +786,38 @@ describe("사투리 풀이 답의 출처와 짐작 표시(이슈 #357)", () => {
     expect(prompt).toContain("'[용어]'라는 말은 쓰지 않는다");
   });
 });
+
+describe("저장된 사투리 답을 다시 쓸 때(이슈 #357)", () => {
+  it("옛 출처 '[용어]'를 우리말샘 출처로, 짐작 안내를 붙여 돌려주고 Claude는 부르지 않는다", async () => {
+    const stored = {
+      ko: "사투리로 몸이 고단하다는 뜻이에요.",
+      native: "Đây là tiếng địa phương.",
+      source: "[용어] 몸이 대근혀",
+      found: true,
+    };
+    const deps = fakeDeps({
+      findSavedAnswer: vi.fn(async () => stored),
+      searchGlossary: vi.fn(async () => [dialect]),
+    });
+    const r = await askHelper({ question: "몸이 대근혀" }, deps);
+    expect(r.body.source).toBe("우리말샘(충청 방언)");
+    expect(r.body.ko).toContain("짐작");
+    expect(r.body.native).toContain("phỏng đoán");
+    expect(deps.askClaude).not.toHaveBeenCalled();
+  });
+
+  it("이미 맞춰 저장된 답은 두 번 고치지 않는다", async () => {
+    const stored = {
+      ko: "사투리로 몸이 고단하다는 뜻이에요. 사투리 풀이는 사전의 짐작이에요.",
+      native: "Đây là tiếng địa phương. Đây chỉ là phỏng đoán nghĩa của từ địa phương.",
+      source: "우리말샘(충청 방언)",
+      found: true,
+    };
+    const deps = fakeDeps({
+      findSavedAnswer: vi.fn(async () => stored),
+      searchGlossary: vi.fn(async () => [dialect]),
+    });
+    const r = await askHelper({ question: "몸이 대근혀" }, deps);
+    expect(r.body).toMatchObject(stored);
+  });
+});
