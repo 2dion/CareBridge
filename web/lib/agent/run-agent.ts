@@ -48,7 +48,7 @@ export type AgentDeps = {
   callClaude(
     system: string,
     messages: AgentMessage[],
-  ): Promise<{ content: ContentBlock[]; tokens: number }>;
+  ): Promise<{ content: ContentBlock[]; tokens: number; cacheReadTokens?: number }>;
   searchGlossary(expression: string): Promise<unknown[]>;
   /** 검증한 초안 저장(saveValidatedDraft). 낮춘 항목을 돌려줌 */
   saveDraft(draft: unknown): Promise<{ downgraded: string[] }>;
@@ -272,6 +272,35 @@ function shapeHint(result: { fixed: unknown; problems: { code: string }[] }) {
   };
 }
 
+/**
+ * 도구 인자 draft를 객체로 맞춘다(이슈 #356). 모델이 JSON 객체 대신 JSON 문자열을 보내는 일이 있어,
+ * 문자열이 JSON 객체로 읽히면 객체로 바꿔 기존 검증을 거친다. 읽을 수 없으면 그대로 두어 invalid_shape가 된다.
+ */
+export function normalizeDraftInput(raw: unknown): unknown {
+  if (typeof raw !== "string") return raw;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : raw;
+  } catch {
+    return raw;
+  }
+}
+
+/** 형식 오류 진단. 받아쓰기 원문·초안 본문은 담지 않고 타입만 남긴다 */
+function draftDiagnostic(raw: unknown, tool: string, cacheReadTokens: number | undefined) {
+  const draft = normalizeDraftInput(raw);
+  return {
+    tool,
+    draft_type: Array.isArray(raw) ? "array" : raw === null ? "null" : typeof raw,
+    parsed_from_string: typeof raw === "string" && draft !== raw,
+    items_is_array:
+      typeof draft === "object" &&
+      draft !== null &&
+      Array.isArray((draft as { items?: unknown }).items),
+    cache_read_tokens: cacheReadTokens ?? null,
+  };
+}
+
 const isTool = (name: string): name is AgentTool => AGENT_TOOLS.some((tool) => tool.name === name);
 
 export async function runAgent(input: AgentInput, deps: AgentDeps): Promise<AgentResult> {
@@ -309,7 +338,9 @@ export async function runAgent(input: AgentInput, deps: AgentDeps): Promise<Agen
           step_no: stepNo,
           tool: use.name,
           input_summary: summarize(args),
-          result_summary: repeated ? `같은 입력 반복: 앞 결과를 돌려줌` : summarize(output),
+          result_summary: repeated
+            ? `같은 입력 반복: 앞 결과를 돌려줌`
+            : withShapeDiagnostic(summarize(output), output, use, reply.cacheReadTokens),
           reason: typeof why === "string" ? why : "",
           duration_ms: deps.now() - started,
           tokens: index === 0 ? reply.tokens : null,
@@ -330,6 +361,17 @@ export async function runAgent(input: AgentInput, deps: AgentDeps): Promise<Agen
   // 4번 안에 초안 반환이 없음: 마지막 초안을 검증해 저장하고, 못 정한 항목은 '확인 필요' + 자동 정리 중단
   const saved = await deps.saveDraft(autoStopDraft(lastDraft, input));
   return { endReason: "auto_stopped", downgraded: saved.downgraded };
+}
+
+function withShapeDiagnostic(
+  summary: string,
+  output: string,
+  use: ToolUse,
+  cacheReadTokens: number | undefined,
+) {
+  if (use.name !== "validate_draft" && use.name !== "return_draft") return summary;
+  if (!output.includes('"invalid_shape"')) return summary;
+  return `${summary} | 진단 ${JSON.stringify(draftDiagnostic(use.input.draft, use.name, cacheReadTokens))}`;
 }
 
 async function runToolWithRetry(
@@ -366,8 +408,9 @@ async function runTool(
       return JSON.stringify(expression ? await deps.searchGlossary(expression) : []);
     }
     case "validate_draft": {
-      rememberDraft(use.input.draft);
-      const result = validateDraft(use.input.draft, input.context);
+      const draft = normalizeDraftInput(use.input.draft);
+      rememberDraft(draft);
+      const result = validateDraft(draft, input.context);
       return JSON.stringify({
         passed: result.passed,
         problems: result.problems,
@@ -375,13 +418,14 @@ async function runTool(
       });
     }
     case "return_draft": {
-      rememberDraft(use.input.draft);
-      const check = validateDraft(use.input.draft, input.context);
+      const draft = normalizeDraftInput(use.input.draft);
+      rememberDraft(draft);
+      const check = validateDraft(draft, input.context);
       // 형식이 깨져 고칠 수 없으면 저장하지 않고 문제 목록을 돌려준다
       if (!check.fixed) {
         return JSON.stringify({ saved: false, problems: check.problems, ...shapeHint(check) });
       }
-      const saved = await deps.saveDraft(use.input.draft);
+      const saved = await deps.saveDraft(draft);
       return JSON.stringify({ saved: true, downgraded: saved.downgraded });
     }
     default:
