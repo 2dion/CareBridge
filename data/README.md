@@ -11,7 +11,7 @@ AI가 짐작하지 않고 이 자료에서 찾아 쓰게 해서 "지어내지 �
 | `cases/` | 합성 사례와 정답표 | 시나리오 Mock 응답, 품질 측정(ai규칙-v1.1 '품질 확인 방법') | **10건** (시설 5, 재가 5) |
 | `manual/` | 교재 매뉴얼 15절 (표준교재 본문) | `manual_sections` 표 → W6(도우미) 교재 검색 | 10/28 클라우드 DB에 12절(BE), 10/30 M13 추가(#183), 11/03 M14·M15 호흡곤란 추가(#226) — `seed-manual-sections.sql` 다시 실행 필요 |
 | `forms/` | 서식 기준: 별지 제16호(시설)·제12호(재가)의 칸·선택지·작성 기준·코드값 | Agent `get_form_spec`, M2 '공식 기록지 칸 안내', M3 인쇄 | 서버 코드로 옮길 원본 |
-| `glossary/` | 용어 목록 **51개** (기본 30 + 추가 20 + 10/22 추가 1: T51 '진지 잡수세요') | `glossary` 표 → DB 함수·Agent 도구 `search_glossary`, W3 '용어 뜻 보기' | 10/28 클라우드 DB 51개(T51 포함, BE) |
+| `glossary/` | 용어 목록 **112개** (기본 30 + 추가 20 + 10/22 추가 1: T51 '진지 잡수세요' + 11/06 사투리 61: T52~T112) | `glossary` 표 → DB 함수·Agent 도구 `search_glossary`, W3 '용어 뜻 보기' | 10/28 클라우드 DB 51개(T51 포함, BE) |
 
 ## 합성 사례 10건 (품질 측정용)
 
@@ -62,6 +62,7 @@ AI가 짐작하지 않고 이 자료에서 찾아 쓰게 해서 "지어내지 �
 - **v0.3 (10/22): T51 '진지 잡수세요' 추가 → 51개.** 시나리오 3 W6 질문용. 교재에 없는 표현이라 교재 쪽이 없고 뜻은 표준국어대사전 기준. 시드를 이미 넣었다면 다시 돌리면 T51만 추가됩니다(on conflict).
 - **번역은 언어별 파일(11/03, #259):** `translations-vi.csv`(`term_id`, `term`, `reviewed`) = 베트남어 번역 원본. `seed-glossary-translations-vi.sql` = `glossary_translations` 표용(용어는 `expression`·`term_ko`로 찾아 잇고, 다시 돌려도 안전). 언어를 더하면 `translations-<lang>.csv`를 따로 채웁니다. `terms-v0.3.csv`의 베트남어 열은 다음 판까지 그대로 둡니다(둘이 다르면 CSV 원본이 기준).
 - **중국어(간체자)·몽골어(키릴 문자)·영어 추가(11/06, #314):** `translations-zh.csv`·`translations-mn.csv`·`translations-en.csv`(51개씩, 같은 형식)와 시드 `seed-glossary-translations-zh/mn/en.sql`. 시드는 `python3 data/glossary/build_translation_seeds.py [언어]`로 CSV에서 만듭니다(베트남어 시드도 같은 스크립트로 다시 만들어지며 내용은 그대로). **코디세이 DB에만** 넣습니다(공모전 DB 제외).
+- **v0.4 (11/06, #230): 사투리 61개 추가 → 112개.** 우리말샘 방언 뜻만, `chapter` = `우리말샘(지역 방언)`, `page` 비움, `term_ko` 끝에 `(사투리)`. 네 언어 번역도 61줄씩 더해 언어마다 112줄. 고른 방법·검색 확인은 [glossary-v0.3.md](glossary/glossary-v0.3.md) 'v0.4 사투리'. **코디세이 DB에만** 넣습니다.
 - 교재 쪽은 「2026년 요양보호사 양성 표준교재」 인쇄 쪽. ⚠️ 베트남어·중국어·몽골어·영어 번역은 모두 Claude 초안(검수 전, `reviewed = false`). 영어는 교재 주요용어집 영문(`terms-v0.3.csv` '영문' 열)을 참고했지만 작성자가 읽는 쉬운 말로 풀어 써서 같지 않은 줄이 있습니다.
 
 ## 교재 매뉴얼 (manual/)
