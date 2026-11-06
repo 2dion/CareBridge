@@ -17,7 +17,6 @@ import { Icon } from "@/components/mobile/icon";
 import { BtnLabel, Listen, Modal } from "@/components/mobile/parts";
 import { AppBar, Loading, MobileScreen } from "@/components/mobile/shell";
 import { TextInput } from "@/components/mobile/text-field";
-import { DEFAULT_NATIVE_LANG } from "@/lib/i18n/languages";
 import { helperSuggestions, mockHelperAnswer } from "@/lib/demo/helper";
 import { kstDateOf, kstTime, monthDayWeek } from "@/lib/demo/store";
 import {
@@ -188,7 +187,7 @@ function HelperChat({
               id: botId,
               from: "bot",
               state: "done",
-              answer: { ...result.data, nativeLang: nativeLanguage },
+              answer: { ...result.data, nativeLang: result.data.native_lang ?? nativeLanguage },
             }
           : { id: botId, from: "bot", state: "error", question: q };
       } else {
@@ -383,10 +382,7 @@ function HelperChat({
                   {message.state === "done" && (
                     <>
                       <p>{message.answer.ko}</p>
-                      <Native
-                        className="native"
-                        recordLanguage={message.answer.nativeLang ?? DEFAULT_NATIVE_LANG}
-                      >
+                      <Native className="native" recordLanguage={message.answer.nativeLang}>
                         {message.answer.native}
                       </Native>
                       <span className="source">

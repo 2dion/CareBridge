@@ -11,6 +11,7 @@ function rows(n: number): StoredHelperRow[] {
     question: `질문 ${n - i}`,
     answer_ko: `답 ${n - i}`,
     answer_native: `Trả lời ${n - i}`,
+    native_lang: "vi",
     source: i === 0 ? "" : "10장 120쪽",
     found: i !== 0,
     created_at: `2026-10-31T01:${String(59 - i).padStart(2, "0")}:00.123456+00:00`,
@@ -29,6 +30,32 @@ function fakeDeps(overrides: Partial<HelperMessagesDeps> = {}): HelperMessagesDe
 
 const params = (query = "") => new URLSearchParams(query);
 
+describe("listHelperMessages의 답 언어(이슈 #354)", () => {
+  it.each(["vi", "zh", "mn", "en", "ko"])(
+    "저장된 native_lang %s를 그대로 내려 주고 vi 키는 없다",
+    async (lang) => {
+      const deps = fakeDeps({
+        fetchMessages: vi.fn(async () => rows(1).map((row) => ({ ...row, native_lang: lang }))),
+      });
+      const r = await listHelperMessages(params(), deps);
+      const answer = (r.body.messages as Array<{ answer: Record<string, unknown> }>)[0].answer;
+      expect(answer.native_lang).toBe(lang);
+      expect(answer.native).toBe("Trả lời 1");
+      expect(answer).not.toHaveProperty("vi");
+    },
+  );
+
+  it("모르는 언어 값은 ko로 읽는다", async () => {
+    const deps = fakeDeps({
+      fetchMessages: vi.fn(async () => rows(1).map((row) => ({ ...row, native_lang: "xx" }))),
+    });
+    const r = await listHelperMessages(params(), deps);
+    expect(
+      (r.body.messages as Array<{ answer: { native_lang: string } }>)[0].answer.native_lang,
+    ).toBe("ko");
+  });
+});
+
 describe("listHelperMessages", () => {
   it("내 대화를 오래된 것부터 돌려주고 더 이전이 없으면 next_before가 null", async () => {
     const deps = fakeDeps();
@@ -42,7 +69,7 @@ describe("listHelperMessages", () => {
     expect(messages[1]).toEqual({
       id: "m2",
       question: "질문 2",
-      answer: { ko: "답 2", vi: "Trả lời 2", source: null, found: false },
+      answer: { ko: "답 2", native: "Trả lời 2", native_lang: "vi", source: null, found: false },
       created_at: "2026-10-31T01:59:00.123456+00:00",
     });
     // 기본 50개 + 더 있는지 보려고 1개 더

@@ -56,6 +56,19 @@ select pg_temp.check_true((select answer_ko = '다른 기관 답' from public.fi
 -- 빈 질문·없는 작성자는 빈 결과
 select pg_temp.check_true((select count(*) = 0 from public.find_helper_answer('d2000000-0000-0000-0000-000000000002', ' ?? ')), 'empty key');
 select pg_temp.check_true((select count(*) = 0 from public.find_helper_answer('d2000000-0000-0000-0000-0000000000ff', '어르신이 밥을 안 드셔요')), 'unknown worker');
+-- 언어를 바꾼 작성자의 옛 답(이슈 #354): 답의 언어(helper_messages.native_lang)로 비교하고, 작성자의 지금 언어는 보지 않는다
+reset role;
+update public.profiles set native_lang='zh' where id='d2000000-0000-0000-0000-000000000001';
+set local role service_role;
+-- 갑이 zh로 바꿨어도 옛 vi 답은 vi 작성자(을)에게 계속 재사용된다
+select pg_temp.check_true((select count(*) = 1 from public.find_helper_answer('d2000000-0000-0000-0000-000000000002', '어르신이 밥을 안 드셔요')), 'old vi answer reused for vi asker after author switched');
+-- zh로 바꾼 갑 자신은 vi 답을 받지 않는다
+select pg_temp.check_true((select count(*) = 0 from public.find_helper_answer('d2000000-0000-0000-0000-000000000001', '어르신이 밥을 안 드셔요')), 'switched author does not get vi answer');
+-- 지금 zh인 갑의 새 답(zh)은 zh 작성자에게만
+insert into public.helper_messages(worker_id,conversation_id,question,answer_ko,answer_native,source,found,native_lang) values
+ ('d2000000-0000-0000-0000-000000000001','d3000000-0000-0000-0000-000000000001','약 시간','약은 정해진 시간에 드리세요.','请按时给药。','8장',true,'zh');
+select pg_temp.check_true((select count(*) = 0 from public.find_helper_answer('d2000000-0000-0000-0000-000000000002', '약 시간')), 'zh answer not given to vi asker');
+select pg_temp.check_true((select answer_native = '请按时给药。' from public.find_helper_answer('d2000000-0000-0000-0000-000000000001', '약 시간')), 'zh answer given to zh asker');
 reset role;
 
 select 'find-helper-answer: all assertions passed' as result;

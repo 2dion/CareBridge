@@ -2,7 +2,7 @@ import { nativeMessage } from "@/lib/i18n/messages";
 
 // 실제 모드의 화면 동작: 서버 API(공통 계약 10개)와 Supabase(RLS) 직접 쓰기. 끝나면 화면이 다시 읽는다(reload).
 // AI 결과는 서버가 만들고, 화면은 가짜 결과를 만들지 않는다.
-// 근거: 문서/설계/데이터구조-v2.3.6.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
+// 근거: 문서/설계/데이터구조-v2.3.7.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
 import type { NativeLang } from "@/lib/auth/signup";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -17,7 +17,16 @@ export type HelperConversationsPage = {
   next_before: string | null;
 };
 
-/** GET /api/helper/messages 응답(데이터 구조 v2.1.0 공통 계약). conversation은 대화가 하나도 없으면 null */
+/** GET /api/helper/messages 응답의 답(데이터 구조 v2.3.7). native_lang = 답을 만든 때 작성자 언어(이슈 #354) */
+type HelperAnswerWire = {
+  ko: string;
+  native: string;
+  native_lang: NativeLang;
+  source: string | null;
+  found: boolean;
+};
+
+/** 화면이 읽는 모양. 답의 nativeLang = 서버의 native_lang. 지금 언어와 다르면 번역 줄을 숨기는 기준이다 */
 export type HelperMessagesPage = {
   conversation: { id: string; title: string } | null;
   messages: Array<{
@@ -490,6 +499,8 @@ export function createRealActions(
           id: string | null;
           created_at: string | null;
           conversation_id: string | null;
+          /** 답을 만든 때 작성자 언어(이슈 #354) */
+          native_lang?: NativeLang;
         }
       >("/api/helper/ask", {
         body: conversationId ? { question, conversation_id: conversationId } : { question },
@@ -504,25 +515,25 @@ export function createRealActions(
       if (before) params.set("before", before);
       if (conversationId) params.set("conversation_id", conversationId);
       const query = params.size > 0 ? `?${params.toString()}` : "";
-      // 서버의 전환 기간 응답(vi)은 화면 경계에서 native로 읽는다. API 계약은 바꾸지 않는다.
-      const result = await callApi<HelperMessagesPage>(`/api/helper/messages${query}`, {
-        method: "GET",
-      });
+      // 서버의 답은 native·native_lang(이슈 #354). 화면은 nativeLang으로 읽는다. 언어를 모르는 옛 응답을 vi로 추정하지 않는다.
+      const result = await callApi<
+        Omit<HelperMessagesPage, "messages"> & {
+          messages: Array<
+            Omit<HelperMessagesPage["messages"][number], "answer"> & {
+              answer: HelperAnswerWire;
+            }
+          >;
+        }
+      >(`/api/helper/messages${query}`, { method: "GET" });
       if (!result.ok) return result;
       return {
         ...result,
         data: {
           ...result.data,
-          messages: result.data.messages.map((message) => ({
-            ...message,
-            answer: {
-              ...message.answer,
-              native:
-                message.answer.native ??
-                (message.answer as HelperAnswer & { vi?: string }).vi ??
-                "",
-            },
-          })),
+          messages: result.data.messages.map(({ answer, ...message }) => {
+            const { native_lang, ...rest } = answer;
+            return { ...message, answer: { ...rest, nativeLang: native_lang } };
+          }),
         },
       };
     },

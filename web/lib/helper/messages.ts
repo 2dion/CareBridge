@@ -1,7 +1,8 @@
 // 지난 도우미 대화 불러오기(W6를 열 때, 이전 대화를 고를 때). 작성자 본인의 대화 하나를 최근부터 나눠 준다(이슈 #218, #251).
-// 근거: 문서/설계/데이터구조-v2.3.6.md '공통 계약' GET /api/helper/messages, 문서/결정/2026-11-03-도우미대화묶음.md
+// 근거: 문서/설계/데이터구조-v2.3.7.md '공통 계약' GET /api/helper/messages, 문서/결정/2026-11-03-도우미대화묶음.md
 // DB 읽기는 HelperMessagesDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 import type { Role } from "@/lib/auth/signup";
+import { parseNativeLang } from "@/lib/i18n/languages";
 import type { ApiResult } from "@/lib/records/transition";
 
 export const DEFAULT_MESSAGES_LIMIT = 50;
@@ -13,6 +14,8 @@ export type StoredHelperRow = {
   question: string;
   answer_ko: string;
   answer_native: string;
+  /** 답을 만든 때 작성자 언어(helper_messages.native_lang, 이슈 #354) */
+  native_lang: string;
   source: string;
   found: boolean;
   created_at: string;
@@ -45,7 +48,7 @@ export function parseLimit(raw: string | null, fallback: number, max: number): n
 export const isTimestamp = (value: string) => !Number.isNaN(Date.parse(value));
 
 // GET /api/helper/messages — 작성자. 입력 conversation_id(없으면 가장 최근 대화)·before·limit.
-// 출력 conversation({ id, title } 또는 대화가 없으면 null)·messages(오래된 것부터)·next_before
+// 출력 conversation({ id, title } 또는 대화가 없으면 null)·messages(오래된 것부터, 각 answer = ko·native·native_lang·source·found)·next_before
 export async function listHelperMessages(
   params: URLSearchParams,
   deps: HelperMessagesDeps,
@@ -84,7 +87,8 @@ export async function listHelperMessages(
         question: row.question,
         answer: {
           ko: row.answer_ko,
-          vi: row.answer_native,
+          native: row.answer_native,
+          native_lang: parseNativeLang(row.native_lang),
           source: row.source || null,
           found: row.found,
         },

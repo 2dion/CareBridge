@@ -163,7 +163,7 @@ export async function createHelperMessagesDeps(): Promise<HelperMessagesDeps> {
     async fetchMessages(conversationId, before, count) {
       let query = supabase
         .from("helper_messages")
-        .select("id, question, answer_ko, answer_native, source, found, created_at")
+        .select("id, question, answer_ko, answer_native, native_lang, source, found, created_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false })
         .limit(count);
