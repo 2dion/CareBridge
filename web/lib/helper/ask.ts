@@ -341,7 +341,11 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   // 같은 기관에서 같은 질문에 교재에서 찾은 답이 이미 있으면 Claude를 부르지 않는다(W6 9번, 이슈 #229).
   // 이번 질문도 새 행으로 남기고, 안전 안내는 위 finish가 다시 붙인다
   const reused = await deps.findSavedAnswer(user.id, questionKo);
-  if (reused?.found) return finish(reused);
+  if (reused?.found) {
+    // 옛 사투리 답(출처 '[용어]', 짐작 없음)도 다시 쓸 때 맞춘다(이슈 #357). 용어 검색은 DB 조회뿐이라 Claude를 부르지 않는다
+    const reusedTerms = await deps.searchGlossary(questionKo, user.nativeLang);
+    return finish(withDialectNotice(reused, reusedTerms, user.nativeLang));
+  }
 
   const [sections, terms] = await Promise.all([
     deps.searchManual(questionKo, keywords),
