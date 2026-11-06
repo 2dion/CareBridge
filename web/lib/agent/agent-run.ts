@@ -164,7 +164,11 @@ export async function runAgentForRecord(
         }
         return [];
       });
-      return { content, tokens: totalTokens(response.usage) };
+      return {
+        content,
+        tokens: totalTokens(response.usage),
+        cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+      };
     },
     async searchGlossary(expression) {
       const { data, error } = await userClient.rpc("search_glossary", {

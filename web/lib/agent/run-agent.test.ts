@@ -4,6 +4,7 @@ import {
   AGENT_TOOLS,
   agentSystemPrompt,
   AUTO_STOP_REASON,
+  normalizeDraftInput,
   runAgent,
   type AgentDeps,
   type AgentInput,
@@ -172,5 +173,52 @@ describe("agentSystemPrompt", () => {
     expect(prompt).toContain("notes에도 그 사실만 짧게 쓴다");
     expect(prompt).toContain("성별을 정하지 않는다");
     expect(prompt).toContain("ông/bà");
+  });
+});
+
+describe("draft가 문자열로 올 때 (이슈 #356)", () => {
+  it("유효한 JSON 객체 문자열은 객체로 읽어 검증하고 객체로 저장함", async () => {
+    const deps = fakeDeps([[use("return_draft", { draft: JSON.stringify(emptyDraft) })]]);
+    const result = await runAgent(input, deps);
+    expect(result.endReason).toBe("draft_returned");
+    expect(deps.saveDraft).toHaveBeenCalledWith(emptyDraft);
+  });
+
+  it("validate_draft도 객체 문자열을 통과시킴", async () => {
+    const deps = fakeDeps([[use("validate_draft", { draft: JSON.stringify(emptyDraft) })]]);
+    await runAgent(input, deps);
+    const summary = vi.mocked(deps.logStep).mock.calls[0][0].result_summary;
+    expect(summary).toContain('"passed":true');
+    expect(summary).not.toContain("진단");
+  });
+
+  it("읽을 수 없는 문자열은 저장하지 않고, 진단에는 타입만 남김(본문 없음)", async () => {
+    const deps = fakeDeps([[use("return_draft", { draft: "비밀 본문 {깨진 json" })], []], {
+      callClaude: vi
+        .fn()
+        .mockResolvedValueOnce({
+          content: [use("return_draft", { draft: "비밀 본문 {깨진 json" })],
+          tokens: 100,
+          cacheReadTokens: 1234,
+        })
+        .mockResolvedValue({ content: [], tokens: 1 }),
+    });
+    await runAgent(input, deps);
+    const firstSave = vi.mocked(deps.saveDraft).mock.calls[0][0] as { items: { reason: string }[] };
+    // 형식 오류 초안은 return_draft로 저장되지 않고, 끝에 자동 정리 중단 초안만 저장된다
+    expect(firstSave.items.every((item) => item.reason === AUTO_STOP_REASON)).toBe(true);
+    const summary = vi.mocked(deps.logStep).mock.calls[0][0].result_summary;
+    expect(summary).toContain('"saved":false');
+    expect(summary).toContain(
+      '"draft_type":"string","parsed_from_string":false,"items_is_array":false,"cache_read_tokens":1234',
+    );
+  });
+
+  it("normalizeDraftInput: 객체는 그대로, 객체가 아닌 JSON은 문자열 그대로", () => {
+    expect(normalizeDraftInput(emptyDraft)).toBe(emptyDraft);
+    expect(normalizeDraftInput('{"a":1}')).toEqual({ a: 1 });
+    expect(normalizeDraftInput("[1]")).toBe("[1]");
+    expect(normalizeDraftInput("3")).toBe("3");
+    expect(normalizeDraftInput(null)).toBeNull();
   });
 });
