@@ -609,7 +609,7 @@ describe("모국어별 고정 답(이슈 #312)", () => {
       "I couldn't find this in the textbook. Please ask the manager.",
     );
     expect(notFoundAnswer(org, "mn").native).toBe(
-      "Сурах бичгээс энэ агуулгыг олсонгүй. менежерээс асууна уу.",
+      "Сурах бичгээс энэ агуулгыг олсонгүй. Менежерээс асууна уу.",
     );
     expect(notFoundAnswer(org, "vi")).toEqual(NOT_FOUND);
   });
@@ -648,6 +648,25 @@ describe("모국어별 고정 답(이슈 #312)", () => {
     });
     const r = await askHelper({ question: "摔倒了" }, deps);
     expect(r.status).toBe(200);
-    expect(r.body.native).toBe("请立即向管理员报告。 教材里没有找到这个内容。请询问管理员。");
+    expect(r.body.native).toBe("请立即向管理员报告。教材里没有找到这个内容。请询问管理员。");
+  });
+});
+
+describe("안전 안내 고정 문구의 문장 모양(#315 확인)", () => {
+  it("몽골어는 격 어미를 붙인 이름으로 시작해도 첫 글자가 대문자", () => {
+    expect(safetyNotice(roleNames(false), "mn").native).toBe("Менежерт нэн даруй мэдэгдээрэй.");
+    expect(safetyNotice(roleNames(true), "mn").native).toBe("Багшид нэн даруй мэдэгдээрэй.");
+  });
+
+  it("중국어는 안내와 답 사이를 띄우지 않고, 다른 언어는 한 칸 띄운다", () => {
+    const answer = { ko: "답", native: "", source: null, found: true };
+    const zh = safetyNotice(roleNames(false), "zh");
+    expect(withSafetyNotice({ ...answer, native: "先让老人坐下。" }, zh).native).toBe(
+      "请立即向管理员报告。先让老人坐下。",
+    );
+    const en = safetyNotice(roleNames(false), "en");
+    expect(withSafetyNotice({ ...answer, native: "Help them sit." }, en).native).toBe(
+      "Please report to the manager right away. Help them sit.",
+    );
   });
 });
