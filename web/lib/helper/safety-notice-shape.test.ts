@@ -22,15 +22,12 @@ describe("모국어 고정문의 문장 첫 글자", () => {
   );
 
   // 몽골어 notFound의 둘째 문장도 '~에게서'(탈격) 이름으로 시작한다: "…олсонгүй. менежерээс асууна уу."
-  it.each([false, true])(
-    "mn(교육용 %s): 교재 없음 안내 둘째 문장도 대문자로 시작",
-    (training) => {
-      const text = notFoundAnswer(roleNames(training), "mn").native;
-      for (const sentence of text.split(/(?<=[.!?])\s+/)) {
-        expect(sentence.charAt(0)).not.toMatch(/\p{Ll}/u);
-      }
-    },
-  );
+  it.each([false, true])("mn(교육용 %s): 교재 없음 안내 둘째 문장도 대문자로 시작", (training) => {
+    const text = notFoundAnswer(roleNames(training), "mn").native;
+    for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+      expect(sentence.charAt(0)).not.toMatch(/\p{Ll}/u);
+    }
+  });
 
   it.each(["vi", "zh", "en"] as const)(
     "%s 교재 없음 안내는 문장 첫 글자가 소문자가 아님",
