@@ -121,6 +121,24 @@ describe("작성자 화면 병기 렌더링(#258)", () => {
     for (const text of translations) expect(html).not.toContain(text);
     expect(html).toContain(record.items.find((item) => item.value_ko)!.value_ko);
   });
+  // 결정 2026-11-07-몽골어글로기록: 받아쓰기 확인 전 언어(mn)는 W2 음성 카드 대신 안내, W3 [말로 추가]는 숨김
+  it("받아쓰기 확인 전 언어(mn)는 W2에서 글로 기록만 안내하고 W3 말로 추가를 숨긴다", async () => {
+    const { default: Start } = await pages["start/[residentId]"]();
+    const { default: Item } = await pages["records/[id]/items/[key]"]();
+    context.language = "mn";
+    const start = renderToStaticMarkup(<Start />);
+    expect(start).toContain("글로 기록해 주세요");
+    expect(start).toContain("Бичгээр тэмдэглэнэ үү");
+    expect(start).not.toContain("말하면서 빠르게");
+    expect(renderToStaticMarkup(<Item />)).not.toMatch(/말로 추가|다시 말하기/);
+    context.language = "zh";
+    const zh = renderToStaticMarkup(<Start />);
+    expect(zh).toContain("말하면서 빠르게");
+    expect(zh).not.toContain("글로 기록해 주세요");
+    expect(renderToStaticMarkup(<Item />)).toMatch(/말로 추가|다시 말하기/);
+    context.language = "vi";
+  });
+
   it.each(paths)("%s: 베트남어 줄과 언어 속성을 유지하고 ko 계정에서는 숨긴다", async (path) => {
     const { default: Page } = await pages[path]();
     const bilingual = renderToStaticMarkup(<Page />);

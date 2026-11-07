@@ -2,6 +2,7 @@
 
 import { Native, useNativeLanguage } from "@/components/mobile/native";
 
+import { isSttChecked } from "@/lib/i18n/languages";
 import { nativeMessage } from "@/lib/i18n/messages";
 
 // W2(기록 시작): 음성으로 기록 / 글로 기록. 임시 저장이 있으면 그 방법 카드에 표시.
@@ -127,27 +128,51 @@ export default function StartPage() {
         </div>
       )}
       <div className="stack pad" style={{ gap: 12, marginBottom: 14 }}>
-        <button type="button" className="method card" onClick={() => go("voice")}>
-          <div className="icon-bubble">
-            <Icon name="mic" />
+        {isSttChecked(nativeLanguage) ? (
+          <button type="button" className="method card" onClick={() => go("voice")}>
+            <div className="icon-bubble">
+              <Icon name="mic" />
+            </div>
+            <div className="body">
+              <strong>음성으로 기록</strong>
+              <Native className="m-native native">
+                {nativeMessage(nativeLanguage, "w2.start.voice")}
+              </Native>
+              <p>
+                말하면서 빠르게
+                <br />
+                기록 초안을 만들어요.
+              </p>
+              <Native className="p-native native">
+                {nativeMessage(nativeLanguage, "w2.start.voiceDescription")}
+              </Native>
+              {draftReady && existing.inputMode === "voice" && draftBadge}
+            </div>
+            <Icon name="next" />
+          </button>
+        ) : (
+          // 받아쓰기 확인을 통과하지 못한 언어(sttChecked=false)는 말로 기록을 열지 않고 글로 기록만 안내한다
+          // (결정 2026-11-07-몽골어글로기록). 서버는 막지 않는다
+          <div className="method card" role="status" aria-disabled="true" style={{ opacity: 0.7 }}>
+            <div className="icon-bubble">
+              <Icon name="mic" />
+            </div>
+            <div className="body">
+              <strong>음성으로 기록</strong>
+              <Native className="m-native native">
+                {nativeMessage(nativeLanguage, "w2.start.voice")}
+              </Native>
+              <p>
+                이 언어는 아직 말로 기록을
+                <br />
+                지원하지 않아요. 글로 기록해 주세요.
+              </p>
+              <Native className="p-native native">
+                {nativeMessage(nativeLanguage, "w2.start.voiceUnavailable")}
+              </Native>
+            </div>
           </div>
-          <div className="body">
-            <strong>음성으로 기록</strong>
-            <Native className="m-native native">
-              {nativeMessage(nativeLanguage, "w2.start.voice")}
-            </Native>
-            <p>
-              말하면서 빠르게
-              <br />
-              기록 초안을 만들어요.
-            </p>
-            <Native className="p-native native">
-              {nativeMessage(nativeLanguage, "w2.start.voiceDescription")}
-            </Native>
-            {draftReady && existing.inputMode === "voice" && draftBadge}
-          </div>
-          <Icon name="next" />
-        </button>
+        )}
         <button type="button" className="method card" onClick={() => go("text")}>
           <div className="icon-bubble">
             <Icon name="write" />

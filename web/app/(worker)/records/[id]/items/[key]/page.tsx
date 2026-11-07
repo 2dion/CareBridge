@@ -2,6 +2,7 @@
 
 import { Native, useNativeLanguage } from "@/components/mobile/native";
 
+import { isSttChecked } from "@/lib/i18n/languages";
 import { nativeMessage } from "@/lib/i18n/messages";
 
 // W3 · 내용 수정·내용 추가(수정, 언급 없음 내용 추가).
@@ -432,31 +433,37 @@ export default function ItemEditPage() {
         )}
       </div>
       <div className="action-panel card sticky-actions">
-        <button
-          type="button"
-          className="btn btn-outline btn-center btn-sm"
-          disabled={busy}
-          aria-busy={actionLock.pending === "voice"}
-          onClick={voiceAdd}
-        >
-          <Icon name={recorder.state === "recording" ? "stop" : "mic"} />
-          <BtnLabel
-            ko={
-              busy
-                ? "처리 중"
-                : recorder.state === "recording"
-                  ? "말하기 끝"
-                  : missing
-                    ? "말로 추가"
-                    : "다시 말하기"
-            }
-            native={
-              busy
-                ? nativeMessage(nativeLanguage, "w3.item.processing")
-                : nativeMessage(nativeLanguage, missing ? "w3.item.speakAdd" : "w3.item.speakAgain")
-            }
-          />
-        </button>
+        {/* 받아쓰기 확인 전 언어(sttChecked=false)는 말로 보태기를 열지 않는다(결정 2026-11-07-몽골어글로기록) */}
+        {isSttChecked(nativeLanguage) && (
+          <button
+            type="button"
+            className="btn btn-outline btn-center btn-sm"
+            disabled={busy}
+            aria-busy={actionLock.pending === "voice"}
+            onClick={voiceAdd}
+          >
+            <Icon name={recorder.state === "recording" ? "stop" : "mic"} />
+            <BtnLabel
+              ko={
+                busy
+                  ? "처리 중"
+                  : recorder.state === "recording"
+                    ? "말하기 끝"
+                    : missing
+                      ? "말로 추가"
+                      : "다시 말하기"
+              }
+              native={
+                busy
+                  ? nativeMessage(nativeLanguage, "w3.item.processing")
+                  : nativeMessage(
+                      nativeLanguage,
+                      missing ? "w3.item.speakAdd" : "w3.item.speakAgain",
+                    )
+              }
+            />
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-primary"

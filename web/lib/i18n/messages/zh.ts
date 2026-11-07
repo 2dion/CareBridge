@@ -245,6 +245,7 @@ export const zh = {
   "w2.start.voiceDescription": "边说边快速生成记录草稿。",
   "w2.start.write": "文字记录",
   "w2.start.writeDescription": "可以直接输入记录。",
+  "w2.start.voiceUnavailable": "此语言暂不支持语音记录，请用文字记录。",
   "w1.start": "开始记录",
   "w1.resume": "继续填写",
   "w1.edit": "修改记录",

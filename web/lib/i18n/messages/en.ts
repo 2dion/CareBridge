@@ -261,6 +261,8 @@ export const en = {
   "w2.start.voiceDescription": "Speak to create a draft quickly.",
   "w2.start.write": "Type a record",
   "w2.start.writeDescription": "Enter the record yourself.",
+  "w2.start.voiceUnavailable":
+    "Voice recording is not available for this language yet. Please type your record.",
   "w1.start": "Start a record",
   "w1.resume": "Continue writing",
   "w1.edit": "Edit record",
