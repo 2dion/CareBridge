@@ -9,8 +9,10 @@ import {
   confirmItem,
   createDemoDb,
   ensureRecord,
+  FORMER_RESIDENT_NAME,
   fillMockDraft,
   findRecord,
+  getResident,
   groupItems,
   isoWeekday,
   lateDays,
@@ -397,5 +399,33 @@ describe("Mock 재가 지원 합 재검사", () => {
     );
     expect(support(back, id).status).toBe("observed");
     expect(support(back, id).reason).toBe("");
+  });
+});
+
+describe("담당이 끝난 어르신의 남은 기록 (#367·#373)", () => {
+  it("명단에 없어도 기록이 있으면 실명·사진 없이 대신 채워 기록 화면이 멈추지 않는다", () => {
+    const db = createDemoDb(TODAY);
+    const made = ensureRecord(db, "kim", TODAY, TODAY, NOW);
+    if ("error" in made) throw new Error(made.error);
+    const original = getResident(made.db, "kim");
+    const unassigned = {
+      ...made.db,
+      residents: made.db.residents.filter((resident) => resident.id !== "kim"),
+    };
+    const former = getResident(unassigned, "kim");
+    expect(former).toMatchObject({
+      id: "kim",
+      name: FORMER_RESIDENT_NAME,
+      photoPath: null,
+      careType: original?.careType,
+    });
+    expect(former?.name).not.toBe(original?.name);
+    // W1·W4 사진 줄이 쓰는 명단에는 넣지 않는다
+    expect(unassigned.residents.some((resident) => resident.id === "kim")).toBe(false);
+    expect(todayCards(unassigned, TODAY).some((card) => card.resident.id === "kim")).toBe(false);
+  });
+
+  it("기록도 없는 어르신은 그대로 없음", () => {
+    expect(getResident(createDemoDb(TODAY), "no-such-resident")).toBeUndefined();
   });
 });

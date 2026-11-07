@@ -603,8 +603,31 @@ export function createDemoDb(today: string = kstToday()): DemoDb {
 
 // ---------- 읽기 ----------
 
-export function getResident(db: DemoDb, id: string) {
-  return db.residents.find((resident) => resident.id === id);
+/** 담당이 끝나 이름·사진을 읽을 수 없는 어르신을 기록 화면에서 부르는 이름(이슈 #373, 기획 확정 전 제안) */
+export const FORMER_RESIDENT_NAME = "담당이 끝난 어르신";
+
+/**
+ * 어르신 한 명. 명단에 없지만 기록이 남아 있으면(담당이 끝난 뒤 남은 임시 저장·수정 필요, 결정 #367 3번)
+ * 실명·사진 없이 대신 채워 기록 화면이 멈추지 않게 한다. 명단(W1·W4 사진 줄)에는 넣지 않는다.
+ * 기록이 있는 어르신은 지울 수 없으므로(결정 2026-11-04-어르신삭제) 관리자 화면에서는 생기지 않는다.
+ */
+export function getResident(db: DemoDb, id: string): Resident | undefined {
+  const found = db.residents.find((resident) => resident.id === id);
+  if (found) return found;
+  const record = Object.values(db.records).find((entry) => entry.residentId === id);
+  if (!record) return undefined;
+  const home = record.formType === "12";
+  return {
+    id,
+    name: FORMER_RESIDENT_NAME,
+    photoPath: null,
+    initial: FORMER_RESIDENT_NAME.charAt(0),
+    careType: home ? "home" : "facility",
+    visitDays: null,
+    visitTime: null,
+    caseId: home ? "S-H01" : "S-F01",
+    startDate: record.careDate,
+  };
 }
 
 /** 그날이 ‘기록이 있어야 하는 날’인지(데이터구조 v1.6.2 못 쓴 기록). */
