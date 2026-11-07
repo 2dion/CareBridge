@@ -752,7 +752,7 @@ export function workerRecords(db: DemoDb): DemoRecord[] {
 }
 
 /** 처음 보낸 한국 날짜가 돌봄 날짜보다 늦으면 n일(record_late_submit과 같은 계산). */
-export function lateDays(record: DemoRecord): number | null {
+export function lateDays(record: Pick<DemoRecord, "careDate" | "firstSubmittedAt">): number | null {
   if (!record.firstSubmittedAt) return null;
   return Math.max(0, diffDays(kstDateOf(record.firstSubmittedAt), record.careDate));
 }

@@ -23,6 +23,7 @@ import {
   ResidentPill,
 } from "@/components/mobile/shell";
 import type { ItemStatus } from "@/lib/demo/state";
+import { saveSentReceipt } from "@/lib/records/sent-receipt";
 import {
   canSubmitRecord,
   confirmItem,
@@ -293,11 +294,23 @@ export default function DraftPage() {
       .run("submit", async () => {
         if (real) {
           justSent.current = true;
+          // 전송 뒤 재조회에서 기록이 빠져도(담당이 끝난 어르신, #367·#374) 완료 화면이 날짜를 보이도록
+          // 전송 전에 날짜만 잡아 둔다. 이름·본문은 남기지 않는다.
+          const careDate = record?.careDate;
+          const firstSubmittedAt = record?.firstSubmittedAt;
           const result = await real.actions.submit(id);
           if (!result.ok) {
             justSent.current = false;
             setToast(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
             return;
+          }
+          const submittedAt = (result.data as { submitted_at?: unknown }).submitted_at;
+          if (careDate) {
+            saveSentReceipt(id, {
+              careDate,
+              firstSubmittedAt:
+                firstSubmittedAt ?? (typeof submittedAt === "string" ? submittedAt : nowIso()),
+            });
           }
           setConfirmOpen(false);
           router.push(`/records/${id}/sent`);
