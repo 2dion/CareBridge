@@ -28,24 +28,31 @@ insert into public.profiles(id,org_id,role,name,native_lang) values
  ('f2000000-0000-0000-0000-000000000004','f1000000-0000-0000-0000-000000000002','worker','가상 작성자 병','vi'),
  ('f2000000-0000-0000-0000-000000000005','f1000000-0000-0000-0000-000000000002','reviewer','가상 관리자 을','ko');
 
--- 넣기는 서버(service_role)만. org_id는 보내지 않아도 작성자의 기관으로 채워진다
+-- 넣기는 서버(service_role)만. 메시지는 작성자 본인의 대화(helper_conversations)에 넣는다(이슈 #251, #368).
+-- org_id는 보내지 않아도 작성자의 기관으로 채워진다
 set local role service_role;
-insert into public.helper_messages(worker_id,question,question_ko,answer_ko,answer_native,source,found,safety) values
- ('f2000000-0000-0000-0000-000000000001','Cụ không ăn cơm','어르신이 밥을 안 드셔요','억지로 권하지 마세요.','Đừng ép ăn.','10장 120쪽',true,false),
- ('f2000000-0000-0000-0000-000000000001','합성 질문 둘','','교재에서 찾지 못했어요.','','',false,false),
- ('f2000000-0000-0000-0000-000000000003','합성 질문 을','','답 을','','',true,false),
- ('f2000000-0000-0000-0000-000000000004','합성 질문 병','','답 병','','',true,false);
+insert into public.helper_conversations(id,worker_id,title) values
+ ('f3000000-0000-0000-0000-000000000001','f2000000-0000-0000-0000-000000000001','합성 대화 갑'),
+ ('f3000000-0000-0000-0000-000000000003','f2000000-0000-0000-0000-000000000003','합성 대화 을'),
+ ('f3000000-0000-0000-0000-000000000004','f2000000-0000-0000-0000-000000000004','합성 대화 병');
+insert into public.helper_messages(worker_id,conversation_id,question,question_ko,answer_ko,answer_native,source,found,safety) values
+ ('f2000000-0000-0000-0000-000000000001','f3000000-0000-0000-0000-000000000001','Cụ không ăn cơm','어르신이 밥을 안 드셔요','억지로 권하지 마세요.','Đừng ép ăn.','10장 120쪽',true,false),
+ ('f2000000-0000-0000-0000-000000000001','f3000000-0000-0000-0000-000000000001','합성 질문 둘','','교재에서 찾지 못했어요.','','',false,false),
+ ('f2000000-0000-0000-0000-000000000003','f3000000-0000-0000-0000-000000000003','합성 질문 을','','답 을','','',true,false),
+ ('f2000000-0000-0000-0000-000000000004','f3000000-0000-0000-0000-000000000004','합성 질문 병','','답 병','','',true,false);
 select pg_temp.check_true((select count(*)=3 from public.helper_messages where org_id='f1000000-0000-0000-0000-000000000001'),'org_id를 작성자 프로필에서 채움(가 기관 3행)');
 select pg_temp.check_true((select count(*)=1 from public.helper_messages where org_id='f1000000-0000-0000-0000-000000000002'),'org_id를 작성자 프로필에서 채움(나 기관 1행)');
 -- 보내온 org_id는 믿지 않는다
-insert into public.helper_messages(org_id,worker_id,question,answer_ko,found)
- values ('f1000000-0000-0000-0000-000000000002','f2000000-0000-0000-0000-000000000001','기관 위조 질문','답',true);
+insert into public.helper_messages(org_id,worker_id,conversation_id,question,answer_ko,found)
+ values ('f1000000-0000-0000-0000-000000000002','f2000000-0000-0000-0000-000000000001','f3000000-0000-0000-0000-000000000001','기관 위조 질문','답',true);
 select pg_temp.check_true((select org_id='f1000000-0000-0000-0000-000000000001' from public.helper_messages where question='기관 위조 질문'),'보낸 org_id를 작성자 기관으로 덮어씀');
 -- 질문 길이: 비었거나 500자를 넘으면 거절
-select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,question,answer_ko,found) values ('f2000000-0000-0000-0000-000000000001','','답',true)$q$,'helper_messages_question_check');
-select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,question,answer_ko,found) values ('f2000000-0000-0000-0000-000000000001',repeat('가',501),'답',true)$q$,'helper_messages_question_check');
--- 없는 작성자
-select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,question,answer_ko,found) values ('f2000000-0000-0000-0000-0000000000ff','질문','답',true)$q$,'not_record_worker');
+select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,conversation_id,question,answer_ko,found) values ('f2000000-0000-0000-0000-000000000001','f3000000-0000-0000-0000-000000000001','','답',true)$q$,'helper_messages_question_check');
+select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,conversation_id,question,answer_ko,found) values ('f2000000-0000-0000-0000-000000000001','f3000000-0000-0000-0000-000000000001',repeat('가',501),'답',true)$q$,'helper_messages_question_check');
+-- 없는 작성자: 대화는 반드시 작성자 본인의 것이어야 해서 대화 검사(conversation_not_found)가 먼저 거절한다(이슈 #251, #368)
+select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,conversation_id,question,answer_ko,found) values ('f2000000-0000-0000-0000-0000000000ff','f3000000-0000-0000-0000-000000000001','질문','답',true)$q$,'conversation_not_found');
+-- 남의 대화에는 넣지 못한다(대화의 작성자와 같아야 함, 이슈 #251)
+select pg_temp.expect_error($q$insert into public.helper_messages(worker_id,conversation_id,question,answer_ko,found) values ('f2000000-0000-0000-0000-000000000003','f3000000-0000-0000-0000-000000000001','남의 대화','답',true)$q$,'conversation_not_found');
 
 -- 작성자 갑: 내 행만 읽음(같은 기관 작성자 을·다른 기관 병은 안 보임)
 reset role;
@@ -83,4 +90,5 @@ select pg_temp.expect_error($q$select * from public.helper_messages$q$,'permissi
 reset role;
 delete from auth.users where id='f2000000-0000-0000-0000-000000000004';
 select pg_temp.check_true((select count(*)=0 from public.helper_messages where worker_id='f2000000-0000-0000-0000-000000000004'),'계정 삭제 시 행도 삭제');
+select 'helper-messages: all assertions passed' as result;
 rollback;
