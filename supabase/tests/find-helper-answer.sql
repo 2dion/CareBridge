@@ -69,6 +69,10 @@ insert into public.helper_messages(worker_id,conversation_id,question,answer_ko,
  ('d2000000-0000-0000-0000-000000000001','d3000000-0000-0000-0000-000000000001','약 시간','약은 정해진 시간에 드리세요.','请按时给药。','8장',true,'zh');
 select pg_temp.check_true((select count(*) = 0 from public.find_helper_answer('d2000000-0000-0000-0000-000000000002', '약 시간')), 'zh answer not given to vi asker');
 select pg_temp.check_true((select answer_native = '请按时给药。' from public.find_helper_answer('d2000000-0000-0000-0000-000000000001', '약 시간')), 'zh answer given to zh asker');
+-- 번역이 빈 답(Mock·번역 실패)은 한국어 작성자에게만 재사용한다(이슈 #394 3번)
+insert into public.helper_messages(worker_id,conversation_id,question,answer_ko,answer_native,source,found,native_lang) values
+ ('d2000000-0000-0000-0000-000000000002','d3000000-0000-0000-0000-000000000002','빈 번역 질문','번역이 비어 있는 답','','9장',true,'vi');
+select pg_temp.check_true((select count(*) = 0 from public.find_helper_answer('d2000000-0000-0000-0000-000000000002', '빈 번역 질문')), 'empty native answer not reused for vi asker');
 reset role;
 
 select 'find-helper-answer: all assertions passed' as result;

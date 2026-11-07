@@ -302,6 +302,36 @@ describe("draft 문자열이 JSON으로 읽히지 않을 때 (이슈 #387)", () 
     expect(summary).toContain('"stop_reason":');
   });
 
+  // 이슈 #394 4번: 두 번 감싼 JSON과 ```json 울타리도 푼다
+  it("두 번 JSON으로 감싼 문자열은 두 번 풀어 객체로 읽음", () => {
+    const twice = JSON.stringify(JSON.stringify(emptyDraft));
+    const read = readDraftString(twice);
+    expect(read.value).toEqual(emptyDraft);
+    expect(read.repaired).toBe(false);
+    expect(read.parseError).toBeNull();
+    expect(normalizeDraftInput(twice)).toEqual(emptyDraft);
+  });
+
+  it("```json 울타리로 감싼 문자열은 울타리를 벗겨 읽고 repaired로 표시", () => {
+    const fenced = "```json\n" + JSON.stringify(emptyDraft) + "\n```";
+    const read = readDraftString(fenced);
+    expect(read.value).toEqual(emptyDraft);
+    expect(read.repaired).toBe(true);
+    expect(readDraftString("```\n" + JSON.stringify(emptyDraft) + "```").value).toEqual(emptyDraft);
+  });
+
+  it("두 번 감싼 뒤 안쪽이 깨진 문자열은 안쪽 오류를 parseError로 남김", () => {
+    const read = readDraftString(JSON.stringify("{깨진 json"));
+    expect(read.value).toBe(JSON.stringify("{깨진 json"));
+    expect(read.parseError).toBeTruthy();
+  });
+
+  it("문자열이지만 JSON 객체 모양이 아닌 값(안내 문장 등)은 풀지 않음", () => {
+    expect(readDraftString(JSON.stringify("초안을 만들었습니다")).value).toBe(
+      JSON.stringify("초안을 만들었습니다"),
+    );
+  });
+
   it("프롬프트가 draft를 문자열로 감싸지 말라고 함", () => {
     expect(agentSystemPrompt("facility", "zh")).toContain(
       "객체를 따옴표로 감싼 문자열로 넣지 않는다",

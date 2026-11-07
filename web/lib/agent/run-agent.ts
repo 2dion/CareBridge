@@ -1,6 +1,6 @@
 // ② 기록 검토 준비 Agent: Claude가 도구 4개를 골라 부르고, 서버가 도구를 실행한다.
 // 근거: 문서/설계/ai규칙-v2.0.6.md '② 기록 검토 준비 Agent'(흐름·도구 4개·멈춤 규칙·작업 기록·프롬프트 초안),
-//       문서/설계/데이터구조-v2.3.10.md 'Agent 도구 입출력'
+//       문서/설계/데이터구조-v2.3.11.md 'Agent 도구 입출력'
 // Claude 호출·용어 검색·저장·작업 기록은 AgentDeps로 받아서, 이 파일은 키 없이 테스트(Vitest)할 수 있다.
 
 import { genderNeutralRule, languageNameKo, type NativeLang } from "@/lib/i18n/languages";
@@ -292,32 +292,50 @@ export type DraftStringRead = {
   value: unknown;
   /** JSON.parse가 처음 실패했을 때의 오류 메시지(문자열 draft만) */
   parseError: string | null;
-  /** 문자열 안의 줄바꿈·탭을 이스케이프해서 읽었는지(이슈 #387) */
+  /** 그대로 읽히지 않아 손을 본 뒤 읽었는지(줄바꿈·탭 이스케이프, ```json 울타리 벗기기, 두 번 감싼 JSON 풀기) */
   repaired: boolean;
 };
 
 /**
- * 문자열 draft를 JSON 객체로 읽는다(이슈 #356·#387). 그대로 읽히지 않으면 모델이 문자열 값 안에 줄바꿈·탭을
- * 그대로 넣은 경우(JSON에서는 금지)만 이스케이프해서 한 번 더 읽는다. 내용은 바꾸지 않는다.
+ * 문자열 draft를 JSON 객체로 읽는다(이슈 #356·#387·#394 4번). 내용은 바꾸지 않고 모양만 손본다.
+ * 1. ```json … ``` 울타리가 있으면 벗긴다.
+ * 2. 읽은 결과가 또 문자열이면(두 번 감싼 JSON) 한 번 더 읽는다.
+ * 3. 그래도 읽히지 않으면 모델이 문자열 값 안에 줄바꿈·탭을 그대로 넣은 경우(JSON에서는 금지)만 이스케이프해서 다시 읽는다.
  */
 export function readDraftString(raw: unknown): DraftStringRead {
   if (typeof raw !== "string") return { value: raw, parseError: null, repaired: false };
   const asObject = (parsed: unknown) =>
     parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  const text = stripJsonFence(raw);
   let parseError: string;
   try {
-    const parsed = asObject(JSON.parse(raw));
-    return { value: parsed ?? raw, parseError: null, repaired: false };
+    const parsed = asObject(parseJsonUnwrapped(text));
+    return { value: parsed ?? raw, parseError: null, repaired: parsed !== null && text !== raw };
   } catch (error) {
     parseError = error instanceof Error ? error.message : String(error);
   }
   try {
-    const parsed = asObject(JSON.parse(escapeControlCharsInStrings(raw)));
+    const parsed = asObject(parseJsonUnwrapped(escapeControlCharsInStrings(text)));
     if (parsed) return { value: parsed, parseError, repaired: true };
   } catch {
     // 복구해도 읽히지 않음. 아래에서 문자열 그대로 돌려준다
   }
   return { value: raw, parseError, repaired: false };
+}
+
+/** 모델이 JSON을 ```json … ``` 울타리로 감쌌으면 안쪽만 돌려준다. 울타리가 없으면 그대로 */
+function stripJsonFence(text: string): string {
+  const match = /^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/i.exec(text);
+  return match ? match[1] : text;
+}
+
+/** JSON을 읽고, 결과가 또 문자열이면(두 번 감싼 JSON) 두 번까지 더 읽는다. 읽히지 않으면 JSON.parse 오류를 그대로 던진다 */
+function parseJsonUnwrapped(text: string): unknown {
+  let value: unknown = JSON.parse(text);
+  for (let depth = 0; depth < 2 && typeof value === "string" && /^\s*[{[]/.test(value); depth++) {
+    value = JSON.parse(value);
+  }
+  return value;
 }
 
 /** JSON 글자열 리터럴 안에 그대로 들어간 제어 문자(줄바꿈·탭 등)만 \n 꼴로 바꾼다. 리터럴 밖은 그대로 둔다 */
