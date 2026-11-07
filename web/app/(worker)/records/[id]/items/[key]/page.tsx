@@ -83,10 +83,11 @@ export default function ItemEditPage() {
     );
   const status = demo?.db.records[id]?.status;
   const locked = status === "submitted" || status === "approved";
-  const recordGone = Boolean(demo) && !demo?.db.records[id];
+  const current = demo?.db.records[id];
+  const recordGone = Boolean(demo) && (!current || !getResident(demo!.db, current.residentId));
   useEffect(() => {
     if (locked) router.replace(`/records/${id}/view`);
-    // 읽기가 끝났는데 기록이 없으면(담당이 끝나 권한에서 빠짐, 결정 #367·#374) 멈추지 않고 목록으로 보낸다
+    // 읽기가 끝났는데 기록이나 어르신을 읽을 수 없으면(이전 담당 어르신, 결정 담당끊기전검사·#374) 멈추지 않고 오늘 화면으로 보낸다
     else if (recordGone) router.replace("/today");
   }, [locked, recordGone, id, router]);
 

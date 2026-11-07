@@ -40,11 +40,11 @@ export default function RecordViewPage() {
   const record = demo?.db.records[id];
   const resident = demo && record ? getResident(demo.db, record.residentId) : undefined;
   const router = useRouter();
-  const missing = Boolean(demo) && !record;
-  // 읽기가 끝났는데 기록이 없으면(담당이 끝나 권한에서 빠짐, 결정 #367·#374) 멈추지 않고 목록으로 보낸다
+  const unreadable = Boolean(demo) && !resident;
+  // 읽기가 끝났는데 기록이나 어르신을 읽을 수 없으면(이전 담당 어르신, 결정 담당끊기전검사·#374) 멈추지 않고 기록 목록으로 보낸다
   useEffect(() => {
-    if (missing) router.replace("/archive");
-  }, [missing, router]);
+    if (unreadable) router.replace("/archive");
+  }, [unreadable, router]);
   if (!demo || !record || !resident) return <Loading tab="archive" />;
 
   if (record.status === "draft" || record.status === "returned") {

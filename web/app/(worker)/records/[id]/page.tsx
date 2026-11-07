@@ -23,7 +23,6 @@ import {
   ResidentPill,
 } from "@/components/mobile/shell";
 import type { ItemStatus } from "@/lib/demo/state";
-import { saveSentReceipt } from "@/lib/records/sent-receipt";
 import {
   canSubmitRecord,
   confirmItem,
@@ -123,14 +122,13 @@ export default function DraftPage() {
   const justSent = useRef(false);
   // 재가 서식 칸은 입력이 멈춘 뒤 저장한다. 두 칸을 잇달아 고쳐도 먼저 보낸 값이 옛 서버 값에 덮이지 않게 보낸 값을 모아 둔다(이슈 #139)
   const sentFields = useRef<Partial<Record<CountField, number | null>>>({});
-  const missing = Boolean(demo) && !record;
+  const unreadable = Boolean(demo) && (!record || !getResident(demo!.db, record.residentId));
   useEffect(() => {
     if (locked && !justSent.current) router.replace(`/records/${id}/view`);
     else if (empty && record) router.replace(`/start/${record.residentId}?date=${record.careDate}`);
-    // 읽기가 끝났는데 기록이 없으면(담당이 끝나 권한에서 빠짐, 결정 #367·#374) 오늘 화면으로 보낸다.
-    // 방금 전송해 빠진 기록은 전송 완료 화면으로 가므로 돌리지 않는다.
-    else if (missing && !justSent.current) router.replace("/today");
-  }, [locked, empty, record, missing, id, router]);
+    // 읽기가 끝났는데 기록이나 어르신을 읽을 수 없으면(이전 담당 어르신, 결정 담당끊기전검사·#374) 멈추지 않고 오늘 화면으로 보낸다
+    else if (unreadable) router.replace("/today");
+  }, [locked, empty, record, unreadable, id, router]);
 
   useEffect(() => {
     if (!toast) return;
@@ -298,23 +296,11 @@ export default function DraftPage() {
       .run("submit", async () => {
         if (real) {
           justSent.current = true;
-          // 전송 뒤 재조회에서 기록이 빠져도(담당이 끝난 어르신, #367·#374) 완료 화면이 날짜를 보이도록
-          // 전송 전에 날짜만 잡아 둔다. 이름·본문은 남기지 않는다.
-          const careDate = record?.careDate;
-          const firstSubmittedAt = record?.firstSubmittedAt;
           const result = await real.actions.submit(id);
           if (!result.ok) {
             justSent.current = false;
             setToast(`${result.ko} ${nativeLanguage === "ko" ? "" : result.native}`);
             return;
-          }
-          const submittedAt = (result.data as { submitted_at?: unknown }).submitted_at;
-          if (careDate) {
-            saveSentReceipt(id, {
-              careDate,
-              firstSubmittedAt:
-                firstSubmittedAt ?? (typeof submittedAt === "string" ? submittedAt : nowIso()),
-            });
           }
           setConfirmOpen(false);
           router.push(`/records/${id}/sent`);
