@@ -172,29 +172,105 @@ const DIALECT_GUESS_KO = "사투리 풀이는 사전의 짐작이에요.";
 /** 용어 목록의 사투리 줄(출처 chapter가 '우리말샘'으로 시작, 결정 2026-11-04-사투리사전풀이) */
 export const isDialectTerm = (term: GlossaryTerm) => term.chapter.startsWith(DIALECT_SOURCE);
 
+// 빈칸·문장부호를 빼고 비교한다(모델이 띄어쓰기를 바꿔 써도 같은 말로 본다)
+const compact = (text: string) => text.replace(/[\s.,;:!?·'"‘’“”()[\]~-]/g, "");
+
+/** 출처를 , ; 로 나눈 조각과 그 앞 구분자. 구분자는 모델이 쓴 그대로 다시 잇는다(#392) */
+function sourceParts(source: string): { part: string; sep: string }[] {
+  const pieces = source.split(/(\s*[,;]\s*)/);
+  const parts: { part: string; sep: string }[] = [];
+  for (let i = 0; i < pieces.length; i += 2) {
+    const part = pieces[i].trim();
+    if (part) parts.push({ part, sep: parts.length ? (pieces[i - 1] ?? ", ").trim() : "" });
+  }
+  return parts;
+}
+const joinSourceParts = (parts: { part: string; sep: string }[]) =>
+  parts.map(({ part, sep }, i) => (i === 0 ? part : `${sep === ";" ? ";" : ","} ${part}`)).join("");
+
+// 답이 무언가를 풀이하고 있다는 말. 표준말·풀이 마디는 흔한 말이라 이 말과 함께 있을 때만 셈(#392 오탐 줄이기)
+const EXPLAINS = /뜻|의미|라는말|이라는|란말/;
+
+/**
+ * 답이 그 사투리 줄을 썼는지(A, #392). 아래 중 하나면 썼다. 질문 용어 검색에 걸렸다는 것만으로는 쓰지 않은 것이다.
+ * - 모델이 출처에 그 줄의 우리말샘 출처를 씀
+ * - 답(ko)에 사투리 낱말 자체(두 글자 이상)가 있음
+ * - 답이 풀이하는 말(뜻·의미 등)을 쓰면서 표준말이나 풀이의 한 마디(세 글자 이상)를 씀
+ * 활용한 동사('욕보다' → '욕봤다')는 글자 비교로 다 못 잡아 모델의 '짐작' 표시(C)에 맡긴다.
+ */
+function usesDialectTerm(answer: HelperAnswer, term: GlossaryTerm): boolean {
+  if ((answer.source ?? "").includes(term.chapter)) return true;
+  const ko = compact(answer.ko);
+  const stem = (word: string) => compact(word.replace(/다$/, ""));
+  const expression = stem(term.matched_expression);
+  if (expression.length >= 2 && ko.includes(expression)) return true;
+  if (!EXPLAINS.test(ko)) return false;
+  // 풀이는 '몸이 고단하고 피곤하다'처럼 여러 마디라 마디마다 본다(모델은 한 마디만 옮겨 쓰기도 함)
+  const clauses = term.plain_ko.split(/[,，]|고\s/).map(stem);
+  return [stem(term.term_ko), ...clauses].filter((w) => w.length >= 3).some((w) => ko.includes(w));
+}
+
+/** C: 모델이 사투리 풀이라고 스스로 밝힘. '짐작하기 어려우면' 같은 동사는 빼고 '짐작이에요'·'짐작으로' 꼴만 */
+const selfReportsDialect = (ko: string) => /사투리|짐작(?!하)/.test(ko);
+
+/** 서버가 전에 붙였던 짐작 안내·우리말샘 출처를 걷어 낸다(#392) */
+function withoutDialectNotice(answer: HelperAnswer, lang: NativeLang): HelperAnswer {
+  const guess = HELPER_FIXED[lang]?.dialectGuess;
+  const strip = (text: string, notice: string | undefined) =>
+    notice ? text.replace(notice, "").trim() : text;
+  const source = joinSourceParts(
+    sourceParts(answer.source ?? "").filter(({ part }) => !part.startsWith(DIALECT_SOURCE)),
+  );
+  return {
+    ...answer,
+    ko: strip(answer.ko, DIALECT_GUESS_KO),
+    native: strip(answer.native, guess),
+    source: source || null,
+  };
+}
+
 /**
  * 사투리 줄로 답했으면 출처와 '짐작' 표시를 모델에 맡기지 않고 서버가 붙인다(이슈 #357, 결정 사투리사전풀이 2·3번).
- * - source: 모델이 쓴 교재 장·절·쪽은 두고 '[용어]' 꼬리표는 빼며, 사투리 줄의 출처(예: 우리말샘(충청 방언))를 더한다.
+ * 썼는지는 A(usesDialectTerm)로 먼저 보고, C(모델이 ko에 '사투리'·'짐작이에요'처럼 스스로 밝힘)면
+ * 질문에서 찾은 사투리 줄을 모두 쓴 것으로 본다(#392). 둘 다 아니면 교재로 답한 것이라 안내·출처를 붙이지 않는다.
+ * - 새 답은 모델이 쓴 글·출처 그대로 판단한다. 저장된 답(reused)은 서버가 전에 붙인 안내·우리말샘 출처를 걷어 내고 판단한다.
+ * - source: 모델이 쓴 출처는 구분자까지 그대로 두고 '[용어]' 꼬리표만 빼며, 쓴 사투리 줄의 출처를 뒤에 더한다.
  * - ko·native 끝에 '사전의 짐작'이라는 안내를 한 번만 붙인다. native는 그 언어의 고정 문구가 있을 때만(한국어 작성자는 빈칸).
- * 사투리 줄이 없거나 found=false면 그대로 둔다(교재 절로 답한 질문의 출처는 지금처럼).
+ * 사투리 줄이 없거나 found=false면 그대로 둔다.
  */
 export function withDialectNotice(
   answer: HelperAnswer,
   terms: readonly GlossaryTerm[],
   lang: NativeLang,
+  options: { reused?: boolean } = {},
 ): HelperAnswer {
-  const dialect = [...new Set(terms.filter(isDialectTerm).map((term) => term.chapter))];
-  if (!answer.found || dialect.length === 0) return answer;
-  const kept = (answer.source ?? "")
-    .split(/\s*[,;]\s*/)
-    .filter((part) => part && !/^\[?\s*용어\s*\]?/.test(part));
-  const source = [...kept, ...dialect.filter((chapter) => !kept.includes(chapter))].join(", ");
-  const ko = answer.ko.includes("짐작") ? answer.ko : `${answer.ko} ${DIALECT_GUESS_KO}`.trim();
+  const dialectTerms = terms.filter(isDialectTerm);
+  if (!answer.found || dialectTerms.length === 0) return answer;
+  const base = withoutDialectNotice(answer, lang);
+  const judged = options.reused ? base : answer;
+  const used = dialectTerms.filter((term) => usesDialectTerm(judged, term));
+  const selfReported = selfReportsDialect(judged.ko);
+  const chapters = [
+    ...new Set((used.length ? used : selfReported ? dialectTerms : []).map((t) => t.chapter)),
+  ];
+  if (chapters.length === 0) return base;
+  // 새 답은 모델이 쓴 출처(우리말샘 포함)를 구분자까지 그대로 두고, 저장된 답은 걷어 낸 출처에서 시작한다
+  const kept = sourceParts(judged.source ?? "").filter(
+    ({ part }) => !/^\[?\s*용어\s*\]?/.test(part),
+  );
+  const keptText = kept.map(({ part }) => part);
+  const source = joinSourceParts([
+    ...kept,
+    ...chapters
+      .filter((chapter) => !keptText.includes(chapter))
+      .map((part) => ({ part, sep: "," })),
+  ]);
+  const ko = base.ko.includes("짐작") ? base.ko : `${base.ko} ${DIALECT_GUESS_KO}`.trim();
   const guess = HELPER_FIXED[lang]?.dialectGuess;
   const native =
-    !guess || answer.native === "" || answer.native.includes(guess)
-      ? answer.native
-      : `${answer.native} ${guess}`.trim();
+    !guess || base.native === "" || base.native.includes(guess)
+      ? base.native
+      : `${base.native} ${guess}`.trim();
   return { ...answer, ko, native, source };
 }
 
@@ -344,7 +420,7 @@ export async function askHelper(body: unknown, deps: HelperDeps): Promise<ApiRes
   if (reused?.found) {
     // 옛 사투리 답(출처 '[용어]', 짐작 없음)도 다시 쓸 때 맞춘다(이슈 #357). 용어 검색은 DB 조회뿐이라 Claude를 부르지 않는다
     const reusedTerms = await deps.searchGlossary(questionKo, user.nativeLang);
-    return finish(withDialectNotice(reused, reusedTerms, user.nativeLang));
+    return finish(withDialectNotice(reused, reusedTerms, user.nativeLang, { reused: true }));
   }
 
   const [sections, terms] = await Promise.all([
