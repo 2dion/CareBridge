@@ -48,7 +48,13 @@ export type AgentDeps = {
   callClaude(
     system: string,
     messages: AgentMessage[],
-  ): Promise<{ content: ContentBlock[]; tokens: number; cacheReadTokens?: number }>;
+  ): Promise<{
+    content: ContentBlock[];
+    tokens: number;
+    cacheReadTokens?: number;
+    /** 응답이 끝난 이유(end_turn / tool_use / max_tokens). 형식 오류 진단에 남긴다(이슈 #387) */
+    stopReason?: string;
+  }>;
   searchGlossary(expression: string): Promise<unknown[]>;
   /** 검증한 초안 저장(saveValidatedDraft). 낮춘 항목을 돌려줌 */
   saveDraft(draft: unknown): Promise<{ downgraded: string[] }>;
@@ -254,7 +260,8 @@ export function agentSystemPrompt(careType: CareType, nativeLang: NativeLang) {
    배변 실수 횟수(stool_accidents·urine_accidents)는 원문에 대변·소변·실수·기저귀 이야기가 있을 때만 쓴다.
    말하지 않았으면 0을 넣지 않고 뺀다.
 9. 서버 검사 결과를 이기려고 내용을 지어내지 않는다. 고칠 수 없으면 needs_check로 둔다.
-10. 도구 결과 밖의 설명 문장은 쓰지 않는다. 초안은 return_draft의 draft로만 낸다.`;
+10. 도구 결과 밖의 설명 문장은 쓰지 않는다. 초안은 return_draft의 draft로만 낸다.
+    draft는 JSON 객체 그대로 넣는다. 객체를 따옴표로 감싼 문자열로 넣지 않는다.`;
 }
 
 const summarize = (value: unknown) => {
@@ -277,18 +284,76 @@ function shapeHint(result: { fixed: unknown; problems: { code: string }[] }) {
  * 문자열이 JSON 객체로 읽히면 객체로 바꿔 기존 검증을 거친다. 읽을 수 없으면 그대로 두어 invalid_shape가 된다.
  */
 export function normalizeDraftInput(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : raw;
-  } catch {
-    return raw;
-  }
+  return readDraftString(raw).value;
 }
 
-/** 형식 오류 진단. 받아쓰기 원문·초안 본문은 담지 않고 타입만 남긴다 */
-function draftDiagnostic(raw: unknown, tool: string, cacheReadTokens: number | undefined) {
-  const draft = normalizeDraftInput(raw);
+export type DraftStringRead = {
+  /** 읽은 결과. 문자열이 객체로 읽히지 않으면 raw 그대로 */
+  value: unknown;
+  /** JSON.parse가 처음 실패했을 때의 오류 메시지(문자열 draft만) */
+  parseError: string | null;
+  /** 문자열 안의 줄바꿈·탭을 이스케이프해서 읽었는지(이슈 #387) */
+  repaired: boolean;
+};
+
+/**
+ * 문자열 draft를 JSON 객체로 읽는다(이슈 #356·#387). 그대로 읽히지 않으면 모델이 문자열 값 안에 줄바꿈·탭을
+ * 그대로 넣은 경우(JSON에서는 금지)만 이스케이프해서 한 번 더 읽는다. 내용은 바꾸지 않는다.
+ */
+export function readDraftString(raw: unknown): DraftStringRead {
+  if (typeof raw !== "string") return { value: raw, parseError: null, repaired: false };
+  const asObject = (parsed: unknown) =>
+    parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  let parseError: string;
+  try {
+    const parsed = asObject(JSON.parse(raw));
+    return { value: parsed ?? raw, parseError: null, repaired: false };
+  } catch (error) {
+    parseError = error instanceof Error ? error.message : String(error);
+  }
+  try {
+    const parsed = asObject(JSON.parse(escapeControlCharsInStrings(raw)));
+    if (parsed) return { value: parsed, parseError, repaired: true };
+  } catch {
+    // 복구해도 읽히지 않음. 아래에서 문자열 그대로 돌려준다
+  }
+  return { value: raw, parseError, repaired: false };
+}
+
+/** JSON 글자열 리터럴 안에 그대로 들어간 제어 문자(줄바꿈·탭 등)만 \n 꼴로 바꾼다. 리터럴 밖은 그대로 둔다 */
+function escapeControlCharsInStrings(text: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const ch of text) {
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      } else if (ch < " ") {
+        out += JSON.stringify(ch).slice(1, -1);
+        continue;
+      }
+    } else if (ch === '"') {
+      inString = true;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+/** 형식 오류 진단. 받아쓰기 원문·초안 본문은 담지 않고 타입·길이·오류 자리의 모양만 남긴다(이슈 #356·#387) */
+function draftDiagnostic(
+  raw: unknown,
+  tool: string,
+  cacheReadTokens: number | undefined,
+  stopReason: string | undefined,
+) {
+  const read = readDraftString(raw);
+  const draft = read.value;
   return {
     tool,
     draft_type: Array.isArray(raw) ? "array" : raw === null ? "null" : typeof raw,
@@ -298,7 +363,32 @@ function draftDiagnostic(raw: unknown, tool: string, cacheReadTokens: number | u
       draft !== null &&
       Array.isArray((draft as { items?: unknown }).items),
     cache_read_tokens: cacheReadTokens ?? null,
+    stop_reason: stopReason ?? null,
+    repaired: read.repaired,
+    string_length: typeof raw === "string" ? raw.length : null,
+    parse_error: read.parseError ? maskQuoted(read.parseError) : null,
+    shape_at_error:
+      typeof raw === "string" && read.parseError ? shapeAtError(raw, read.parseError) : null,
   };
+}
+
+/** 오류 메시지의 따옴표 안(토큰 글자)을 지운다. 위치(position N)는 남긴다 */
+function maskQuoted(message: string) {
+  return message
+    .replace(/'[^']*'/g, "'…'")
+    .replace(/"[^"]*"/g, '"…"')
+    .slice(0, 200);
+}
+
+/** 오류 자리 앞뒤 40자의 모양. 글자·숫자는 x로 바꿔 구조(따옴표·괄호·쉼표·줄바꿈)만 남긴다 */
+function shapeAtError(text: string, message: string) {
+  const match = /position (\d+)/.exec(message);
+  const at = match ? Number(match[1]) : text.length;
+  const start = Math.max(0, at - 40);
+  return text
+    .slice(start, at + 40)
+    .replace(/[\p{L}\p{N}]/gu, "x")
+    .replace(/\n/g, "⏎");
 }
 
 const isTool = (name: string): name is AgentTool => AGENT_TOOLS.some((tool) => tool.name === name);
@@ -340,7 +430,13 @@ export async function runAgent(input: AgentInput, deps: AgentDeps): Promise<Agen
           input_summary: summarize(args),
           result_summary: repeated
             ? `같은 입력 반복: 앞 결과를 돌려줌`
-            : withShapeDiagnostic(summarize(output), output, use, reply.cacheReadTokens),
+            : withShapeDiagnostic(
+                summarize(output),
+                output,
+                use,
+                reply.cacheReadTokens,
+                reply.stopReason,
+              ),
           reason: typeof why === "string" ? why : "",
           duration_ms: deps.now() - started,
           tokens: index === 0 ? reply.tokens : null,
@@ -368,10 +464,12 @@ function withShapeDiagnostic(
   output: string,
   use: ToolUse,
   cacheReadTokens: number | undefined,
+  stopReason: string | undefined,
 ) {
   if (use.name !== "validate_draft" && use.name !== "return_draft") return summary;
   if (!output.includes('"invalid_shape"')) return summary;
-  return `${summary} | 진단 ${JSON.stringify(draftDiagnostic(use.input.draft, use.name, cacheReadTokens))}`;
+  const diagnostic = draftDiagnostic(use.input.draft, use.name, cacheReadTokens, stopReason);
+  return `${summary} | 진단 ${JSON.stringify(diagnostic)}`;
 }
 
 async function runToolWithRetry(
@@ -408,6 +506,8 @@ async function runTool(
       return JSON.stringify(expression ? await deps.searchGlossary(expression) : []);
     }
     case "validate_draft": {
+      const unreadable = unreadableStringDraft(use.input.draft);
+      if (unreadable) return JSON.stringify({ passed: false, ...unreadable });
       const draft = normalizeDraftInput(use.input.draft);
       rememberDraft(draft);
       const result = validateDraft(draft, input.context);
@@ -418,6 +518,8 @@ async function runTool(
       });
     }
     case "return_draft": {
+      const unreadable = unreadableStringDraft(use.input.draft);
+      if (unreadable) return JSON.stringify({ saved: false, ...unreadable });
       const draft = normalizeDraftInput(use.input.draft);
       rememberDraft(draft);
       const check = validateDraft(draft, input.context);
@@ -431,6 +533,26 @@ async function runTool(
     default:
       return JSON.stringify({ error: `알 수 없는 도구: ${use.name}` });
   }
+}
+
+/**
+ * draft가 JSON으로 읽히지 않는 문자열이면 모델에게 그 사실을 바로 알린다(이슈 #387).
+ * "객체가 아니거나 items가 없다"는 말만 들으면 모델이 같은 문자열을 다시 보내 4번 상한에 닿았다.
+ */
+function unreadableStringDraft(raw: unknown) {
+  if (typeof raw !== "string") return null;
+  const read = readDraftString(raw);
+  if (read.value !== raw) return null;
+  return {
+    problems: [
+      {
+        code: "invalid_shape",
+        message: `draft가 JSON 문자열로 왔고 읽을 수 없습니다(${maskQuoted(read.parseError ?? "객체가 아님")}). draft는 따옴표로 감싼 문자열이 아니라 JSON 객체 그대로 넣습니다.`,
+      },
+    ],
+    expected_shape:
+      '{"transcript_ko": "...", "items": [9개 객체, 순서대로 item_key=visit_time, support, meal, sleep, discomfort, medication, cognition, notes, next_check. 각각 value_ko, value_native, status, evidence, reason, reason_native, detail], "form_fields": {}}',
+  };
 }
 
 /** 자동 정리 중단 초안: 마지막 초안을 고쳐 쓰고, 문제가 남은 항목은 '확인 필요' + 자동 정리 중단 */
