@@ -28,7 +28,13 @@ function fakeStorage(): StorageLike & { data: Map<string, string> } {
   };
 }
 
-const answer = { ko: "답", native: "Trả lời", source: "1장 2절", found: true };
+const answer = {
+  nativeLang: "vi" as const,
+  ko: "답",
+  native: "Trả lời",
+  source: "1장 2절",
+  found: true,
+};
 const me = (id: number): StoredMessage => ({
   id,
   from: "me",
@@ -54,7 +60,7 @@ describe("W6 도우미 대화 브라우저 저장 (이슈 #152)", () => {
     );
     const rows = loadHelperHistory(storage, "legacy");
     expect(rows).toHaveLength(2);
-    expect(rows[1]).toMatchObject({ answer: { native: "합성 번역" } });
+    expect(rows[1]).toMatchObject({ answer: { native: "합성 번역", nativeLang: "vi" } });
     expect(rows[1]).not.toHaveProperty("answer.vi");
   });
   it("계정별 키에 저장하고 그대로 다시 읽는다(질문·답·출처)", () => {
