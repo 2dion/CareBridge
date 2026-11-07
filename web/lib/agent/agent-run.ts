@@ -168,6 +168,7 @@ export async function runAgentForRecord(
         content,
         tokens: totalTokens(response.usage),
         cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+        stopReason: response.stop_reason ?? undefined,
       };
     },
     async searchGlossary(expression) {

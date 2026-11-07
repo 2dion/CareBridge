@@ -5,6 +5,7 @@ import {
   agentSystemPrompt,
   AUTO_STOP_REASON,
   normalizeDraftInput,
+  readDraftString,
   runAgent,
   type AgentDeps,
   type AgentInput,
@@ -230,6 +231,13 @@ describe("draft가 문자열로 올 때 (이슈 #356)", () => {
     expect(summary).toContain(
       '"draft_type":"string","parsed_from_string":false,"items_is_array":false,"cache_read_tokens":1234',
     );
+    // 이슈 #387: 모델에게 문자열이라는 사실을 알리고, 진단에 오류 자리·길이를 남긴다(본문은 없음)
+    expect(summary).toContain("draft가 JSON 문자열로 왔고 읽을 수 없습니다");
+    expect(summary).toContain('"string_length":14');
+    expect(summary).toContain('"parse_error":"');
+    expect(summary).toContain('"shape_at_error":"');
+    expect(summary).not.toContain("비밀");
+    expect(summary).not.toContain("깨진");
   });
 
   it("normalizeDraftInput: 객체는 그대로, 객체가 아닌 JSON은 문자열 그대로", () => {
@@ -238,5 +246,65 @@ describe("draft가 문자열로 올 때 (이슈 #356)", () => {
     expect(normalizeDraftInput("[1]")).toBe("[1]");
     expect(normalizeDraftInput("3")).toBe("3");
     expect(normalizeDraftInput(null)).toBeNull();
+  });
+});
+
+describe("draft 문자열이 JSON으로 읽히지 않을 때 (이슈 #387)", () => {
+  const withRawNewline = `{"transcript_ko": "첫 줄\n둘째 줄", "items": [], "form_fields": {}}`;
+
+  it("문자열 값 안의 줄바꿈·탭만 이스케이프해 읽고, 내용은 바꾸지 않음", () => {
+    const read = readDraftString(withRawNewline);
+    expect(read.repaired).toBe(true);
+    expect(read.parseError).toContain("position");
+    expect(read.value).toEqual({ transcript_ko: "첫 줄\n둘째 줄", items: [], form_fields: {} });
+    expect(normalizeDraftInput(withRawNewline)).toEqual(read.value);
+  });
+
+  it("이스케이프된 따옴표·역슬래시가 있는 문자열도 그대로 읽힘", () => {
+    const text = `{"transcript_ko": "그는 \\"조금\\" 드심 \\\\ 끝", "items": [],\n"form_fields": {}}`;
+    const read = readDraftString(text);
+    expect(read.value).toEqual({
+      transcript_ko: '그는 "조금" 드심 \\ 끝',
+      items: [],
+      form_fields: {},
+    });
+    expect(read.repaired).toBe(false);
+  });
+
+  it("복구해도 읽히지 않으면 문자열 그대로 두고 오류를 남김", () => {
+    const read = readDraftString("{깨진 json");
+    expect(read.value).toBe("{깨진 json");
+    expect(read.repaired).toBe(false);
+    expect(read.parseError).toBeTruthy();
+    expect(readDraftString(emptyDraft)).toEqual({
+      value: emptyDraft,
+      parseError: null,
+      repaired: false,
+    });
+  });
+
+  it("줄바꿈이 든 문자열 draft는 복구해서 저장하고 진단에 repaired를 남김", async () => {
+    const draftWithNewline = { ...emptyDraft, transcript_ko: "첫 줄\n둘째 줄" };
+    const rawString = JSON.stringify(draftWithNewline).replace("\\n", "\n");
+    const deps = fakeDeps([[use("return_draft", { draft: rawString })]]);
+    const result = await runAgent(input, deps);
+    expect(result.endReason).toBe("draft_returned");
+    expect(deps.saveDraft).toHaveBeenCalledWith(draftWithNewline);
+  });
+
+  it("읽을 수 없는 문자열이면 validate_draft가 모델에게 객체로 보내라고 알림", async () => {
+    const deps = fakeDeps([[use("validate_draft", { draft: "{깨진 json" })], []]);
+    await runAgent(input, deps);
+    const summary = vi.mocked(deps.logStep).mock.calls[0][0].result_summary;
+    expect(summary).toContain('"passed":false');
+    expect(summary).toContain("JSON 객체 그대로 넣습니다");
+    expect(summary).toContain('"expected_shape"');
+    expect(summary).toContain('"stop_reason":');
+  });
+
+  it("프롬프트가 draft를 문자열로 감싸지 말라고 함", () => {
+    expect(agentSystemPrompt("facility", "zh")).toContain(
+      "객체를 따옴표로 감싼 문자열로 넣지 않는다",
+    );
   });
 });
