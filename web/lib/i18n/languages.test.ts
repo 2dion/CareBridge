@@ -6,6 +6,7 @@ import {
   NATIVE_LANGS,
   parseNativeLang,
   parseSelectableLang,
+  PRE_LOGIN_LANG,
   SELECTABLE_LANGS,
 } from "./languages";
 
@@ -43,5 +44,8 @@ describe("언어 목록(languages.ts)", () => {
     for (const value of ["zh", "mn", "en", "th", null]) {
       expect(parseSelectableLang(value)).toBeUndefined();
     }
+  });
+  it("로그인 전 번역 줄은 특정 모국어가 아니라 영어다(결정 2026-11-07-로그인전영어병기)", () => {
+    expect(PRE_LOGIN_LANG).toBe("en");
   });
 });

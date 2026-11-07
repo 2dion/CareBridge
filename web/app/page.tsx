@@ -9,7 +9,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { Native } from "@/components/mobile/native";
+import { Native, NativeLanguageProvider } from "@/components/mobile/native";
+import { PRE_LOGIN_LANG } from "@/lib/i18n/languages";
 import { useDemo } from "@/components/demo/demo-provider";
 import { Icon } from "@/components/mobile/icon";
 import { MobileScreen } from "@/components/mobile/shell";
@@ -37,76 +38,79 @@ export default function Home() {
   // 스플래시를 누르면 기다리지 않고 바로 넘어간다. 아직 로그인 여부를 모르면 A1(로그인)으로 간다
   const skip = () => router.replace(realRole ? roleHref : "/login");
 
+  // 로그인 전 A0은 언어를 모르므로 영어로 병기한다. 로그인한 사람은 자기 모국어(결정 2026-11-07-로그인전영어병기)
   return (
-    <MobileScreen>
-      <div
-        className={`grow stack ${MOCK ? "" : "splash"}`}
-        style={{ justifyContent: "center", gap: 28, padding: "40px 0" }}
-        onClick={MOCK ? undefined : skip}
-      >
-        <div className="center">
-          <Image
-            className="art"
-            src="/art/logo.png"
-            alt="CareBridge"
-            width={150}
-            height={116}
-            priority
-          />
-          <p style={{ marginTop: 10, fontSize: 16, color: "var(--color-sub)" }}>
-            말로 남기고, 확인만 하면 되는 돌봄 기록
-          </p>
-          <p style={{ fontSize: 13 }}>
-            <Native id="a0.tagline" />
-          </p>
-        </div>
-        {MOCK ? (
-          <>
-            <div className="stack pad" style={{ gap: 12 }}>
-              <Link className="btn btn-primary" href={workerHref}>
-                <span className="spacer" />
-                <span className="label">작성자로 시작</span>
-                <Icon name="next" />
-              </Link>
-              <Link className="btn btn-outline" href="/overview">
-                <span className="spacer" />
-                <span className="label">관리자로 시작</span>
-                <Icon name="next" />
-              </Link>
-              <Link className="text-link" href="/login">
-                로그인 화면으로 들어가기
-              </Link>
-              {/* 시연 초기화는 Mock(브라우저 저장)에만 있다. 실제 데이터는 지우지 않는다 */}
-              <button
-                type="button"
-                className="text-link"
-                onClick={() => {
-                  if (window.confirm("시연 데이터를 처음 상태로 되돌릴까요?")) demo?.reset();
-                }}
+    <NativeLanguageProvider language={demo?.real?.nativeLang ?? PRE_LOGIN_LANG}>
+      <MobileScreen>
+        <div
+          className={`grow stack ${MOCK ? "" : "splash"}`}
+          style={{ justifyContent: "center", gap: 28, padding: "40px 0" }}
+          onClick={MOCK ? undefined : skip}
+        >
+          <div className="center">
+            <Image
+              className="art"
+              src="/art/logo.png"
+              alt="CareBridge"
+              width={150}
+              height={116}
+              priority
+            />
+            <p style={{ marginTop: 10, fontSize: 16, color: "var(--color-sub)" }}>
+              말로 남기고, 확인만 하면 되는 돌봄 기록
+            </p>
+            <p style={{ fontSize: 13 }}>
+              <Native id="a0.tagline" />
+            </p>
+          </div>
+          {MOCK ? (
+            <>
+              <div className="stack pad" style={{ gap: 12 }}>
+                <Link className="btn btn-primary" href={workerHref}>
+                  <span className="spacer" />
+                  <span className="label">작성자로 시작</span>
+                  <Icon name="next" />
+                </Link>
+                <Link className="btn btn-outline" href="/overview">
+                  <span className="spacer" />
+                  <span className="label">관리자로 시작</span>
+                  <Icon name="next" />
+                </Link>
+                <Link className="text-link" href="/login">
+                  로그인 화면으로 들어가기
+                </Link>
+                {/* 시연 초기화는 Mock(브라우저 저장)에만 있다. 실제 데이터는 지우지 않는다 */}
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => {
+                    if (window.confirm("시연 데이터를 처음 상태로 되돌릴까요?")) demo?.reset();
+                  }}
+                >
+                  시연 초기화
+                </button>
+              </div>
+              <p
+                className="center"
+                style={{ fontSize: 12, color: "var(--color-muted)", padding: "0 24px" }}
               >
-                시연 초기화
+                Mock 시연입니다. 기록은 이 브라우저에만 저장되고, 어르신은 모두 합성 사례입니다.
+              </p>
+            </>
+          ) : (
+            <>
+              {/* 자동으로 넘어가지만, 키보드로도 건너뛸 수 있게 글자 버튼을 둔다. 누르면 바깥 onClick(skip)으로 올라간다 */}
+              <button type="button" className="text-link splash-skip">
+                눌러서 바로 가기
+                <Native id="a0.continue" />
               </button>
-            </div>
-            <p
-              className="center"
-              style={{ fontSize: 12, color: "var(--color-muted)", padding: "0 24px" }}
-            >
-              Mock 시연입니다. 기록은 이 브라우저에만 저장되고, 어르신은 모두 합성 사례입니다.
-            </p>
-          </>
-        ) : (
-          <>
-            {/* 자동으로 넘어가지만, 키보드로도 건너뛸 수 있게 글자 버튼을 둔다. 누르면 바깥 onClick(skip)으로 올라간다 */}
-            <button type="button" className="text-link splash-skip">
-              눌러서 바로 가기
-              <Native id="a0.continue" />
-            </button>
-            <p className="sr-only" role="status">
-              불러오는 중
-            </p>
-          </>
-        )}
-      </div>
-    </MobileScreen>
+              <p className="sr-only" role="status">
+                불러오는 중
+              </p>
+            </>
+          )}
+        </div>
+      </MobileScreen>
+    </NativeLanguageProvider>
   );
 }

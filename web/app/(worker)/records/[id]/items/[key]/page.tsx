@@ -5,7 +5,7 @@ import { Native, useNativeLanguage } from "@/components/mobile/native";
 import { nativeMessage } from "@/lib/i18n/messages";
 
 // W3 · 내용 수정·내용 추가(수정, 언급 없음 내용 추가).
-// 한국어·베트남어 어느 쪽으로 써도 되고, 실제로는 서버가 이 항목만 한국어 기록체로 다시 쓰고 번역한다(화면 v1.3 W3).
+// 한국어·작성자 모국어 어느 쪽으로 써도 되고, 실제로는 서버가 이 항목만 한국어 기록체로 다시 쓰고 번역한다(화면 v1.3 W3).
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
@@ -404,7 +404,7 @@ export default function ItemEditPage() {
             className="input"
             value={text}
             onValueChange={setText}
-            placeholder={`${missing ? `${label.ko} 상태를 자유롭게` : "수정할 내용을"} 적어 주세요. (한국어 또는 베트남어)`}
+            placeholder={`${missing ? `${label.ko} 상태를 자유롭게` : "수정할 내용을"} 적어 주세요. (한국어 또는 모국어)`}
           />
           <div className="note-line" style={{ marginTop: 8 }}>
             <Icon name="refresh" />
