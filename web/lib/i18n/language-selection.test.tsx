@@ -31,13 +31,12 @@ describe("A2·W5 모국어 선택(#313)", () => {
     expect(render("ko")).not.toContain('class="native"');
   });
 
-  it("A2·W5 공통 목록은 QA 전 언어를 선택지로 열지 않는다", () => {
+  it("A2·W5 공통 목록은 켜진 언어(ko·vi·zh·en)만 열고 QA 전 언어(mn)는 열지 않는다(#315)", () => {
     const html = renderToStaticMarkup(
       <LanguageSelect id="language" value="vi" label="모국어" onChange={() => {}} />,
     );
-    expect(html).toContain('value="ko"');
-    expect(html).toContain('value="vi"');
-    for (const language of ["zh", "mn", "en"]) expect(html).not.toContain(`value="${language}"`);
+    for (const language of ["ko", "vi", "zh", "en"]) expect(html).toContain(`value="${language}"`);
+    expect(html).not.toContain('value="mn"');
   });
 
   it("번역 초안에 없는 키는 다른 언어를 대신 쓰지 않고 숨긴다", () => {

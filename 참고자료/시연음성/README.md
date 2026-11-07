@@ -18,4 +18,5 @@
 
 - **이름:** `voice-[시나리오 번호]-[언어 코드].mp3`. 예전 `voice-1`·`voice-2`·`voice-3`은 각각 `voice-1-ko`·`voice-2-ko`·`voice-3-vi`입니다.
 - **만든 방법:** Microsoft Edge TTS(한국어 SunHi, 베트남어 HoaiMy, 중국어 Xiaoxiao, 몽골어 Yesui, 영어 Jenny), 속도 -15%, 문장 사이 1.3초. 다시 만들려면 `python3 data/demo/make_voices.py 출력폴더 [음성 이름]`
-- **확인 안 한 것:** `voice-3-zh`·`voice-3-mn`·`voice-3-en`은 받아쓰기를 아직 돌리지 않았고, 대본은 원어민 확인을 거치지 않은 번역입니다. #315에서 받아쓴 글과 대본을 맞춰 봅니다.
+- **받아쓰기 결과(11/07, #315):** `voice-3-zh`·`voice-3-en`은 배포본에서 대본 그대로 받아써졌습니다. `voice-3-mn`은 몽골어가 아닌 다른 언어 글자로 받아써져 실패했고, 사람 목소리 녹음으로 다시 확인해야 합니다. 자세한 표는 `data/demo/voices.md` '배포본에서 돌린 결과'.
+- **확인 안 한 것:** 대본은 원어민 확인을 거치지 않은 번역입니다.
