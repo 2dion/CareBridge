@@ -123,10 +123,14 @@ export default function DraftPage() {
   const justSent = useRef(false);
   // 재가 서식 칸은 입력이 멈춘 뒤 저장한다. 두 칸을 잇달아 고쳐도 먼저 보낸 값이 옛 서버 값에 덮이지 않게 보낸 값을 모아 둔다(이슈 #139)
   const sentFields = useRef<Partial<Record<CountField, number | null>>>({});
+  const missing = Boolean(demo) && !record;
   useEffect(() => {
     if (locked && !justSent.current) router.replace(`/records/${id}/view`);
     else if (empty && record) router.replace(`/start/${record.residentId}?date=${record.careDate}`);
-  }, [locked, empty, record, id, router]);
+    // 읽기가 끝났는데 기록이 없으면(담당이 끝나 권한에서 빠짐, 결정 #367·#374) 오늘 화면으로 보낸다.
+    // 방금 전송해 빠진 기록은 전송 완료 화면으로 가므로 돌리지 않는다.
+    else if (missing && !justSent.current) router.replace("/today");
+  }, [locked, empty, record, missing, id, router]);
 
   useEffect(() => {
     if (!toast) return;

@@ -83,9 +83,12 @@ export default function ItemEditPage() {
     );
   const status = demo?.db.records[id]?.status;
   const locked = status === "submitted" || status === "approved";
+  const recordGone = Boolean(demo) && !demo?.db.records[id];
   useEffect(() => {
     if (locked) router.replace(`/records/${id}/view`);
-  }, [locked, id, router]);
+    // 읽기가 끝났는데 기록이 없으면(담당이 끝나 권한에서 빠짐, 결정 #367·#374) 멈추지 않고 목록으로 보낸다
+    else if (recordGone) router.replace("/today");
+  }, [locked, recordGone, id, router]);
 
   if (!demo || locked) return <Loading tab="today" />;
   const record = demo.db.records[id];
