@@ -2,7 +2,7 @@
 -- term_id는 CSV의 사람용 번호라 DB에 없으므로, 용어는 (expression, term_ko)로 찾아 잇는다(glossary unique 키).
 -- 다시 돌려도 안전: 같은 (용어, 언어)면 번역 글만 맞춘다. 검수 전 중국어(간체자)는 Claude 초안이다(reviewed = false).
 -- 이 파일은 data/glossary/build_translation_seeds.py가 만든다. 고칠 때는 CSV를 고치고 다시 만든다.
--- 근거: 문서/결정/2026-11-03-용어번역표.md, 문서/설계/데이터구조-v2.3.9.md 'glossary_translations'
+-- 근거: 문서/결정/2026-11-03-용어번역표.md, 문서/설계/데이터구조-v2.3.7.md 'glossary_translations'
 insert into public.glossary_translations (glossary_id, lang, term, reviewed)
 select g.id, 'zh', v.term, v.reviewed
 from (values
@@ -117,7 +117,8 @@ from (values
   ('맹당구가 들었어', '멍 (사투리)', '淤青（方言）', false),
   ('부시름이 나서', '부스럼 (사투리)', '疖子、疮（方言）', false),
   ('초꼽재기 떼야', '눈곱 (사투리)', '眼屎（方言）', false),
-  ('목고망으로 안 넘어가', '목구멍 (사투리)', '喉咙（方言）', false)
+  ('목고망으로 안 넘어가', '목구멍 (사투리)', '喉咙（方言）', false),
+  ('절반 정도 드셨어요', '섭취량 1/2이상', '吃了大约一半', false)
 ) as v (expression, term_ko, term, reviewed)
 join public.glossary g on g.expression = v.expression and g.term_ko = v.term_ko
 on conflict (glossary_id, lang) do update
