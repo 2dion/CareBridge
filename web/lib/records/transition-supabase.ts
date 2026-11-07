@@ -53,6 +53,17 @@ export async function createTransitionDeps(): Promise<TransitionDeps> {
       return data as ItemRow[];
     },
     async update(recordId, from, patch, columns) {
+      // 보내기는 DB 함수로 한다. 직접 UPDATE는 바뀐 새 행(submitted)도 읽기 정책으로 검사해서, 담당이 끝난 작성자의
+      // draft·returned 보내기가 거절된다(이슈 #367). 함수는 작성자 본인의 draft·returned만 보낸다.
+      if (patch.status === "submitted") {
+        const { data, error } = await supabase.rpc("submit_own_record", {
+          p_record_id: recordId,
+          p_from: from,
+        });
+        if (error) return { ok: false, error: error.message };
+        const row = (data as Record<string, unknown>[] | null)?.[0];
+        return row ? { ok: true, row } : { ok: false, error: "no_rows" };
+      }
       const { data, error } = await supabase
         .from("records")
         .update(patch)
