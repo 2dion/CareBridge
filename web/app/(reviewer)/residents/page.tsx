@@ -26,7 +26,9 @@ import {
   residentHasRecords,
   updateResident,
 } from "@/lib/demo/review";
+import { historyDays, historyOf, historyPeriod } from "@/lib/demo/assignment-history";
 import {
+  type AssignmentHistoryEntry,
   type DemoDb,
   addDays,
   monthDay,
@@ -252,6 +254,12 @@ function Residents() {
           today={today}
           workers={workers}
           selectedWorkerIds={workerIdsOf(editing.id)}
+          history={
+            db.assignmentHistory === undefined
+              ? undefined
+              : db.assignmentHistory && historyOf(db.assignmentHistory, editing.id)
+          }
+          workerName={(id) => db.staff?.find((person) => person.id === id)?.name ?? null}
           workerLabel={names.worker}
           onClose={() => setEditing(null)}
           lockCareType={residentHasRecords(db, editing.id)}
@@ -417,11 +425,58 @@ function WorkerPicker({
 }
 
 /** M4 [수정] 창: [어르신 추가] 창과 같은 가운데 팝업(이슈 #329). 어르신 정보(실명·사진·급여 종류, 이슈 #96)와 담당 연결(작성자·시작일·방문 요일·표시용 방문 시간) */
+/** M4 담당 이력(이슈 #381, 결정 2026-11-07-담당끊기전검사). 읽기만. 담당 연결·끊기는 위 작성자 고르기로 한다 */
+function AssignmentHistoryList({
+  history,
+  workerName,
+  workerLabel,
+}: {
+  history: AssignmentHistoryEntry[] | null | undefined;
+  workerName: (id: string) => string | null;
+  workerLabel: string;
+}) {
+  return (
+    <section aria-label="담당 이력" style={{ marginTop: 14 }}>
+      <p className="flabel">담당 이력</p>
+      {history === undefined ? (
+        <p className="fhint">시연(Mock)에서는 담당 이력을 남기지 않아요.</p>
+      ) : history === null ? (
+        <p className="fhint">담당 이력을 불러오지 못했어요. 잠시 뒤 창을 다시 열어 주세요.</p>
+      ) : history.length === 0 ? (
+        <p className="fhint">담당 이력이 없어요.</p>
+      ) : (
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
+          {history.map((entry) => {
+            const days = historyDays(entry);
+            return (
+              <li
+                key={`${entry.workerId}-${entry.startDate}-${entry.endDate ?? "now"}`}
+                style={{ fontSize: 14 }}
+              >
+                <b style={{ fontWeight: entry.endDate === null ? 700 : 500 }}>
+                  {workerName(entry.workerId) ?? `이름을 알 수 없는 ${workerLabel}`}
+                </b>{" "}
+                · {historyPeriod(entry)}
+                {days && <span className="muted"> ({days})</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {history !== undefined && (
+        <p className="fhint">2026-11-07 전에 끝난 담당은 남아 있지 않아요.</p>
+      )}
+    </section>
+  );
+}
+
 function ResidentEditModal({
   resident,
   today,
   workers,
   selectedWorkerIds,
+  history,
+  workerName,
   workerLabel,
   lockCareType,
   onClose,
@@ -432,6 +487,9 @@ function ResidentEditModal({
   today: string;
   workers: StaffMember[];
   selectedWorkerIds: string[];
+  /** 이 어르신의 담당 이력(#381). undefined는 Mock, null은 읽지 못함 */
+  history: AssignmentHistoryEntry[] | null | undefined;
+  workerName: (id: string) => string | null;
   workerLabel: string;
   /** 기록이 하나라도 있으면 급여 종류(서식)를 바꿀 수 없다 */
   lockCareType: boolean;
@@ -581,6 +639,11 @@ function ResidentEditModal({
         <p className="fhint">
           가입한 {workerLabel}만 고를 수 있어요. 고른 {workerLabel}마다 담당 연결 한 줄이 생겨요.
         </p>
+        <AssignmentHistoryList
+          history={history}
+          workerName={workerName}
+          workerLabel={workerLabel}
+        />
         {!linked ? (
           <p className="info-note" style={{ marginTop: 14 }}>
             담당 {workerLabel}부터 골라 주세요. 담당 시작일·방문 요일·방문 시간은 담당 연결에

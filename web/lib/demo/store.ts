@@ -118,6 +118,15 @@ export type Assignment = {
   visitTime: string | null;
 };
 
+/** 담당 이력 한 줄(assignment_history, 이슈 #380·#381). endDate가 비면 지금 담당 */
+export type AssignmentHistoryEntry = {
+  residentId: string;
+  workerId: string;
+  startDate: string;
+  endDate: string | null;
+  visitDays: number[] | null;
+};
+
 export type DemoDb = {
   version: 5;
   seededOn: string;
@@ -134,6 +143,8 @@ export type DemoDb = {
   /** 실제 모드(관리자): 기관 직원과 담당 연결 줄. Mock은 작성자 한 명이라 비움(이슈 #95) */
   staff?: StaffMember[];
   assignments?: Assignment[];
+  /** 실제 모드(관리자): 담당 이력. null이면 읽지 못함(표가 아직 없는 DB 등). Mock은 비움 */
+  assignmentHistory?: AssignmentHistoryEntry[] | null;
 };
 
 export const DB_STORAGE_KEY = "carebridge-demo-db-v3";

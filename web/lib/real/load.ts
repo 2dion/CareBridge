@@ -3,7 +3,7 @@
 import { type NativeLang, parseNativeLang } from "@/lib/auth/signup";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { DemoDb, MissedRecord, OverdueDay } from "../demo/store";
+import type { AssignmentHistoryEntry, DemoDb, MissedRecord, OverdueDay } from "../demo/store";
 import {
   activeJoinCodes,
   type AssignmentRow,
@@ -31,6 +31,35 @@ async function rows<T>(query: PromiseLike<{ data: unknown; error: { message: str
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return (data ?? []) as T[];
+}
+
+/** 관리자 M4 담당 이력(이슈 #381). 표가 아직 없는 DB에서도 화면 전체가 멈추지 않게 실패하면 null */
+async function loadAssignmentHistory(
+  supabase: SupabaseClient,
+): Promise<AssignmentHistoryEntry[] | null> {
+  try {
+    const data = await rows<{
+      resident_id: string;
+      worker_id: string;
+      start_date: string;
+      end_date: string | null;
+      visit_days: number[] | null;
+    }>(
+      supabase
+        .from("assignment_history")
+        .select("resident_id, worker_id, start_date, end_date, visit_days"),
+    );
+    return data.map((row) => ({
+      residentId: row.resident_id,
+      workerId: row.worker_id,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      visitDays: row.visit_days,
+    }));
+  } catch (error) {
+    console.error("assignment_history 읽기 실패", error);
+    return null;
+  }
 }
 
 const byDateDesc = (a: { careDate: string }, b: { careDate: string }) =>
@@ -80,6 +109,7 @@ export async function loadRealDb(
     missedRows,
     overdueRows,
     joinCodeRows,
+    assignmentHistory,
   ] = await Promise.all([
     reviewer ? rows<StaffRow>(supabase.rpc("list_org_staff")) : Promise.resolve([]),
     rows<ResidentRow>(supabase.from("residents").select("id, name, photo_path, care_type")),
@@ -114,6 +144,7 @@ export async function loadRealDb(
           supabase.from("join_codes").select("code, role, active").eq("active", true),
         )
       : Promise.resolve([]),
+    reviewer ? loadAssignmentHistory(supabase) : Promise.resolve(null),
   ]);
 
   const ids = records.map((record) => record.id);
@@ -162,7 +193,7 @@ export async function loadRealDb(
     .map((row) => ({ residentId: row.resident_id, careDate: row.care_date }))
     .sort(byDateDesc);
   return {
-    db: { ...db, missed, ...(reviewer ? { overdue } : {}) },
+    db: { ...db, missed, ...(reviewer ? { overdue, assignmentHistory } : {}) },
     role: profile.role,
     userId: profile.id,
     isTraining: Boolean(org?.is_training),
