@@ -3,6 +3,7 @@
 // 로그인한 계정별 키, 최근 HELPER_HISTORY_LIMIT개, 로그아웃이나 [대화 지우기]로 지운다.
 // 저장소가 막힌 브라우저(사생활 보호 모드 등)에서도 화면이 멈추지 않게 접근은 모두 try/catch로 감싼다.
 import type { HelperAnswer } from "@/lib/demo/helper";
+import { parseNativeLang } from "@/lib/i18n/languages";
 
 export const HELPER_HISTORY_PREFIX = "carebridge-helper-";
 export const HELPER_HISTORY_LIMIT = 50;
@@ -105,7 +106,7 @@ export function clearAllHelperHistory(storage: StorageLike | undefined): void {
   }
 }
 
-/** 옛 Mock의 vi 답도 새 이름으로 읽어 기존 대화를 잃지 않는다(#258). */
+/** 옛 vi 키는 베트남어로 읽고, 언어를 모르는 답은 번역을 숨긴다(#258, #354). */
 function normalizeStoredMessage(value: unknown): unknown {
   if (!value || typeof value !== "object") return value;
   const row = value as Record<string, unknown>;
@@ -115,7 +116,11 @@ function normalizeStoredMessage(value: unknown): unknown {
   const { vi, ...rest } = answer;
   return {
     ...row,
-    answer: { ...rest, native: typeof answer.native === "string" ? answer.native : vi },
+    answer: {
+      ...rest,
+      native: typeof answer.native === "string" ? answer.native : vi,
+      nativeLang: parseNativeLang(answer.nativeLang ?? (typeof vi === "string" ? "vi" : undefined)),
+    },
   };
 }
 
