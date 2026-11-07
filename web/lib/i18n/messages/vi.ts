@@ -250,6 +250,7 @@ export const vi = {
   "w2.start.voiceDescription": "Tạo bản nháp nhanh bằng lời nói.",
   "w2.start.write": "Ghi bằng chữ",
   "w2.start.writeDescription": "Nhập trực tiếp để ghi chép.",
+  "w2.start.voiceUnavailable": "Ngôn ngữ này chưa hỗ trợ ghi bằng giọng nói. Hãy ghi bằng chữ.",
   "w1.start": "Bắt đầu ghi chép",
   "w1.resume": "Viết tiếp",
   "w1.edit": "Sửa bản ghi",

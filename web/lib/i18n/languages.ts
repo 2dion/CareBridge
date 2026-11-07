@@ -20,8 +20,9 @@ export const LANGUAGES: readonly Language[] = [
   { code: "vi", nameKo: "베트남어", nameNative: "Tiếng Việt", enabled: true, sttChecked: true },
   // zh·en은 QA(받아쓰기·역번역·글꼴)를 통과해 11/07 켬(이슈 #315). 원어민 문체 검수는 켠 뒤 이어서 한다
   { code: "zh", nameKo: "중국어(간체)", nameNative: "简体中文", enabled: true, sttChecked: true },
-  // mn은 받아쓰기(Groq whisper 자동 인식)가 몽골어를 다른 언어로 잘못 들어 꺼 둔다(이슈 #315). 목록에만 있다
-  { code: "mn", nameKo: "몽골어", nameNative: "Монгол хэл", enabled: false, sttChecked: false },
+  // mn은 역번역·화면은 통과했지만 받아쓰기(Groq whisper 자동 인식)가 몽골어를 못 받아써, 켜되 글로 기록만 연다
+  // (이슈 #315·#386, 결정 2026-11-07-몽골어글로기록). 받아쓰기 확인을 통과하면 sttChecked만 켠다
+  { code: "mn", nameKo: "몽골어", nameNative: "Монгол хэл", enabled: true, sttChecked: false },
   { code: "en", nameKo: "영어", nameNative: "English", enabled: true, sttChecked: true },
 ] as const;
 
@@ -60,6 +61,14 @@ export function parseSelectableLang(value: unknown): NativeLang | undefined {
  */
 export function parseNativeLang(value: unknown): NativeLang {
   return NATIVE_LANGS.find((lang) => lang === value) ?? "ko";
+}
+
+/**
+ * 그 언어 작성자에게 말로 기록(W2 [음성으로 기록], W3 [말로 추가])을 열지. 받아쓰기 품질 확인을 마친 언어만 연다
+ * (결정 2026-11-07-몽골어글로기록). 서버의 upload-url·/audio는 막지 않는다(받아쓰기가 틀려도 Agent는 '확인 필요'로 둠)
+ */
+export function isSttChecked(lang: NativeLang): boolean {
+  return LANGUAGES.find((language) => language.code === lang)?.sttChecked ?? true;
 }
 
 /** 프롬프트에 넣는 언어의 한국어 이름(예: vi → 베트남어) */
