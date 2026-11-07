@@ -2,7 +2,7 @@ import { nativeMessage } from "@/lib/i18n/messages";
 
 // 실제 모드의 화면 동작: 서버 API(공통 계약 10개)와 Supabase(RLS) 직접 쓰기. 끝나면 화면이 다시 읽는다(reload).
 // AI 결과는 서버가 만들고, 화면은 가짜 결과를 만들지 않는다.
-// 근거: 문서/설계/데이터구조-v2.3.7.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
+// 근거: 문서/설계/데이터구조-v2.3.9.md '공통 계약', 문서/결정/2026-10-21-녹음업로드.md, 2026-10-27-녹음임시보관.md
 import type { NativeLang } from "@/lib/auth/signup";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -193,6 +193,23 @@ const dbError = (
   error
     ? actionError(error.code === "23505" ? "duplicate_entry" : error.message, undefined, lang)
     : null;
+
+// M4 담당 끊기: 남은 기록·빈 날이 있으면 DB가 거절한다(이슈 #379). details = {"open_records":N,"empty_days":N}
+export function openWorkError(details: string | undefined): ActionError {
+  let counts = { open_records: 0, empty_days: 0 };
+  try {
+    counts = { ...counts, ...(JSON.parse(details ?? "{}") as typeof counts) };
+  } catch {
+    // 건수를 못 읽어도 안내는 한다
+  }
+  const parts = [
+    counts.open_records > 0 ? `끝나지 않은 기록 ${counts.open_records}건` : "",
+    counts.empty_days > 0 ? `빈 날 ${counts.empty_days}일` : "",
+  ].filter(Boolean);
+  const ko = `${parts.length > 0 ? parts.join(", ") : "끝나지 않은 기록이나 빈 날"}이 남아 담당을 끊을 수 없어요. 승인하거나 기록 없음으로 정리한 뒤 다시 해 주세요.`;
+  // 관리자 화면이라 한국어만 쓴다(병기 원칙: 화면 틀 한국어만)
+  return { ok: false, error: "assignment_open_work", ko, native: ko };
+}
 
 // createRealActions 안에서는 작성자 모국어를 따라가는 같은 이름의 함수를 쓴다(이슈 #312)
 const baseCallApi = callApi;
@@ -388,6 +405,9 @@ export function createRealActions(
             "worker_id",
             removed.map((row) => row.worker_id),
           );
+        if (error?.message === "assignment_open_work") {
+          return after(openWorkError((error as { details?: string }).details));
+        }
         if (error) return after(dbError(error) as ActionError);
         changed = true;
       }

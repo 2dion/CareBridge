@@ -1,5 +1,5 @@
 {
- "voice-1": {
+ "voice-1-ko": {
   "segs": [
    [
     "ko",
@@ -43,7 +43,7 @@
    ]
   ]
  },
- "voice-2": {
+ "voice-2-ko": {
   "segs": [
    [
     "ko",
@@ -87,7 +87,7 @@
    ]
   ]
  },
- "voice-3": {
+ "voice-3-vi": {
   "segs": [
    [
     "vi",
@@ -168,6 +168,138 @@
    [
     "vi",
     "Ngày mai tôi sẽ xem lại da ở mông của bà."
+   ]
+  ]
+ },
+ "voice-3-zh": {
+  "segs": [
+   [
+    "zh",
+    "今天我从早上七点到下午四点照顾奶奶。"
+   ],
+   [
+    "zh",
+    "早上我帮奶奶洗脸，换了衣服。"
+   ],
+   [
+    "zh",
+    "我每两个小时帮奶奶翻一次身，换了三次尿布。"
+   ],
+   [
+    "zh",
+    "午饭奶奶吃了粥，吃了一点。"
+   ],
+   [
+    "zh",
+    "奶奶说昨晚没睡好。"
+   ],
+   [
+    "zh",
+    "午饭后我看到奶奶吃了药。"
+   ],
+   [
+    "zh",
+    "今天奶奶认出了我，笑着跟我打招呼。"
+   ],
+   [
+    "zh",
+    "奶奶屁股上的皮肤有点红。"
+   ],
+   [
+    "zh",
+    "明天我会再看看奶奶屁股上的皮肤。"
+   ],
+   [
+    "zh",
+    "今天就记录到这里。"
+   ]
+  ]
+ },
+ "voice-3-mn": {
+  "segs": [
+   [
+    "mn",
+    "Өнөөдөр би өглөөний долоон цагаас үдээс хойш дөрвөн цаг хүртэл эмээг асарсан."
+   ],
+   [
+    "mn",
+    "Өглөө би эмээгийн нүүрийг угааж, хувцсыг нь сольж өгсөн."
+   ],
+   [
+    "mn",
+    "Хоёр цаг тутамд эмээгийн хэвтэх байрлалыг нэг удаа сольж, живхийг нь гурван удаа сольсон."
+   ],
+   [
+    "mn",
+    "Үдийн хоолонд эмээ будааны зутан идсэн, бага зэрэг идсэн."
+   ],
+   [
+    "mn",
+    "Эмээ өчигдөр шөнө сайн унтаагүй гэж хэлсэн."
+   ],
+   [
+    "mn",
+    "Үдийн хоолны дараа эмээ эм ууж байгааг би харсан."
+   ],
+   [
+    "mn",
+    "Өнөөдөр эмээ намайг таньж, инээмсэглэн мэндэлсэн."
+   ],
+   [
+    "mn",
+    "Эмээгийн өгзөгний арьс бага зэрэг улайсан байна."
+   ],
+   [
+    "mn",
+    "Маргааш би эмээгийн өгзөгний арьсыг дахин харна."
+   ],
+   [
+    "mn",
+    "Өнөөдрийн тэмдэглэл үүгээр дууслаа."
+   ]
+  ]
+ },
+ "voice-3-en": {
+  "segs": [
+   [
+    "en",
+    "Today I took care of the resident from seven in the morning to four in the afternoon."
+   ],
+   [
+    "en",
+    "In the morning, I washed her face and changed her clothes."
+   ],
+   [
+    "en",
+    "Every two hours I changed her position, and I changed her diaper three times."
+   ],
+   [
+    "en",
+    "For lunch she had porridge, and she ate a little."
+   ],
+   [
+    "en",
+    "She said she didn't sleep well last night."
+   ],
+   [
+    "en",
+    "After lunch, I saw her take her medicine."
+   ],
+   [
+    "en",
+    "Today she recognized me and greeted me with a smile."
+   ],
+   [
+    "en",
+    "The skin on her buttocks is a little red."
+   ],
+   [
+    "en",
+    "Tomorrow I will check the skin on her buttocks again."
+   ],
+   [
+    "en",
+    "That's all for today's record."
    ]
   ]
  }
