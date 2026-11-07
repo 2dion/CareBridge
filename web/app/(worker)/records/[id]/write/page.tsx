@@ -93,7 +93,7 @@ export default function WritePage() {
         />
         <div className="note-line">
           <Icon name="info" />
-          <span>한국어 또는 베트남어로 작성할 수 있어요.</span>
+          <span>한국어 또는 모국어로 작성할 수 있어요.</span>
         </div>
       </section>
       <div className="pad" style={{ marginTop: 12 }}>

@@ -20,7 +20,7 @@ import { privacySections } from "@/lib/privacy";
 import { roleNamesBoth, roleNames } from "@/lib/demo/roles";
 
 import { LanguageSelect } from "@/components/mobile/language-select";
-import { DEFAULT_NATIVE_LANG, type NativeLang } from "@/lib/i18n/languages";
+import { DEFAULT_NATIVE_LANG, PRE_LOGIN_LANG, type NativeLang } from "@/lib/i18n/languages";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Mock 가입 코드(시연용). 실제 코드는 join_codes 표에 있다. */
@@ -45,9 +45,15 @@ function FieldError({ ko, native }: { ko: string; native: string }) {
 
 export default function SignupPage() {
   const [language, setLanguage] = useState<NativeLang>(DEFAULT_NATIVE_LANG);
+  // 모국어를 고르기 전에는 영어로 병기하고, 고르면 그 언어로 바뀐다(결정 2026-11-07-로그인전영어병기)
+  const [picked, setPicked] = useState(false);
+  const choose = (next: NativeLang) => {
+    setLanguage(next);
+    setPicked(true);
+  };
   return (
-    <NativeLanguageProvider language={language}>
-      <SignupForm language={language} onLanguageChange={setLanguage} />
+    <NativeLanguageProvider language={picked ? language : PRE_LOGIN_LANG}>
+      <SignupForm language={language} onLanguageChange={choose} />
     </NativeLanguageProvider>
   );
 }

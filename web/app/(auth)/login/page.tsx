@@ -1,11 +1,12 @@
 "use client";
 
-// A1(로그인): 이메일·비밀번호. 로그인 전 기본은 베트남어이며 공통 모국어 설정으로 병기한다.
+// A1(로그인): 이메일·비밀번호. 로그인 전이라 언어를 모르므로 영어로 병기한다(결정 2026-11-07-로그인전영어병기).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
-import { Native, useNativeLanguage } from "@/components/mobile/native";
+import { Native, NativeLanguageProvider, useNativeLanguage } from "@/components/mobile/native";
+import { PRE_LOGIN_LANG } from "@/lib/i18n/languages";
 import { nativeMessage } from "@/lib/i18n/messages";
 import { useDemo } from "@/components/demo/demo-provider";
 import { Art } from "@/components/mobile/art";
@@ -44,6 +45,14 @@ const errorsFor = (nativeLanguage: ReturnType<typeof useNativeLanguage>) => {
 };
 
 export default function LoginPage() {
+  return (
+    <NativeLanguageProvider language={PRE_LOGIN_LANG}>
+      <LoginForm />
+    </NativeLanguageProvider>
+  );
+}
+
+function LoginForm() {
   const nativeLanguage = useNativeLanguage();
   const errors = errorsFor(nativeLanguage);
   const router = useRouter();

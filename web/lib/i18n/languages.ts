@@ -24,8 +24,15 @@ export const LANGUAGES: readonly Language[] = [
   { code: "en", nameKo: "영어", nameNative: "English", enabled: false, sttChecked: false },
 ] as const;
 
-/** 로그인 전과 새 Mock 계정의 초기 모국어. 다른 언어의 빠진 번역을 대신하지 않는다. */
+/** 새 Mock 계정과 A2 모국어 칸의 초기 값. 다른 언어의 빠진 번역을 대신하지 않는다. */
 export const DEFAULT_NATIVE_LANG: NativeLang = "vi";
+
+/**
+ * 로그인 전(A0·A1, A2에서 모국어를 고르기 전) 번역 줄 언어. 아직 그 사람의 언어를 모르므로
+ * 특정 모국어 대신 국제 공용어인 영어로 병기한다(결정 2026-11-07-로그인전영어병기).
+ * 가입·언어 선택 목록(enabled)과는 따로다.
+ */
+export const PRE_LOGIN_LANG: NativeLang = "en";
 
 export const NATIVE_LANGS = [
   "ko",

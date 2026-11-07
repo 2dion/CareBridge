@@ -14,6 +14,10 @@ vi.mock("./languages", async (importOriginal) => {
     get DEFAULT_NATIVE_LANG() {
       return context.language;
     },
+    // 고르기 전 화면 언어(영어)도 같은 값으로 바꿔, 고른 언어의 번역 줄을 미리 본다
+    get PRE_LOGIN_LANG() {
+      return context.language;
+    },
   };
 });
 import SignupPage from "../../app/(auth)/signup/page";
