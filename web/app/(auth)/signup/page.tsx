@@ -194,7 +194,10 @@ function SignupForm({
           ) : (
             <small className="hint-line">
               {/* 로그인 전이라 어느 기관인지 몰라 '관리자(강사)'로 함께 쓴다(용어집 v1.0) */}
-              {namesBoth.reviewer}에게 받은 코드 ·{" "}
+              {namesBoth.reviewer}에게 받은 코드
+              {nativeMessage(nativeLanguage, "a2.codeHint", {
+                reviewer: namesBoth.reviewerNative,
+              }) && " · "}
               <Native id="a2.codeHint" params={{ reviewer: namesBoth.reviewerNative }} />
             </small>
           )}
@@ -211,7 +214,9 @@ function SignupForm({
             autoComplete="nickname"
           />
           <small className="hint-line">
-            화면에 보일 이름 (별명도 돼요) · <Native id="a2.displayName" />
+            화면에 보일 이름 (별명도 돼요)
+            {nativeMessage(nativeLanguage, "a2.displayName") && " · "}
+            <Native id="a2.displayName" />
           </small>
         </div>
         <div className="field">
@@ -244,7 +249,9 @@ function SignupForm({
                 native={nativeMessage(nativeLanguage, "a2.error.emailTaken")}
               />
               <Link className="text-link" href="/login" style={{ textAlign: "left" }}>
-                로그인하러 가기 · <Native id="a2.goToLogin" />
+                로그인하러 가기
+                {nativeMessage(nativeLanguage, "a2.goToLogin") && " · "}
+                <Native id="a2.goToLogin" />
               </Link>
             </>
           )}
@@ -280,7 +287,9 @@ function SignupForm({
             />
           ) : (
             <small className="hint-line">
-              8자 이상 · <Native id="a2.passwordHint" />
+              8자 이상
+              {nativeMessage(nativeLanguage, "a2.passwordHint") && " · "}
+              <Native id="a2.passwordHint" />
             </small>
           )}
         </div>
@@ -364,7 +373,9 @@ function SignupForm({
           {morePrivacy && (
             <table id="privacy-consent-details" className="consent-table">
               <caption className="sr-only">
-                개인정보 수집·이용 안내 · <Native id="a2.privacyCaption" />
+                개인정보 수집·이용 안내
+                {nativeMessage(nativeLanguage, "a2.privacyCaption") && " · "}
+                <Native id="a2.privacyCaption" />
               </caption>
               <tbody>
                 {privacySections(nativeLanguage).map((section) => (
