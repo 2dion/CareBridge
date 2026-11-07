@@ -703,8 +703,7 @@ function ReturnModal({
       )}
       <p className="info-note">
         되돌리면 검토 대기에서 빠지고, {names.worker} 오늘 화면에 주황 띠로 보여요.{" "}
-        {names.workerSubject}
-        고친 항목은 {names.reviewer}가 다시 확인해요.
+        {names.workerSubject} 고친 항목은 {names.reviewer}가 다시 확인해요.
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
         <button type="button" className="dbtn" disabled={busy} onClick={onClose}>

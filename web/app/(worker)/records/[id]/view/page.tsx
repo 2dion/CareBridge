@@ -6,7 +6,8 @@ import { nativeMessage } from "@/lib/i18n/messages";
 
 // W4 · 기록 보기(전송 완료·승인 완료). 읽기만 한다.
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { useDemo, useRoleNames } from "@/components/demo/demo-provider";
 import { Icon, type IconName } from "@/components/mobile/icon";
@@ -38,6 +39,12 @@ export default function RecordViewPage() {
   const names = useRoleNames();
   const record = demo?.db.records[id];
   const resident = demo && record ? getResident(demo.db, record.residentId) : undefined;
+  const router = useRouter();
+  const unreadable = Boolean(demo) && !resident;
+  // 읽기가 끝났는데 기록이나 어르신을 읽을 수 없으면(이전 담당 어르신, 결정 담당끊기전검사·#374) 멈추지 않고 기록 목록으로 보낸다
+  useEffect(() => {
+    if (unreadable) router.replace("/archive");
+  }, [unreadable, router]);
   if (!demo || !record || !resident) return <Loading tab="archive" />;
 
   if (record.status === "draft" || record.status === "returned") {

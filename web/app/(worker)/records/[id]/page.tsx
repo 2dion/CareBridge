@@ -122,10 +122,13 @@ export default function DraftPage() {
   const justSent = useRef(false);
   // 재가 서식 칸은 입력이 멈춘 뒤 저장한다. 두 칸을 잇달아 고쳐도 먼저 보낸 값이 옛 서버 값에 덮이지 않게 보낸 값을 모아 둔다(이슈 #139)
   const sentFields = useRef<Partial<Record<CountField, number | null>>>({});
+  const unreadable = Boolean(demo) && (!record || !getResident(demo!.db, record.residentId));
   useEffect(() => {
     if (locked && !justSent.current) router.replace(`/records/${id}/view`);
     else if (empty && record) router.replace(`/start/${record.residentId}?date=${record.careDate}`);
-  }, [locked, empty, record, id, router]);
+    // 읽기가 끝났는데 기록이나 어르신을 읽을 수 없으면(이전 담당 어르신, 결정 담당끊기전검사·#374) 멈추지 않고 오늘 화면으로 보낸다
+    else if (unreadable) router.replace("/today");
+  }, [locked, empty, record, unreadable, id, router]);
 
   useEffect(() => {
     if (!toast) return;
