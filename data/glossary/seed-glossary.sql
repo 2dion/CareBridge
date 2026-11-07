@@ -1,4 +1,4 @@
--- 용어 목록(glossary) 시드. 원본: data/glossary/terms-v0.3.csv (데이터 담당, 112개 = 기본 30 + 추가 20 + 추가 1 + 사투리 61)
+-- 용어 목록(glossary) 시드. 원본: data/glossary/terms-v0.3.csv (데이터 담당, 113개 = 기본 30 + 추가 20 + 추가 1 + 사투리 61 + 11/07 '절반 정도' 1)
 -- aliases = 다른 표현 + 검색 줄기(받아쓴 문장 속 활용형도 찾도록 어미를 뺀 말)
 -- 칸: 데이터 구조 v1.2 glossary / 결정 2026-10-21-용어표. 베트남어 번역은 seed-glossary-translations-vi.sql(glossary_translations)에 있다(11/04 #280, term_vi 칸 삭제).
 insert into public.glossary (expression, aliases, term_ko, plain_ko, chapter, page) values
@@ -114,5 +114,6 @@ insert into public.glossary (expression, aliases, term_ko, plain_ko, chapter, pa
   ('맹당구가 들었어', array['맹당구','청독','얼병','싱검'], '멍 (사투리)', '부딪히거나 맞아서 살갗 속에 퍼렇게 맺힌 피', '우리말샘(강원·전라·경상 방언)', ''),
   ('부시름이 나서', array['부시름','부시르미','꼬무라지'], '부스럼 (사투리)', '피부에 나는 종기', '우리말샘(강원·충청 방언)', ''),
   ('초꼽재기 떼야', array['초꼽재기'], '눈곱 (사투리)', '눈에서 나와 엉긴 끈끈한 것', '우리말샘(경상 방언)', ''),
-  ('목고망으로 안 넘어가', array['목고망'], '목구멍 (사투리)', '입안에서 식도로 넘어가는 곳', '우리말샘(제주 방언)', '')
+  ('목고망으로 안 넘어가', array['목고망'], '목구멍 (사투리)', '입안에서 식도로 넘어가는 곳', '우리말샘(제주 방언)', ''),
+  ('절반 정도 드셨어요', array['절반','약 절반','반 정도','반쯤','반 그릇','반 공기','반만'], '섭취량 1/2이상', '딱 절반쯤 먹음 (1/2이상으로 기록)', '9장 1절 4. 각종 기록지 양식', '348')
 on conflict (expression, term_ko) do nothing;
