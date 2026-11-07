@@ -18,10 +18,11 @@ export type Language = {
 export const LANGUAGES: readonly Language[] = [
   { code: "ko", nameKo: "한국어", nameNative: "한국어", enabled: true, sttChecked: true },
   { code: "vi", nameKo: "베트남어", nameNative: "Tiếng Việt", enabled: true, sttChecked: true },
-  // 아래 세 언어는 QA 통과 전이라 목록에만 있다(가입 화면·가입 API에서 받지 않는다)
-  { code: "zh", nameKo: "중국어(간체)", nameNative: "简体中文", enabled: false, sttChecked: false },
+  // zh·en은 QA(받아쓰기·역번역·글꼴)를 통과해 11/07 켬(이슈 #315). 원어민 문체 검수는 켠 뒤 이어서 한다
+  { code: "zh", nameKo: "중국어(간체)", nameNative: "简体中文", enabled: true, sttChecked: true },
+  // mn은 받아쓰기(Groq whisper 자동 인식)가 몽골어를 다른 언어로 잘못 들어 꺼 둔다(이슈 #315). 목록에만 있다
   { code: "mn", nameKo: "몽골어", nameNative: "Монгол хэл", enabled: false, sttChecked: false },
-  { code: "en", nameKo: "영어", nameNative: "English", enabled: false, sttChecked: false },
+  { code: "en", nameKo: "영어", nameNative: "English", enabled: true, sttChecked: true },
 ] as const;
 
 /** 새 Mock 계정과 A2 모국어 칸의 초기 값. 다른 언어의 빠진 번역을 대신하지 않는다. */

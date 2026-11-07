@@ -82,8 +82,8 @@ describe("parseSignupInput", () => {
     expect(r.ok || r.response).toEqual({ status: 404, body: { error: "invalid_code" } });
   });
 
-  it("이름이 없거나 모국어가 ko·vi가 아니면 400 invalid_input", () => {
-    for (const bad of [{ ...body, name: " " }, { ...body, native_lang: "en" }, null, "x"]) {
+  it("이름이 없거나 모국어가 켜진 언어(ko·vi·zh·en)가 아니면 400 invalid_input", () => {
+    for (const bad of [{ ...body, name: " " }, { ...body, native_lang: "mn" }, null, "x"]) {
       const r = parseSignupInput(bad);
       expect(r.ok || r.response).toEqual({ status: 400, body: { error: "invalid_input" } });
     }

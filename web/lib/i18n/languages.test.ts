@@ -27,10 +27,16 @@ describe("언어 목록(languages.ts)", () => {
     }
   });
 
-  it("중국어(간체)·몽골어·영어가 목록에 있고 QA 통과 전이라 꺼져 있다", () => {
-    for (const code of ["zh", "mn", "en"] as const) {
+  it("중국어(간체)·영어는 QA를 통과해 켜져 있고, 몽골어는 받아쓰기 확인 전이라 꺼져 있다(#315)", () => {
+    for (const code of ["zh", "en"] as const) {
       const language = LANGUAGES.find((item) => item.code === code);
-      expect(language, code).toMatchObject({ enabled: false, sttChecked: false });
+      expect(language, code).toMatchObject({ enabled: true, sttChecked: true });
+    }
+    expect(LANGUAGES.find((item) => item.code === "mn")).toMatchObject({
+      enabled: false,
+      sttChecked: false,
+    });
+    for (const code of ["zh", "mn", "en"] as const) {
       expect(parseNativeLang(code)).toBe(code);
     }
     expect(languageNameKo("zh")).toBe("중국어(간체)");
@@ -39,9 +45,11 @@ describe("언어 목록(languages.ts)", () => {
   });
 
   it("고를 수 있는 언어는 enabled인 것만", () => {
-    expect([...SELECTABLE_LANGS]).toEqual(["ko", "vi"]);
+    expect([...SELECTABLE_LANGS]).toEqual(["ko", "vi", "zh", "en"]);
     expect(parseSelectableLang("vi")).toBe("vi");
-    for (const value of ["zh", "mn", "en", "th", null]) {
+    expect(parseSelectableLang("zh")).toBe("zh");
+    expect(parseSelectableLang("en")).toBe("en");
+    for (const value of ["mn", "th", null]) {
       expect(parseSelectableLang(value)).toBeUndefined();
     }
   });
