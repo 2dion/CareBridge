@@ -447,6 +447,8 @@ function ResidentEditModal({
   const [careType, setCareType] = useState<Resident["careType"]>(resident.careType);
   const home = careType === "home";
   const [workerIds, setWorkerIds] = useState<string[]>(selectedWorkerIds);
+  // 담당 시작일·방문 요일·방문 시간은 담당 연결 줄(assignments)에만 저장된다. 담당이 없으면 칸을 숨긴다
+  const linked = workerIds.length > 0;
   const [days, setDays] = useState<number[]>(resident.visitDays ?? []);
   const [startDate, setStartDate] = useState(resident.startDate);
   // schedule은 표시용 글자라 "평일 14:00~17:00"처럼 요일 말이 붙어 있을 수 있다. 시각(HH:MM)만 칸에 넣는다
@@ -462,19 +464,27 @@ function ResidentEditModal({
   const save = async () => {
     const fullName = name.trim();
     if (!fullName || fullName.length > 80) return setError("이름을 1~80자로 써 주세요.");
-    if (!startDate || startDate > today)
+    if (linked && (!startDate || startDate > today))
       return setError("담당 시작일은 오늘이나 그 전이어야 해요.");
-    if (home && days.length === 0)
+    if (linked && home && days.length === 0)
       return setError("재가 어르신은 방문 요일을 하나 이상 골라 주세요.");
-    if ((from && !to) || (!from && to) || (from && to && from >= to))
+    if (linked && ((from && !to) || (!from && to) || (from && to && from >= to)))
       return setError("방문 시간은 시작이 끝보다 앞이어야 해요.");
     setBusy(true);
     try {
       const result = await onSave(
         {
-          visitDays: home ? days : null,
-          visitTime: home && from && to ? `${from}~${to}` : null,
-          startDate,
+          ...(linked
+            ? {
+                visitDays: home ? days : null,
+                visitTime: home && from && to ? `${from}~${to}` : null,
+                startDate,
+              }
+            : {
+                visitDays: home ? (resident.visitDays ?? []) : null,
+                visitTime: resident.visitTime ?? null,
+                startDate: resident.startDate,
+              }),
           workerIds,
           ...(fullName !== resident.name ? { name: fullName } : {}),
           ...(careType !== resident.careType ? { careType } : {}),
@@ -571,71 +581,78 @@ function ResidentEditModal({
         <p className="fhint">
           가입한 {workerLabel}만 고를 수 있어요. 고른 {workerLabel}마다 담당 연결 한 줄이 생겨요.
         </p>
-        <div>
+        {!linked ? (
+          <p className="info-note" style={{ marginTop: 14 }}>
+            담당 {workerLabel}부터 골라 주세요. 담당 시작일·방문 요일·방문 시간은 담당 연결에
+            저장돼요.
+          </p>
+        ) : (
           <div>
-            <label className="flabel" htmlFor="assign-start" style={{ marginTop: 14 }}>
-              담당 시작일
-            </label>
-            <input
-              id="assign-start"
-              className="field"
-              type="date"
-              max={today}
-              value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
-            />
-            <p className="fhint">이 날부터 작성 전 기록을 셉니다.</p>
+            <div>
+              <label className="flabel" htmlFor="assign-start" style={{ marginTop: 14 }}>
+                담당 시작일
+              </label>
+              <input
+                id="assign-start"
+                className="field"
+                type="date"
+                max={today}
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+              />
+              <p className="fhint">이 날부터 작성 전 기록을 셉니다.</p>
+            </div>
+            {home ? (
+              <>
+                <p className="flabel" style={{ marginTop: 14 }}>
+                  방문 요일
+                </p>
+                <div className="days big" role="group" aria-label="방문 요일">
+                  {dayNames.map((name, index) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className={days.includes(index + 1) ? "on" : ""}
+                      aria-pressed={days.includes(index + 1)}
+                      onClick={() => toggle(index + 1)}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+                <p className="fhint">
+                  급여제공계획서의 횟수대로 고르세요.
+                  {days.length > 0 &&
+                    ` ${days.map((d) => dayNames[d - 1]).join("·")} = 주 ${days.length}회`}
+                </p>
+                <p className="flabel" style={{ marginTop: 14 }}>
+                  방문 시간 (표시용)
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    className="field"
+                    type="time"
+                    aria-label="방문 시작"
+                    value={from}
+                    onChange={(event) => setFrom(event.target.value)}
+                  />
+                  –
+                  <input
+                    className="field"
+                    type="time"
+                    aria-label="방문 끝"
+                    value={to}
+                    onChange={(event) => setTo(event.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="info-note" style={{ marginTop: 14 }}>
+                시설 어르신은 매일 기록해요. 방문 요일이 없어요.
+              </p>
+            )}
           </div>
-          {home ? (
-            <>
-              <p className="flabel" style={{ marginTop: 14 }}>
-                방문 요일
-              </p>
-              <div className="days big" role="group" aria-label="방문 요일">
-                {dayNames.map((name, index) => (
-                  <button
-                    key={name}
-                    type="button"
-                    className={days.includes(index + 1) ? "on" : ""}
-                    aria-pressed={days.includes(index + 1)}
-                    onClick={() => toggle(index + 1)}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-              <p className="fhint">
-                급여제공계획서의 횟수대로 고르세요.
-                {days.length > 0 &&
-                  ` ${days.map((d) => dayNames[d - 1]).join("·")} = 주 ${days.length}회`}
-              </p>
-              <p className="flabel" style={{ marginTop: 14 }}>
-                방문 시간 (표시용)
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  className="field"
-                  type="time"
-                  aria-label="방문 시작"
-                  value={from}
-                  onChange={(event) => setFrom(event.target.value)}
-                />
-                –
-                <input
-                  className="field"
-                  type="time"
-                  aria-label="방문 끝"
-                  value={to}
-                  onChange={(event) => setTo(event.target.value)}
-                />
-              </div>
-            </>
-          ) : (
-            <p className="info-note" style={{ marginTop: 14 }}>
-              시설 어르신은 매일 기록해요. 방문 요일이 없어요.
-            </p>
-          )}
-        </div>
+        )}
         {error && (
           <p className="warn-text" role="alert" style={{ marginTop: 10 }}>
             {error}
