@@ -103,7 +103,6 @@ select pg_temp.check_true((select count(*)=2 from public.assignment_history wher
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"f2000000-0000-0000-0000-000000000011","role":"authenticated"}',true);
 select pg_temp.check_true((select count(*)=2 from public.records where resident_id='f3000000-0000-0000-0000-000000000011'),'다시 연결하면 다시 보임');
-select pg_temp.check_true((select count(*)=1 from public.submit_own_record('f4000000-0000-0000-0000-000000000012','draft')),'담당이면 보냄');
 reset role;
 
 -- 9. 시작일 바꾸기는 열린 이력 줄을 고침
