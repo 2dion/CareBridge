@@ -10,6 +10,7 @@ import {
   parseHelperAnswer,
   SAFETY_NOTICE,
   safetyNotice,
+  usedDialectTerm,
   withDialectNotice,
   withSafetyNotice,
   type HelperDeps,
@@ -778,6 +779,86 @@ describe("사투리 풀이 답의 출처와 짐작 표시(이슈 #357)", () => {
 
   it("교재에서 못 찾은 답(found=false)에는 짐작·출처를 붙이지 않는다", () => {
     expect(withDialectNotice(NOT_FOUND, [dialect], "vi")).toBe(NOT_FOUND);
+  });
+
+  // 이슈 #392: 질문에 사투리 줄이 걸렸어도 답이 교재로만 했으면 짐작 안내·우리말샘 출처를 붙이지 않는다
+  it("사투리 줄이 검색됐지만 교재 절로 답한 경우는 출처·글이 그대로이고 구분자(;)도 바뀌지 않는다", async () => {
+    const textbook = JSON.stringify({
+      ko: "숨이 차면 상체를 세워 앉히고 바로 알리세요.",
+      native: "Hãy cho ngồi dậy và báo ngay.",
+      source: "5장 2절; 14장 1절",
+      found: true,
+    });
+    const deps = fakeDeps({
+      searchGlossary: vi.fn(async () => [dialect, term]),
+      askClaude: vi.fn(async () => textbook),
+    });
+    const r = await askHelper({ question: "몸이 대근혀 하시고 숨이 차요" }, deps);
+    expect(r.body.source).toBe("5장 2절; 14장 1절");
+    expect(r.body.ko).not.toContain("짐작");
+    expect(r.body.native).not.toContain("phỏng đoán");
+    expect(vi.mocked(deps.saveMessage).mock.calls[0][0].source).toBe("5장 2절; 14장 1절");
+  });
+
+  it("저장된 교재 답을 다시 쓸 때도 같은 기준(사투리 줄이 걸려도 붙이지 않음)", async () => {
+    const stored = {
+      ko: "본 것만 기록체로 짧게 쓰세요.",
+      native: "Chỉ ghi những gì đã thấy, ngắn gọn.",
+      source: "5장 2절; 14장 1절",
+      found: true,
+    };
+    const deps = fakeDeps({
+      findSavedAnswer: vi.fn(async () => stored),
+      searchGlossary: vi.fn(async () => [dialect]),
+    });
+    const r = await askHelper({ question: "몸이 대근혀 하시는데 기록은 어떻게 써요?" }, deps);
+    expect(r.body).toMatchObject(stored);
+    expect(deps.askClaude).not.toHaveBeenCalled();
+  });
+
+  it("usedDialectTerm: 출처 표시, '사투리·방언·짐작', 사투리 줄의 표현·용어·풀이 중 하나면 쓴 것으로 본다", () => {
+    const base = { native: "", found: true };
+    expect(
+      usedDialectTerm({ ...base, ko: "피곤하다는 뜻이에요.", source: "[용어]" }, [dialect]),
+    ).toBe(true);
+    expect(
+      usedDialectTerm({ ...base, ko: "피곤하다는 뜻이에요.", source: "우리말샘(충청 방언)" }, [
+        dialect,
+      ]),
+    ).toBe(true);
+    expect(
+      usedDialectTerm({ ...base, ko: "사투리로 고단하다는 뜻이에요.", source: "" }, [dialect]),
+    ).toBe(true);
+    expect(
+      usedDialectTerm({ ...base, ko: "'몸이 대근혀'는 피곤하다는 말이에요.", source: "9장" }, [
+        dialect,
+      ]),
+    ).toBe(true);
+    expect(
+      usedDialectTerm({ ...base, ko: "몸이 고단하고 피곤하다는 뜻이에요.", source: null }, [
+        dialect,
+      ]),
+    ).toBe(true);
+    expect(
+      usedDialectTerm({ ...base, ko: "숨이 차면 바로 알리세요.", source: "5장 2절; 14장" }, [
+        dialect,
+      ]),
+    ).toBe(false);
+    expect(
+      usedDialectTerm({ ...base, ko: "용어 설명은 교재 7장에 있어요.", source: "7장" }, [dialect]),
+    ).toBe(false);
+  });
+
+  it("교재 출처의 구분자(;)를 바꾸지 않고 우리말샘 출처만 뒤에 더한다", () => {
+    const answer = {
+      ko: "사투리로 피곤하다는 뜻이에요.",
+      native: "",
+      source: "5장 2절; 10장, [용어]",
+      found: true,
+    };
+    expect(withDialectNotice(answer, [dialect], "ko").source).toBe(
+      "5장 2절; 10장, 우리말샘(충청 방언)",
+    );
   });
 
   it("프롬프트가 우리말샘 출처 표기와 '[용어]' 금지를 알려 준다", () => {

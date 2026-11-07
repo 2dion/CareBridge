@@ -172,23 +172,62 @@ const DIALECT_GUESS_KO = "사투리 풀이는 사전의 짐작이에요.";
 /** 용어 목록의 사투리 줄(출처 chapter가 '우리말샘'으로 시작, 결정 2026-11-04-사투리사전풀이) */
 export const isDialectTerm = (term: GlossaryTerm) => term.chapter.startsWith(DIALECT_SOURCE);
 
+/** 모델이 [용어] 줄을 썼다고 표시한 출처 조각(예: "[용어]", "[용어] 몸이 대근혀") */
+const GLOSSARY_TAG = /^\[?\s*용어\s*\]?/;
+
 /**
- * 사투리 줄로 답했으면 출처와 '짐작' 표시를 모델에 맡기지 않고 서버가 붙인다(이슈 #357, 결정 사투리사전풀이 2·3번).
+ * 답이 사투리 줄을 실제로 썼는지(이슈 #392). 질문의 용어 검색에 사투리 줄이 걸렸다는 것만으로는 붙이지 않는다.
+ * 기준(하나라도 맞으면 썼다고 본다):
+ * 1. 모델 출처에 우리말샘이나 [용어] 표시가 있다(프롬프트 6번: 사투리 줄을 쓰면 그 출처를 쓴다).
+ * 2. 답 글(ko)에 '사투리'·'방언'·'짐작'이 있다(프롬프트 3번: 사투리 풀이는 짐작이라고 밝힌다).
+ * 3. 답 글(ko)에 그 사투리 줄의 표현·용어·쉬운 풀이가 그대로 들어 있다.
+ */
+export function usedDialectTerm(answer: HelperAnswer, dialect: readonly GlossaryTerm[]): boolean {
+  const source = answer.source ?? "";
+  if (source.includes(DIALECT_SOURCE) || /\[\s*용어\s*\]/.test(source)) return true;
+  if (/사투리|방언|짐작/.test(answer.ko)) return true;
+  return dialect.some((term) =>
+    [term.matched_expression, term.term_ko, term.plain_ko].some(
+      (text) => text.trim() !== "" && answer.ko.includes(text),
+    ),
+  );
+}
+
+/**
+ * 출처에 사투리 줄의 출처를 더한다. 모델이 쓴 교재 장·절·쪽과 구분자(,·;)는 그대로 두고 '[용어]' 꼬리표만 뺀다(이슈 #392).
+ * 이미 들어 있는 출처는 두 번 붙이지 않는다.
+ */
+function mergeDialectSource(source: string, chapters: readonly string[]): string {
+  const tokens = source.split(/([,;])/);
+  let merged = "";
+  for (let i = 0; i < tokens.length; i += 2) {
+    const part = tokens[i].trim();
+    if (!part || GLOSSARY_TAG.test(part)) continue;
+    merged += (merged ? `${tokens[i - 1]} ` : "") + part;
+  }
+  for (const chapter of chapters) {
+    if (!merged.includes(chapter)) merged += (merged ? ", " : "") + chapter;
+  }
+  return merged;
+}
+
+/**
+ * 답이 사투리 줄을 썼으면 출처와 '짐작' 표시를 모델에 맡기지 않고 서버가 붙인다(이슈 #357·#392, 결정 사투리사전풀이 2·3번).
  * - source: 모델이 쓴 교재 장·절·쪽은 두고 '[용어]' 꼬리표는 빼며, 사투리 줄의 출처(예: 우리말샘(충청 방언))를 더한다.
  * - ko·native 끝에 '사전의 짐작'이라는 안내를 한 번만 붙인다. native는 그 언어의 고정 문구가 있을 때만(한국어 작성자는 빈칸).
- * 사투리 줄이 없거나 found=false면 그대로 둔다(교재 절로 답한 질문의 출처는 지금처럼).
+ * 사투리 줄이 없거나, found=false거나, 사투리 줄이 걸렸어도 답이 교재로만 했으면(usedDialectTerm) 그대로 둔다.
+ * 저장된 답을 다시 쓸 때(find_helper_answer)도 같은 함수를 거치므로 기준이 같다.
  */
 export function withDialectNotice(
   answer: HelperAnswer,
   terms: readonly GlossaryTerm[],
   lang: NativeLang,
 ): HelperAnswer {
-  const dialect = [...new Set(terms.filter(isDialectTerm).map((term) => term.chapter))];
-  if (!answer.found || dialect.length === 0) return answer;
-  const kept = (answer.source ?? "")
-    .split(/\s*[,;]\s*/)
-    .filter((part) => part && !/^\[?\s*용어\s*\]?/.test(part));
-  const source = [...kept, ...dialect.filter((chapter) => !kept.includes(chapter))].join(", ");
+  const dialectTerms = terms.filter(isDialectTerm);
+  const dialect = [...new Set(dialectTerms.map((term) => term.chapter))];
+  if (!answer.found || dialect.length === 0 || !usedDialectTerm(answer, dialectTerms))
+    return answer;
+  const source = mergeDialectSource(answer.source ?? "", dialect);
   const ko = answer.ko.includes("짐작") ? answer.ko : `${answer.ko} ${DIALECT_GUESS_KO}`.trim();
   const guess = HELPER_FIXED[lang]?.dialectGuess;
   const native =
