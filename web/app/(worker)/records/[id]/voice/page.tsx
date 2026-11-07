@@ -35,9 +35,12 @@ export default function VoicePage() {
 
   const record = demo?.db.records[id];
   const locked = record && record.status !== "draft" && record.status !== "returned";
+  const unreadable = Boolean(demo) && (!record || !getResident(demo!.db, record.residentId));
   useEffect(() => {
     if (locked) router.replace(`/records/${id}/view`);
-  }, [locked, id, router]);
+    // 읽기가 끝났는데 기록이나 어르신을 읽을 수 없으면(이전 담당 어르신·지운 기록, #374·#393) 멈추지 않고 오늘 화면으로 보낸다
+    else if (unreadable) router.replace("/today");
+  }, [locked, unreadable, id, router]);
 
   const upload = async () => {
     if (!demo) return;
