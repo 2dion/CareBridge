@@ -28,6 +28,7 @@ insert into public.profiles(id,org_id,role,name,native_lang) values
 set local role service_role;
 insert into public.helper_conversations(id,worker_id,title) values
  ('d3000000-0000-0000-0000-000000000001','d2000000-0000-0000-0000-000000000001','갑'),
+ ('d3000000-0000-0000-0000-000000000002','d2000000-0000-0000-0000-000000000002','을'),
  ('d3000000-0000-0000-0000-000000000003','d2000000-0000-0000-0000-000000000003','한국어'),
  ('d3000000-0000-0000-0000-000000000004','d2000000-0000-0000-0000-000000000004','병');
 insert into public.helper_messages(worker_id,conversation_id,question,question_ko,answer_ko,answer_native,source,found,created_at) values
