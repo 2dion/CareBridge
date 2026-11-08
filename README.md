@@ -6,7 +6,7 @@
 
 | 바로가기 | |
 | --- | --- |
-| 시연 사이트 | https://carebridge-codyssey.vercel.app (실제 AI 연결) |
+| 배포 사이트 | https://carebridge-codyssey.vercel.app (실제 AI 연결) |
 | 시연 영상 | [시연 영상 (YouTube)](https://youtu.be/1nv4bjpkDQ8) |
 | 발표 자료 | [최종 발표 자료 (미리캔버스)](https://www.miricanvas.com/v2/ko/design2/v/c05f5033-60ed-4c87-b464-3cccf4a8ffa6) |
 | 기획안 | [기획안 v2.0.0](문서/기획/기획-v2.0.0.md) |
