@@ -15,6 +15,8 @@ DB 쓰기 전에 CLI/MCP·환경 변수의 대상 ref가 코디세이 `fffgpgrnp
 
 ## 들어 있는 것
 
+마이그레이션을 모두 적용한 public 표는 18개입니다(`create table` 19개 − 지운 `comments` 1개). 줄마다 그때의 표 개수는 적지 않으며, 기준은 [데이터 구조](../문서/설계/데이터구조-v2.3.11.md)입니다.
+
 | 파일 | 내용 |
 | --- | --- |
 | `config.toml` | `supabase init`이 만든 로컬 설정 (기본값 그대로) |
@@ -32,9 +34,27 @@ DB 쓰기 전에 CLI/MCP·환경 변수의 대상 ref가 코디세이 `fffgpgrnp
 | `migrations/20261028150000_return_reason_native.sql` | 되돌린 사유 번역 저장 함수 `save_return_reason_native`(service_role 전용, 사유가 바뀌었으면 `stale_reason`) |
 | `migrations/20261029130000_english_names.sql` | 영어 이름 세 개: `confirmed` → `confirmed_by_worker`, Agent 도구 `search_glossary`·`return_draft`, 칸 이름을 쓰는 함수 다시 만들기 |
 | `migrations/20261029160000_save_ai_item_check.sql` | `save_ai_item` mode `check`: 재가 제공 지원 재검사(검사 5) 결과로 status·reason·reason_native만 바꿈(작성자, draft·returned) |
-| `migrations/20261031100000_helper_messages.sql` | W6(도우미) 대화 표 `helper_messages`(#218, 표 14개): 넣기는 서버(service_role)만, 작성자는 내 행·관리자·강사는 같은 기관 읽기, `org_id`는 DB가 작성자 프로필에서 채움 |
-| `migrations/20261103150000_glossary_translations.sql` | 다국어 확장 단계 2(#259): 용어 번역 표 `glossary_translations`(표 17개), `search_glossary(expression, max_results, lang)` 결과 `term_native`, `records.native_lang`(DB가 작성자 프로필에서 채움, 고정). 회귀 SQL `tests/glossary-translations.sql` |
-| `migrations/20261103160000_helper_conversations.sql` | W6 도우미 대화 묶음(#251, 표 18개): `helper_conversations`(제목·마지막 질문 시각·질문 수, 넣기는 서버만, 시각·수는 트리거만), `helper_messages.conversation_id`(필수, 대화의 작성자와 같은지 DB가 검사), 있던 행은 작성자·한국 날짜별 대화로 묶음. 회귀 SQL `tests/helper-conversations.sql` |
+| `migrations/20261030090000_list_org_staff_native_lang.sql` | 관리자 명단 `list_org_staff()`에 모국어 칸(명단모국어 결정) |
+| `migrations/20261030113134_resident_names_photos.sql` | 어르신 실명·선택 사진(#99): 사진 비공개 버킷 `resident-photos`, JPEG만 보관 |
+| `migrations/20261031100000_helper_messages.sql` | W6(도우미) 대화 표 `helper_messages`(#218): 넣기는 서버(service_role)만, 작성자는 내 행·관리자·강사는 같은 기관 읽기, `org_id`는 DB가 작성자 프로필에서 채움 |
+| `migrations/20261102103058_audio_cleanup_scheduler.sql` | 녹음 자동 정리의 예약·HTTP 호출 기반(URL·비밀 값·예약은 환경별 운영 설정) |
+| `migrations/20261103090000_submit_needs_worker_confirm.sql` | 전송 조건에서 `source = 'worker'` 예외를 뺌: AI가 다시 쓴 항목도 작성자가 확인해야 전송(#236) |
+| `migrations/20261103120000_api_quota.sql` | AI 호출 제한(#256): 표 `api_usage`, `take_api_quota`(서버 전용) |
+| `migrations/20261103150000_glossary_translations.sql` | 다국어 확장 단계 2(#259): 용어 번역 표 `glossary_translations`, `search_glossary(expression, max_results, lang)` 결과 `term_native`, `records.native_lang`(DB가 작성자 프로필에서 채움, 고정). 회귀 SQL `tests/glossary-translations.sql` |
+| `migrations/20261103160000_helper_conversations.sql` | W6 도우미 대화 묶음(#251): `helper_conversations`(제목·마지막 질문 시각·질문 수, 넣기는 서버만, 시각·수는 트리거만), `helper_messages.conversation_id`(필수, 대화의 작성자와 같은지 DB가 검사), 있던 행은 작성자·한국 날짜별 대화로 묶음. 회귀 SQL `tests/helper-conversations.sql` |
+| `migrations/20261103170000_helper_conversations_first_message.sql` | 도우미 대화의 마지막 질문 시각을 첫 질문 시각에 맞춤 |
+| `migrations/20261103180000_find_helper_answer.sql` | 도우미 같은 질문 재사용 함수 `find_helper_answer`(#229, service_role 전용) |
+| `migrations/20261104100000_submit_support_minutes_guard.sql` | 재가 지원 시간 합 검사(검사 5)를 전송 때 DB도 함(#278) |
+| `migrations/20261104120000_drop_glossary_term_vi.sql` | 옛 칸 `glossary.term_vi`와 동기화 트리거 삭제(#280) |
+| `migrations/20261105100000_native_lang_zh_mn_en.sql` | 모국어 허용 값에 `zh`·`mn`·`en` 추가(#312, 제약만 바뀜) |
+| `migrations/20261106120000_search_glossary_native.sql` | `search_glossary`가 모국어 낱말·고정 번역으로도 찾음(#362) |
+| `migrations/20261106130000_helper_messages_native_lang.sql` | `helper_messages.native_lang`(답을 만든 때 작성자 언어, #354)와 옛 행 채우기 |
+| `migrations/20261106140000_helper_messages_keep_native_lang.sql` | `helper_messages.native_lang`을 만든 뒤 바꾸지 못하게 하는 트리거 |
+| `migrations/20261107100000_records_select_assignment.sql` | 담당이 끝난 작성자에게 그 어르신의 끝난 기록 숨김(#367) |
+| `migrations/20261107140000_assignment_end_check_history.sql` | 담당 끊기 전 검사와 담당 이력 표 `assignment_history`(#379·#380) |
+| `migrations/20261107180000_assignment_open_work_resident_day.sql` | 담당 끊기 전 검사의 빈 날을 어르신 기준으로 셈(#391) |
+| `migrations/20261107200000_assignments_keep_keys.sql` | `assignments`의 작성자·어르신·기관은 만든 뒤 바꾸지 못함(#394) |
+| `migrations/20261107200100_helper_messages_native_lang_backfill.sql` | 도우미 답 언어 옛 행 채우기 고침(#394) |
 | `seed.sql` | 데모 기관 2개, 합성 어르신 3명, 계정 4개, 담당 연결. 합성 사례만 |
 | `demo-data.sql` | 시연 데이터 다시 채우기(#156): 데모 두 기관의 기록을 지우고 합성 어르신 8명·시연용 배경 기록 14건을 넣음. `data/demo/build_demo_sql.py`가 만듦 |
 | `reset-demo.sql` | 리허설 뒤 시나리오 1·2·3 어르신의 '오늘' 기록만 지움 |
@@ -106,8 +126,6 @@ npx supabase db push                               # migrations/ 를 클라우�
 
 ## 남은 것
 
-- ~~용어 CSV를 시드로 넣기~~ → 10/28 `data/glossary/seed-glossary.sql`(51개, 11/06 사투리 61개 더해 112개 #230)·`data/manual/seed-manual-sections.sql`(12절)을 클라우드 DB에 넣음. 10/30 M13(신체활동지원, #183), 11/03 M14·M15(호흡곤란, #226)를 더해 15절 — 클라우드에서 한 번 더 돌리면 새 절만 들어감. 둘 다 다시 돌려도 안전(`on conflict`·`where not exists`).
-- ~~남은 녹음 파일 주기 정리~~ → 10/28 PR #80: `GET /api/cron/audio-cleanup`(service_role, Storage API)을 GitHub Actions `audio-cleanup.yml`이 매시간 부름. `CRON_SECRET`을 Vercel과 GitHub Secrets에 같은 값으로 둠.
 - 서식 기준 데이터(`get_form_spec`용)는 표 없이 서버 코드 안 JSON(결정 기록 `문서/결정/2026-10-21-용어표.md`).
 
 ## 10/28 계약 보강
